@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 import raven as r
-from connections import ConnectionStore, defaults, write_private
+from connections import ConnectionStore, write_private
 from contracts.app_lifetime import AppLifetime
 from coverage import CoverageStore, new_plan, propose
 from sequence import SequenceStore
@@ -32,9 +32,18 @@ def capture(output: Path) -> None:
     output.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="sprintwake-showcase-") as temp:
         root = Path(temp)
-        config = defaults()
-        config["paths"].update(root=str(root / "Productions"), workspace=str(root / "EngineWork"))
-        config["selected"] = {"llm": "none", "image": "none", "video": "none"}
+        config = {
+            "version": 1,
+            "paths": {
+                "root": str(root / "Productions"),
+                "workspace": str(root / "EngineWork"),
+                "engine": str(ROOT / "engine"),
+                "python": str(ROOT / "runtime/bundle-venv/bin/python"),
+            },
+            "comfyUrl": "http://127.0.0.1:8188",
+            "selected": {"llm": "none", "image": "none", "video": "none"},
+            "llmProfiles": [], "workflowProfiles": [],
+        }
         config_path = root / "Settings/connections.json"
         for name in ("llm-services.json", "tts-services.json", "soundtrack-services.json"):
             write_private(config_path.parent / "EngineSettings" / name, {"services": []})
@@ -42,7 +51,10 @@ def capture(output: Path) -> None:
         guard = AppLifetime().enter_app()
         studio = None
         try:
-            studio = ProductionStudio(connection_store=ConnectionStore(config_path), connection_settings=config)
+            studio = ProductionStudio(connection_store=ConnectionStore(config_path), connection_settings=config,
+                                      start_backend=False)
+            studio.backend.credential_loader = lambda _: ""
+            studio.submit("boot", studio._bootstrap, studio._booted, scoped=False)
             studio.update_guard = guard
 
             def pump(seconds=.2):

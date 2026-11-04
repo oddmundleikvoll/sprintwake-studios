@@ -26,15 +26,23 @@ the current overview and later entries; they are not a remaining-work list.
   neither Developer ID nor notarization; model weights/services remain external.
 - Three real native screenshots use a fictional project and already-public art.
   The director conversation is scripted and explicitly disclosed, with no model
-  inference. scripts/capture-showcase.sh recreates the isolated capture session.
+  inference. scripts/capture-showcase.sh recreates the isolated capture session
+  with explicit empty private service settings and no reads of local defaults.
 - Local verification passes 269 app tests, seven native CTest suites, pure
   contract parity, and 342 engine CPU tests with five expected optional external
   worker skips. The source window passes all 194 native checks with zero Raven
   errors. Additional tests cover English/legacy conversation auto-titles,
   save-before-generation ordering and valid director-guide JSON examples.
-- Independent source/guide review is complete. Standalone relocated-bundle and
-  hosted CI verification are in progress. No app binary, appcast or model weights
-  are published; CC BY-NC-SA 4.0 and upstream notices remain unchanged.
+- Independent source/guide review is complete. A fresh 0.10.2/build 16 bundle
+  passed the same 194 controls after relocation to a read-only path, using a
+  writable external QA capture folder. Deep/strict code signatures remained
+  valid; English locale metadata and the packaged guide match source. Disposable
+  bundles were unregistered and moved to Trash. Full hosted
+  [GitHub CI](https://github.com/oddmundleikvoll/sprintwake-studios/actions/runs/41924455474)
+  passes for source commit 6adf7da: clean app build, 269 app tests, seven CTest
+  suites, contract parity and 342 CPU tests with five optional worker skips.
+  No app binary, appcast or model weights are published; CC BY-NC-SA 4.0 and
+  upstream notices remain unchanged.
 
 # Public source foundation — 2026-11-04
 

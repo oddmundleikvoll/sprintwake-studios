@@ -1,7 +1,7 @@
 # Sprintwake Studios — mål og prosjektstatus
 
 Oppdatert 4. november 2026. Installert versjon: **0.10.1, build 15**.
-Kildeversjon under verifikasjon: **0.10.2, build 16**, med engelsk grensesnitt og offentlig README med skjermbilder. Installert app er ikke erstattet.
+Kildeversjon på GitHub: **0.10.2, build 16**, med engelsk grensesnitt og README med skjermbilder og tidlig installasjon. Installert app er ikke erstattet.
 Dette er den samlede oversikten over brukerens mål, levert arbeid og neste steg.
 [STATUS.md](STATUS.md) inneholder detaljert verifikasjon og historikk.
 
@@ -70,6 +70,20 @@ Dette er teknisk kvalifisering med syntetiske medier og testtjenester, ikke bevi
 på kvaliteten til en ferdig langfilm eller støtte for alle eksterne modeller.
 Automatisk filmproduksjon og videreføring er fortsatt kvalifisert for lokal
 Qwen/LTX. Vilkårlige Comfy-grafer får ikke automatisk de samme egenskapene.
+
+## Engelsk GitHub-versjon 0.10.2
+
+Appens grensesnitt, menyer og nye standardtekster er engelske. AI-regissøren bruker
+engelsk som standard og følger brukerens språkvalg. Eksisterende prosjektinnhold
+og lagrede navn beholdes. GitHub-beskrivelsen og README fremhever lange filmer,
+innebygd AI-regissør og lokal kjøring, med ekte skjermbilder fra et fiktivt
+prosjekt. Regissørsamtalen er tydelig merket som en skriptet demo.
+
+269 app-tester, sju CTest-suiter, 342 CPU-kontroller (fem valgfrie worker-hopp) og
+194 vinduskontroller fra både kilde og flyttet, skrivebeskyttet app består.
+Modellinferens ble ikke startet. Installert app, prosjekter og modelloppsett er
+urørt. Den offentlige kildekoden kan bygges lokalt uten Developer ID/notarisering.
+[GitHub CI for 0.10.2 består](https://github.com/oddmundleikvoll/sprintwake-studios/actions/runs/41924455474).
 
 ## Offentlig GitHub-kilde
 
