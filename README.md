@@ -7,6 +7,12 @@ cast, scenes, generated images and video, an editable cut, sound and a finished 
 Build a longer story scene by scene, keep continuity, and resume production from saved
 checkpoints instead of starting over.
 
+**Local or cloud models — your choice.** Connect cloud-hosted language models
+through supported API profiles, and image/video workflows through compatible remote
+ComfyUI services. You can also run entirely locally. See [supported connections
+and workflow limits](MODEL_CONNECTIONS.md); full-film continuation currently uses
+the qualified local Qwen/LTX workflow.
+
 ![Sprintwake Studios film workspace](assets/screenshots/film-workspace.png)
 *The native film workspace: scene outline, storyboard preview, shot details and an editable timeline. Demo project shown.*
 
@@ -35,7 +41,7 @@ open "$HOME/Applications/Sprintwake Studios.app"
 ```
 
 Then open **Models** (the **Models and connections** panel), choose a production folder, and connect your
-local model services. The app includes its production engine, Python CPU runtime and
+local or cloud-hosted model services. The app includes its production engine, Python CPU runtime and
 FFmpeg. **Model weights and inference services are installed separately.** See
 [model setup and supported profiles](MODEL_CONNECTIONS.md).
 
@@ -51,6 +57,9 @@ FFmpeg. **Model weights and inference services are installed separately.** See
 - **A fully local workflow.** Use locally hosted language, image and video models.
   Keep projects, media and credentials on your Mac. No cloud account is required
   for a local setup; optional external providers can also be connected.
+- **Cloud connections when you want them.** Use supported hosted language-model
+  APIs for the director and remote ComfyUI image/video profiles for independent
+  takes. Provider and workflow capabilities determine what each connection supports.
 - **Editing without regeneration.** Select retained takes, trim and reorder shots,
   arrange scenes, set runtime goals and undo changes while preserving original media.
 - **Sound across cuts.** Work with separate dialogue, music, ambience and effects
@@ -81,8 +90,9 @@ The interface is English; project text and dialogue can use your chosen language
 
 The qualified full-film/continuation workflow uses **Qwen-Image-2.1-Turbo + LTX-2.5 Q8**
 through a matching external local ComfyUI installation. The app does not bundle that
-inference installation or its weights. The director can use a supported local language
-service; model quality, memory requirements and generation speed depend on your setup.
+inference installation or its weights. The director can use a supported local or
+cloud-hosted language service; model quality, memory requirements and generation
+speed depend on your setup.
 
 Explicit API-exported ComfyUI image/video profiles support independent takes with
 saved recipes. Arbitrary workflows do not automatically gain native continuation,

@@ -5,6 +5,21 @@ remain the local setup: ComfyUI at `127.0.0.1:8188`, local Qwen for images,
 local LTX-2.5 Q8 for video, and `~/Movies/Raven Studio` for production data.
 Passive checks do not start models or download weights.
 
+## Local and cloud-hosted services
+
+The director supports local language models and cloud-hosted APIs through the
+supported language-model profiles: OpenAI-compatible endpoints, OpenAI API,
+Ollama and Anthropic. Enter the service address, model ID and any required API
+key under **Models**. Keys stay in the macOS Keychain. When using a hosted service,
+the text and any supported image context you request it to process are sent to
+that provider.
+
+Image/video profiles can connect to a compatible remote ComfyUI API endpoint,
+including a hosted installation. They produce independent takes using the
+explicit workflow contract below. This does not add arbitrary image/video vendor
+APIs or native long-film continuation to those profiles. The qualified complete
+film/continuation pipeline currently remains local Qwen/LTX.
+
 ## Portable setup
 
 ### Installed app (0.9.0 and later)
