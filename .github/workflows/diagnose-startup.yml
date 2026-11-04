@@ -1,0 +1,21 @@
+name: Diagnose isolated engine startup
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: macos-15
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Install pinned CPU runtime only
+        run: |
+          uv sync --frozen
+          ./scripts/setup-bundle-runtime.sh "$PWD/engine" "$PWD/runtime/bundle-venv"
+      - name: Capture isolated startup stacks
+        run: .venv/bin/python -B scripts/diagnose-startup.py
