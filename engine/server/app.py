@@ -76,6 +76,7 @@ import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from socketserver import TCPServer
 from pathlib import Path
 from typing import Any
 
@@ -2294,8 +2295,20 @@ def _label_summary(label: str) -> str:
     return re.sub(r"\s+", " ", words)
 
 
+class _StoryboardHTTPServer(ThreadingHTTPServer):
+    def server_bind(self):
+        if self.server_address[0] in {"127.0.0.1", "::1"}:
+            # HTTPServer's default calls getfqdn() even for numeric loopback.
+            # A slow resolver must not delay the app's local readiness endpoint.
+            TCPServer.server_bind(self)
+            self.server_name = "localhost"
+            self.server_port = self.server_address[1]
+        else:
+            super().server_bind()
+
+
 def build_server(bind: str, port: int, ctx: Context) -> ThreadingHTTPServer:
     handler = type("BoundHandler", (Handler,), {"ctx": ctx})
-    httpd = ThreadingHTTPServer((bind, port), handler)
+    httpd = _StoryboardHTTPServer((bind, port), handler)
     httpd.daemon_threads = True
     return httpd

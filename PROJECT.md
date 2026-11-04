@@ -79,7 +79,7 @@ Qwen/LTX. Vilkårlige Comfy-grafer får ikke automatisk de samme egenskapene.
 2. **Ren klone:** [scripts/setup.sh](scripts/setup.sh) bruker medfølgende
    `engine/`. En separat lokal Git-klone uten naboinstallasjonen har bygget den
    komplette appen og bestått 194 native vinduskontroller uten modellinferens.
-   Alle 268 app-tester og sju CTest-suiter består uten hopp. Motorens 341
+   Alle 268 app-tester og sju CTest-suiter består uten hopp. Motorens 342
    CPU-kontroller består med fem valgfrie hopp for separat ComfyUI-worker-kilde.
    Rene motor-/kontraktkontroller kjøres fra repoets egne filer.
 3. **Publiseringsinnhold:** private motoroppsett, sikkerhetskopier, midlertidige

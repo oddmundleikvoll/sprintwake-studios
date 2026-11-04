@@ -22,7 +22,7 @@ the current overview and later entries; they are not a remaining-work list.
   developer's sibling installations fetched pinned runtime dependencies and
   built a standalone ad-hoc-signed app. It was not installed over the user's app.
 - All 268 app tests ran without skips, all seven CTest suites passed and pure
-  engine/contracts match. The exact CI CPU suite ran 341 tests with five expected
+  engine/contracts match. The exact CI CPU suite ran 342 tests with five expected
   skips for separately installed ComfyUI LTX worker/node source. Native clean-clone
   smoke passed 194 checks with zero Raven errors and no model inference.
 - App integration/media tests use included engine/runtime/tools. External worker
@@ -38,11 +38,19 @@ the current overview and later entries; they are not a remaining-work list.
   Hosted CI results are available in the repository's Actions tab; no signing
   credentials, model weights or app binaries are uploaded by CI.
 - Source commit 5c6a88f was published to the public repository. The first hosted
-  build passed, but its import fixture timed out while discovering ambient model
-  services. That fixture now explicitly disables model profiles and uses private
-  empty language/speech/music settings and no inherited keys. The real import,
-  media preservation and persistence assertions remain; startup limits and app
-  behavior are unchanged. The isolated focused import check passes locally.
+  build passed, but its import fixture timed out. Provider isolation alone did
+  not solve the hosted failure. A CPU-only diagnostic captured repeated child
+  stacks inside socket.getfqdn → HTTPServer.server_bind for 35.6 seconds.
+  Loopback binding now skips that unnecessary reverse-DNS lookup, retaining
+  standard naming for other addresses. A real socket/readiness regression fails
+  before the fix and passes with DNS deliberately unavailable. The import fixture
+  also retains empty private providers/credentials/workspace and real persistence
+  assertions. Startup limits remain unchanged. Temporary diagnostic code/workflow
+  was removed; its evidence remains in ignored QA logs and GitHub run 41911115859.
+- The DNS fix also passed all 194 native checks from a relocated, read-only app
+  bundle. Its deep/strict code signature stayed valid and no model inference ran.
+  Source CPU verification passed 342 tests with five external-worker skips;
+  all 268 app tests and seven CTest suites passed without skips.
 
 # Studio open-button repair — 0.10.1/build 15, 2026-11-04
 

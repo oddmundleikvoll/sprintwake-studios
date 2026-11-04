@@ -16,6 +16,9 @@ selects it explicitly). Local settings/backups/temp files and runtime outputs
 stay ignored. NOTICE.md preserves upstream attribution and dependency boundaries.
 The real import endpoint fixture explicitly disables all model selections and
 uses empty private service settings, so CI does not wait for ambient model probes.
+Engine numeric-loopback HTTP binding bypasses HTTPServer's optional reverse-DNS
+lookup, which stalled hosted macOS startup for ~35 seconds before any API served.
+Other bind addresses retain standard naming; the readiness socket test forbids DNS.
 
 # Boundaries
 

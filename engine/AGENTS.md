@@ -14,3 +14,11 @@ Engine tests must not start ComfyUI, download models or mutate a user's
 production workspace. Use temporary workspaces and explicit fixtures. Changes
 affecting the native bridge, process lifetime, update gate or filesystem
 contracts require a focused test and a source-plus-relocated-bundle check.
+
+Numeric loopback HTTP binding must not call reverse DNS: hosted macOS resolvers
+can block before the readiness endpoint begins serving. Keep standard server
+naming for other bind addresses. Focused CPU check from this directory:
+
+```sh
+../runtime/bundle-venv/bin/python -B -m unittest tests.test_http_startup -v
+```

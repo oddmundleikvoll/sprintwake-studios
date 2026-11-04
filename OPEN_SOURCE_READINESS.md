@@ -81,7 +81,7 @@ Egne modeller kobles til gjennom de dokumenterte tjenestene/profilene, ikke ved
 
 Lisensvalget er CC BY-NC-SA 4.0 med bevart upstream-kreditering; se LICENSE og
 NOTICE.md. Oppsettet har bygget fra en ren lokal klone, og 194 native kontroller
-består. Alle 268 app-tester, sju CTest-suiter og 341 motortester består; fem
+består. Alle 268 app-tester, sju CTest-suiter og 342 motortester består; fem
 motorkontroller trenger separat ComfyUI-worker-kilde og hoppes over uten den.
 Vertsbaserte CI-resultater vises i GitHub Actions. Developer
 ID/notarisering, binærens tredjepartsvilkår og separat brukerkvalifisering gjenstår
