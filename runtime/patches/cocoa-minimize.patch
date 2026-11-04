@@ -1,0 +1,11 @@
+--- a/src/platform/cocoa/cocoa_platform.m
++++ b/src/platform/cocoa/cocoa_platform.m
+@@ -346,7 +346,7 @@
+        AppKit uses points here; the backing scale turns these into framebuffer pixels. */
+     NSRect rect = NSMakeRect(100, 100, rvn_maxi(desc->width, 1), rvn_maxi(desc->height, 1));
+     BOOL borderless = (desc->flags & (R_WINDOW_BORDERLESS | R_WINDOW_CUSTOM_HEADER)) != 0;
+-    if (borderless) style = NSWindowStyleMaskBorderless | ((desc->flags & R_WINDOW_NO_RESIZE) ? 0 : NSWindowStyleMaskResizable);
++    if (borderless) style = NSWindowStyleMaskBorderless | NSWindowStyleMaskMiniaturizable | ((desc->flags & R_WINDOW_NO_RESIZE) ? 0 : NSWindowStyleMaskResizable);
+     else {
+         style = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable;
+         if (!(desc->flags & R_WINDOW_NO_RESIZE)) style |= NSWindowStyleMaskResizable;

@@ -1,0 +1,39 @@
+name: Sprintwake Studios CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Build isolated native runtime and standalone app
+        run: |
+          test "$(uname -m)" = arm64
+          ./scripts/setup.sh
+      - name: Native unit tests, CTest and diff checks
+        run: ./scripts/check.sh
+      - name: Check pure contracts
+        run: .venv/bin/python -B scripts/sync-contracts.py
+      - name: Engine CPU checks without models
+        working-directory: engine
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          export PATH="$PWD/../runtime/tools:$PATH"
+          ../runtime/bundle-venv/bin/python -B -m unittest \
+            tests.test_render_helpers tests.test_ltx_backend tests.test_ltx_anchors \
+            tests.test_comfy_workflow tests.test_comfy_workflow_backend tests.test_comfy_workflow_http tests.test_configured_models tests.test_provider_guard tests.llm \
+            tests.test_film tests.test_film_storyboard tests.test_film_references tests.test_film_comfy tests.test_film_chat tests.test_qwen_backend tests.test_image_workspace \
+            tests.test_director_omlx tests.test_fable tests.test_fable_gateway tests.test_raven_contract tests.test_raven_chat tests.test_raven_editorial \
+            tests.test_film_planning tests.test_film_quality tests.test_film_review tests.test_film_assets tests.test_film_takes tests.test_film_preflight tests.test_film_continuity \
+            tests.test_film_boundaries tests.test_long_film tests.test_ltx_prefix tests.test_assembly_scaling \
+            tests.test_update_lifecycle tests.test_private_config tests.test_app_lifetime -v

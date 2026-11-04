@@ -1,0 +1,39 @@
+diff --git a/src/platform/cocoa/cocoa_platform.m b/src/platform/cocoa/cocoa_platform.m
+index 9316d53..670f0f6 100644
+--- a/src/platform/cocoa/cocoa_platform.m
++++ b/src/platform/cocoa/cocoa_platform.m
+@@ -229,7 +229,9 @@ - (void)keyUp:(NSEvent*)event {
+     e.pressed = 0; e.modifiers = rvn_cocoa_modifiers([event modifierFlags]); rvn_cocoa_emit(ravenWindow, &e);
+ }
+ - (void)flagsChanged:(NSEvent*)event {
+-    RKey key = rvn_cocoa_key([event keyCode], [event charactersIgnoringModifiers]);
++    /* FlagsChanged does not carry characters; querying them raises NSException. */
++    RKey key = rvn_cocoa_key([event keyCode], nil);
++    if (key < R_KEY_LEFT_SHIFT || key > R_KEY_RIGHT_SUPER) return;
+     rvn_pevent_t e; memset(&e, 0, sizeof(e)); e.type = RVN_PEVENT_KEY; e.key = key;
+     e.modifiers = rvn_cocoa_modifiers([event modifierFlags]);
+     e.pressed = (key == R_KEY_LEFT_SHIFT || key == R_KEY_RIGHT_SHIFT) ? ((e.modifiers & R_MOD_SHIFT) != 0) :
+@@ -318,6 +320,14 @@ static void rvn_cocoa_shutdown(void) {
+ }
+ static void* rvn_cocoa_native_display(void) { return NULL; }
+
++/* Borderless custom-header windows need explicit keyboard eligibility. */
++@interface RavenCocoaWindow : NSWindow
++@end
++@implementation RavenCocoaWindow
++- (BOOL)canBecomeKeyWindow { return YES; }
++- (BOOL)canBecomeMainWindow { return YES; }
++@end
++
+ static void rvn_cocoa_install_layer(NSView* view, float scale, int transparent) {
+     [view setWantsLayer:YES];
+     CAMetalLayer* layer = [CAMetalLayer layer];
+@@ -344,7 +354,7 @@ static void rvn_cocoa_install_layer(NSView* view, float scale, int transparent)
+     window->flags = desc->flags; window->user = desc->user;
+     window->transparent = (desc->flags & R_WINDOW_TRANSPARENT) != 0;
+     window->state = RVN_PWINDOW_NORMAL;
+-    window->handle = [[NSWindow alloc] initWithContentRect:rect styleMask:style backing:NSBackingStoreBuffered defer:NO];
++    window->handle = [[RavenCocoaWindow alloc] initWithContentRect:rect styleMask:style backing:NSBackingStoreBuffered defer:NO];
+     if (!window->handle) { rvn_free(window); return NULL; }
+     [window->handle setReleasedWhenClosed:NO];
+     [window->handle setTitle:[NSString stringWithUTF8String:desc->title ? desc->title : "Raven"]];

@@ -1,0 +1,118 @@
+# Sprintwake Studios — mål og prosjektstatus
+
+Oppdatert 4. november 2026. Installert versjon: **0.10.1, build 15**.
+Dette er den samlede oversikten over brukerens mål, levert arbeid og neste steg.
+[STATUS.md](STATUS.md) inneholder detaljert verifikasjon og historikk.
+
+## Målet
+
+Bygge et selvstendig, lokalt filmstudio for både korte og lange filmer: fra idé
+og manus til filmbibel, rom-/kameraplan, produksjon, redigering, lyd og eksport.
+Brukeren skal kunne bearbeide filmen og holde kontinuiteten uten å generere
+medier på nytt for hver redigeringsendring.
+
+Appen og det planlagte åpne prosjektet heter **Sprintwake Studios**. Ett GitHub-repo
+skal romme app, produksjonsmotor, bidrag og fremtidige Releases. Andre skal kunne
+bruke egne støttede modelltilkoblinger; dagens lokale Qwen/LTX-oppsett beholdes
+som standard hos brukeren. Brukeren autoriserte kildekodepublisering 4. november
+2026 og valgte **CC BY-NC-SA 4.0** for førsteversjonen. Ferdige Mac-releases
+krever separat publiseringsbeskjed og distribusjonskvalifisering.
+
+## Det som er gjort
+
+- **Ny startside:** tre kort for bilde, enkeltklipp og Filmstudio. Appen åpner
+  på Start selv om den forrige samtalen tilhører et prosjekt. Egne, enkle
+  innganger til bilder og klipp; lagrede arbeider åpnes i riktig studio.
+  Åpne-knappene virker også uten utfylt navn eller beskrivelse; fremdrift og
+  eventuelle feil vises ved knappen.
+- **Klipp og scener:** separat klippelag med takes, trim, rekkefølge og angre uten
+  regenerering eller endring av originalmediene.
+- **Romkart og coverage:** plassering av figurer og kameraer, geometrisk
+  forhåndsvisning og forslag til kameravinkler med kontinuitetskontroller.
+- **Sekvenser og lyd:** scene-/sekvensstyring og spilletidsmål; egne spor for
+  dialog, musikk, miljølyd og effekter som kan gå over klippgrenser.
+- **Arbeidsflate:** sceneliste til venstre, spiller i midten, detaljer til høyre
+  og tidslinje nederst. Eksisterende farger og typografi er beholdt.
+- **Filmagent:** oppdatert veiledning og innsyn i lagrede klipp-, romkart-,
+  struktur- og lydbeslutninger. Panelene eier fortsatt disse redigeringene;
+  lesing eller agenttekst teller ikke som menneskelig produksjonsgodkjenning.
+- **Modelltilkoblinger:** privat oppsett, nøkkelringlagring av nøkler, passive
+  kontroller og eksplisitte bilde-/video-profiler for Comfy API-workflows.
+- **Selvstendig app:** motor, Python, CPU-avhengigheter og medieverktøy følger
+  appen. Den installerte appen trenger ikke utviklerens kildekodemappe.
+  Modellvekter og eksterne modelltjenester ligger fortsatt utenfor appen.
+- **Oppdatering:** Sparkle og ett GitHub Releases-oppsett er klargjort. En ekte,
+  lokalt signert oppdatering ventet på produksjonen, installerte, startet på nytt
+  og bevarte kontrollfilene. En manipulert signert feed ble avvist.
+- **Installering og navn:** Sprintwake Studios er installert i
+  `~/Applications/Sprintwake Studios.app`, med Sprintwake-logoen i kobber/gull på
+  mørk plommebakgrunn. Prosjekter og lokalt modelloppsett er bevart.
+- **Opprydding:** 27 testkopier er flyttet til papirkurven og avregistrert.
+  Bare den installerte Sprintwake Studios er beholdt som tilgjengelig app.
+  Sprintwake Projects er en annen app og er bevart.
+
+## Verifisert — og hva testene ikke beviser
+
+265 app-tester, sju Raven CTest-suiter og 194 vinduskontroller fra både kilde og
+appakken bestod for 0.10.1. Begge åpne-knappene ble deretter klikket med tomme
+felt i den installerte appen, med egne testmapper. Vanlig oppstart er kontrollert:
+Start vises, og den eksisterende filmen ligger under nylige arbeider.
+Elleve eksisterende prosjekt-/oppsettfiler var byte-identiske etter installasjon
+og oppstart. Testkopiene ble avregistrert og flyttet til papirkurven.
+
+For 0.9.0 bestod også 332 motortester (to hoppet over) og kontrollene for signerte
+oppdateringer, omstart, aktive leserlåser og rollback, inkludert en flyttet,
+skrivebeskyttet appkopi. Motor- og oppdateringskoden er beholdt i 0.10.0.
+
+Dette er teknisk kvalifisering med syntetiske medier og testtjenester, ikke bevis
+på kvaliteten til en ferdig langfilm eller støtte for alle eksterne modeller.
+Automatisk filmproduksjon og videreføring er fortsatt kvalifisert for lokal
+Qwen/LTX. Vilkårlige Comfy-grafer får ikke automatisk de samme egenskapene.
+
+## Offentlig GitHub-kilde
+
+### Første kildeversjon
+
+1. **Lisens valgt:** [LICENSE](LICENSE) bruker CC BY-NC-SA 4.0 for appens bidrag,
+   med bevart [engine/LICENSE](engine/LICENSE). [NOTICE.md](NOTICE.md) krediterer
+   Storyboard/Peter Chodyra og beskriver endringene og øvrige avhengigheter.
+2. **Ren klone:** [scripts/setup.sh](scripts/setup.sh) bruker medfølgende
+   `engine/`. En separat lokal Git-klone uten naboinstallasjonen har bygget den
+   komplette appen og bestått 194 native vinduskontroller uten modellinferens.
+   Alle 268 app-tester og sju CTest-suiter består uten hopp. Motorens 341
+   CPU-kontroller består med fem valgfrie hopp for separat ComfyUI-worker-kilde.
+   Rene motor-/kontraktkontroller kjøres fra repoets egne filer.
+3. **Publiseringsinnhold:** private motoroppsett, sikkerhetskopier, midlertidige
+   JSON-filer, nøkler, låser og binærverktøy er utelatt fra Git. Den første
+   kildegjennomgangen fant ingen nøkkelmønstertreff, store filer eller symlenker.
+   Private kvalifiseringstitler og hjemmemappestier er anonymisert.
+   [CONTRIBUTING.md](CONTRIBUTING.md) dokumenterer utviklerkontrollene.
+4. **Publisering autorisert og gjennomgått:** første kildeversjon bruker det
+   eksisterende [GitHub-repoet](https://github.com/oddmundleikvoll/sprintwake-studios).
+   Ingen appbinær, appcast eller modellvekter inngår. Uavhengig gjennomgang er
+   ferdig; løpende vertsbasert CI vises under repoets Actions-fane.
+
+### Før en ferdig Mac-app legges ut som Release
+
+Skaffe Developer ID-signering, fullføre notarisering og kvalifisere den offentlig
+signerte pakken/oppdateringen. Dagens app er lokalt ad-hoc-signert. Dette er et
+separat distribusjonsløp; Apple-signering er ikke et krav for å åpne kildekoden.
+
+Lisensvilkår: [Creative Commons](https://creativecommons.org/licenses/by-nc-sa/4.0/).
+Appdistribusjon: [Apple Developer ID](https://developer.apple.com/developer-id/).
+
+OTIO/FCPXML-rundtur til andre klippeprogrammer og bevegelsesstyrt previs er mulige
+senere forbedringer. De er ikke implementert eller bestilt som neste arbeid.
+
+## Hvilken fil svarer på hva?
+
+- [README.md](README.md): bruk og oppstart.
+- [STATUS.md](STATUS.md): levert arbeid, testresultater og historikk.
+- [CONTEXT.md](CONTEXT.md): kodeområder og tekniske grenser.
+- [MODEL_CONNECTIONS.md](MODEL_CONNECTIONS.md): modellprofiler og begrensninger.
+- [DISTRIBUTION.md](DISTRIBUTION.md): bygging, installasjon og oppdatering.
+- [OPEN_SOURCE_READINESS.md](OPEN_SOURCE_READINESS.md): inspirasjon og offentlig omfang.
+- [AGENTS.md](AGENTS.md): arbeidsregler, kommandoer og bevaringskrav.
+
+Eldre `*_PLAN.md` og `IMPLEMENTATION.md` er implementeringshistorikk, ikke en
+oppdatert oppgaveliste. Ved motstrid brukes denne oversikten og siste STATUS.

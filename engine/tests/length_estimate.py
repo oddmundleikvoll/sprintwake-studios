@@ -1,0 +1,175 @@
+"""Length check: dialogue timing, beat parsing and snapping; no model needed.
+
+Run:  python3 tests/length_estimate.py
+"""
+
+from __future__ import annotations
+
+import json
+import sys
+import tempfile
+import unittest
+import wave
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from server.backends.render_helpers import LTX_FRAME_RULE  # noqa: E402
+from server.length_estimate import (  # noqa: E402
+    action_beats, dialogue_seconds, estimate, verdict,
+)
+
+
+class FakeLLM:
+    label = "Fake"
+
+    def __init__(self, reply):
+        self.reply = reply
+
+    def complete(self, system, user, *, timeout=120.0, max_tokens=None):
+        return self.reply
+
+
+SCENE_5 = json.dumps({"beats": [
+    {"action": "Ray climbs in under the sliding door and settles", "min": 2.0, "comfortable": 3.0},
+    {"action": "glances at Sam with a manic grin", "min": 1.5, "comfortable": 2.0},
+    {"action": "turns forward", "min": 0.8, "comfortable": 1.2},
+    {"action": "grips the wheel", "min": 0.8, "comfortable": 1.0},
+    {"action": "pulls the door down", "min": 1.5, "comfortable": 2.0},
+], "note": ""})
+
+
+class DialogueTests(unittest.TestCase):
+    def test_no_line_is_zero(self):
+        self.assertEqual(dialogue_seconds({"dialogue": "  "}, None), (0.0, ""))
+
+    def test_words_at_speaking_rate_plus_pauses(self):
+        secs, basis = dialogue_seconds({"dialogue": "We did it... we won!"}, None)
+        self.assertAlmostEqual(secs, 5 / 2.5 + 0.4, places=2)
+        self.assertIn("5 words", basis)
+
+    def test_delivery_note_changes_the_rate(self):
+        line = {"dialogue": "one two three four five"}
+        normal = dialogue_seconds(line, None)[0]
+        slow = dialogue_seconds({**line, "dialogueStyle": "slow, hesitant"}, None)[0]
+        fast = dialogue_seconds({**line, "dialogueStyle": "rapid and excited"}, None)[0]
+        self.assertLess(fast, normal)
+        self.assertGreater(slow, normal)
+
+    def test_a_matching_recorded_take_is_measured(self):
+        with tempfile.TemporaryDirectory() as d:
+            with wave.open(str(Path(d) / "dialogue.wav"), "wb") as w:
+                w.setnchannels(1)
+                w.setsampwidth(2)
+                w.setframerate(16000)
+                w.writeframes(b"\0\0" * 16000 * 3)   # 3.0 s
+            shot = {"dialogue": "Hi.", "dialogueSpokenText": "Hi."}
+            self.assertEqual(dialogue_seconds(shot, Path(d)), (3.0, "recorded take"))
+            # a take of a different line is not this line's length
+            shot["dialogueSpokenText"] = "Hello there."
+            self.assertNotEqual(dialogue_seconds(shot, Path(d))[1], "recorded take")
+
+
+class BeatTests(unittest.TestCase):
+    def test_reply_in_fences_after_thinking_still_parses(self):
+        reply = "<think>hmm {not json}</think>\n```json\n" + SCENE_5 + "\n```"
+        beats, _ = action_beats(FakeLLM(reply), "prompt")
+        self.assertEqual(len(beats), 5)
+
+    def test_comfortable_is_never_below_min_and_junk_is_dropped(self):
+        reply = json.dumps({"beats": [
+            {"action": "a", "min": 2, "comfortable": 1},
+            {"action": "", "min": 1, "comfortable": 1},
+            {"action": "c", "min": "x"},
+        ]})
+        beats, _ = action_beats(FakeLLM(reply), "p")
+        self.assertEqual(beats, [{"action": "a", "min": 2.0, "comfortable": 2.0}])
+
+    def test_no_beats_is_an_error(self):
+        with self.assertRaises(ValueError):
+            action_beats(FakeLLM("I can't time that."), "p")
+
+
+class EstimateTests(unittest.TestCase):
+    def test_scene_5_is_too_short_at_124_frames(self):
+        e = estimate(FakeLLM(SCENE_5), {"prompt": "Ray gets in.", "frames": 124},
+                     frame_rule=LTX_FRAME_RULE)
+        self.assertEqual((e["minSeconds"], e["comfortableSeconds"]), (6.6, 9.2))
+        # snapped up to 8n+1
+        for f in (e["minFrames"], e["comfortableFrames"]):
+            self.assertEqual(f % 8, 1)
+            self.assertGreaterEqual(f / 24, 6.6)
+        self.assertEqual(verdict(e, 124), "short")
+        self.assertEqual(verdict(e, e["minFrames"]), "tight")
+        self.assertEqual(verdict(e, e["comfortableFrames"]), "ok")
+        self.assertEqual(e["basis"]["prompt"], "Ray gets in.")
+
+    def test_long_dialogue_sets_the_minimum(self):
+        beats = json.dumps({"beats": [{"action": "stands", "min": 1, "comfortable": 1.5}]})
+        line = " ".join(["word"] * 25)                       # 10 s at 2.5 words/s
+        e = estimate(FakeLLM(beats), {"prompt": "p", "dialogue": line}, frame_rule=LTX_FRAME_RULE)
+        self.assertEqual(e["limitedBy"], "dialogue")
+        self.assertGreaterEqual(e["minSeconds"], 11.0)       # plus a beat each side
+
+    def test_over_twenty_seconds_suggests_a_split(self):
+        beats = json.dumps({"beats": [{"action": "a long journey", "min": 21, "comfortable": 25}]})
+        e = estimate(FakeLLM(beats), {"prompt": "p"}, frame_rule=LTX_FRAME_RULE)
+        self.assertTrue(e["tooLongForOneShot"])
+        self.assertLessEqual(e["comfortableFrames"], 481)
+
+    def test_empty_prompt_is_refused(self):
+        with self.assertRaises(ValueError):
+            estimate(FakeLLM(SCENE_5), {"prompt": ""})
+
+
+class OnlyThisLineTests(unittest.TestCase):
+    """Native speech is told to stay to the scripted line, once."""
+
+    def prompt(self, **shot):
+        from server.backends.render_helpers import _resolved_prompt
+        from server.store import default_board, default_character, default_shot
+        board = default_board("B")
+        ray = default_character("Ray", "tall, grey beard")
+        ray["voice"] = {"path": "b/refs/ray.m4a"}
+        board["characters"] = [ray]
+        s = default_shot(board["defaults"])
+        s.update(prompt="Ray leans over.", characterIds=[ray["id"]], speakerId=ray["id"],
+                 dialogue="We aren't going anywhere without you, Sam.", **shot)
+        board["shots"] = [s]
+        return _resolved_prompt(s, board, with_audio=True, model="ltx-2.5")
+
+    def test_native_line_says_nothing_else_and_how_long_it_takes(self):
+        p = self.prompt(dialogueSource="native", frames=243)
+        self.assertIn("Ray speaks only this one line, exactly once", p)
+        self.assertNotIn("reference voice clip", p)
+        self.assertIn("about 3 seconds of this 10-second clip", p)
+
+    def test_non_speaking_cast_is_told_to_stay_silent(self):
+        from server.backends.render_helpers import _resolved_prompt
+        from server.store import default_board, default_character, default_shot
+        board = default_board("B")
+        ray = default_character("Ray", "tall, grey beard")
+        sam = default_character("Sam", "blue raincoat")
+        board["characters"] = [ray, sam]
+        s = default_shot(board["defaults"])
+        s.update(prompt="Ray leans over.", characterIds=[ray["id"], sam["id"]],
+                 speakerId=ray["id"], dialogue="Come on, get in!", dialogueSource="native")
+        board["shots"] = [s]
+        p = _resolved_prompt(s, board, with_audio=True, model="ltx-2.5")
+        self.assertIn("Sam is on screen but silent", p)
+        self.assertNotIn("Ray is on screen but silent", p)
+        self.assertIn("Sam: blue raincoat", p)               # still cast for the picture
+        self.assertNotIn("previous scene's dialogue has already ended", p)
+
+    def test_chained_shot_opens_without_speech(self):
+        p = self.prompt(dialogueSource="native", frames=124,
+                        startRef={"kind": "chain", "from": "x", "resolved": "b/shots/01/frames/frame-0123.png"})
+        self.assertIn("this clip opens with no speech at all, and nobody talks until Ray starts the line", p)
+
+    def test_dubbed_line_is_not_told_to_speak(self):
+        p = self.prompt(dialogueSource="recording", frames=124)
+        self.assertNotIn("speaks only this one line", p)
+
+
+if __name__ == "__main__":
+    unittest.main()

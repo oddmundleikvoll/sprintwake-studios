@@ -1,0 +1,10 @@
+{
+  "version": "0.10.1",
+  "build": 15,
+  "repository": "oddmundleikvoll/sprintwake-studios",
+  "feedURL": "https://github.com/oddmundleikvoll/sprintwake-studios/releases/latest/download/appcast.xml",
+  "publicKey": "tl72jf7iM+Y8YFkWwjS+2pHsaKDwkvQs0utWVMXmhjc=",
+  "keychainAccount": "sprintwake-studios-updates",
+  "automaticChecks": true,
+  "minimumSystemVersion": "14.0"
+}

@@ -1,0 +1,23 @@
+<Theme Name="Copper" Base="Dark" Accent="#EBA477" Font="/System/Library/Fonts/SFNS.ttf" Material="Solid">
+  <Colors Window="#111315" Panel="#191C1F" Border="#303437" Text="#ECEAE5"
+    TextDisabled="#8E9396" TextPlaceholder="#81878B" Accent="#EBA477"
+    AccentHovered="#F5B98D" AccentPressed="#D78B5E" AccentText="#20170F"
+    Control="#25292C" ControlHovered="#32373A" ControlPressed="#3C4144"
+    ControlBorder="#343A3D" Input="#202427" Focus="#EBA477" Selection="#EBA47733"
+    RowHovered="#292D30" Track="#343A3E" Handle="#AEB4B7" HandleHovered="#EBA477"
+    Separator="#303437" Header="#191C1F" HeaderHovered="#25292C" TabActive="#EBA477"
+    Popup="#222629" PopupBorder="#3B4246" Tooltip="#343A3D" TooltipText="#F5F1E9"
+    Success="#A7C6AB" Warning="#E8BA7A" Danger="#EFA1A1" Link="#EBA477"/>
+  <Metrics FontSize="13" ControlHeight="34" CornerRadius="7" BorderWidth="1"
+    PaddingX="12" PaddingY="7" Spacing="8" RowHeight="32" ScrollbarSize="5"/>
+  <Style Widget="Label" Class="eyebrow" Text="#989F9F" FontSize="10"/>
+  <Style Widget="Label" Class="muted" Text="#9BA3A5" FontSize="12"/>
+  <Style Widget="Label" Class="accent" Text="#EBA477"/>
+  <Style Widget="Button" Class="nav" Control="#111315" ControlHovered="#292D30" ControlBorder="#00000000" CornerRadius="6"/>
+  <Style Widget="Button" Class="nav-active" Control="#34302A" Text="#F5C6A3" ControlBorder="#5B4736"/>
+  <Style Widget="Button" Class="shot" Control="#191C1F" ControlBorder="#303437" CornerRadius="9" PaddingX="8" PaddingY="8"/>
+  <Style Widget="Button" Class="shot-active" Control="#302B25" ControlBorder="#C58B62" CornerRadius="9"/>
+  <Style Widget="Button" Class="take-active" Control="#3A3027" ControlBorder="#C58B62"/>
+  <Style Widget="Button" Class="creation-card" Control="#1D2023" ControlHovered="#282A2C" ControlPressed="#302B27" ControlBorder="#3D3A38" CornerRadius="13"/>
+  <Style Widget="TextEditor" CornerRadius="6" FontSize="13" PaddingX="10" PaddingY="8"/>
+</Theme>

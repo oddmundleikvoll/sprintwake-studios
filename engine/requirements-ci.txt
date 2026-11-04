@@ -1,0 +1,4 @@
+# CPU media checks; matches the verified local Python 3.12 environment.
+av==18.1.0
+Pillow==12.3.0
+numpy==2.5.3

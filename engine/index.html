@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Storyboard</title>
+  <script>
+    // iPhones get the phone view (mobile.html). ?desktop=1 opts out and is
+    // remembered; ?mobile=1 opts back in.
+    (function () {
+      try {
+        var q = location.search, KEY = "sb.view";
+        if (/[?&]desktop=1/.test(q)) localStorage.setItem(KEY, "desktop");
+        if (/[?&]mobile=1/.test(q)) localStorage.removeItem(KEY);
+        var phone = /iPhone|iPod/.test(navigator.userAgent) ||
+          (matchMedia("(max-width: 500px)").matches && matchMedia("(pointer: coarse)").matches);
+        if (phone && localStorage.getItem(KEY) !== "desktop") location.replace("mobile.html");
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/studio.css">
+  <link rel="stylesheet" href="css/image-workspace.css">
+</head>
+<body>
+  <div class="app">
+
+    <!-- ================= header ================= -->
+    <header class="header">
+      <div class="brand" id="btnHelp" role="button" tabindex="0"
+           title="Camera prompt guide">
+        <span class="brand-mark">▦</span>
+        <span>Storyboard</span>
+      </div>
+      <div class="header-divider"></div>
+
+      <button class="btn btn-ghost btn-sm" id="btnNewBoard" title="Nytt prosjekt">Nytt prosjekt</button>
+      <button class="btn btn-primary btn-sm" id="btnFilmFromIdea" title="Planlegg en ny film i et nytt prosjekt">Ny film fra idé</button>
+      <button class="btn btn-ghost btn-sm" id="btnOpen" title="Åpne et prosjekt">Åpne prosjekt</button>
+      <span class="menu-wrap" id="exportWrap">
+        <button class="btn btn-ghost btn-sm" id="btnExport" aria-haspopup="menu" aria-expanded="false"
+          title="Download this project">Export ▾</button>
+        <div class="menu-pop" id="exportMenu" role="menu" hidden>
+          <button class="menu-item" id="btnExportAll" role="menuitem" type="button">
+            <span class="menu-item-title">Export All</span>
+            <span class="menu-item-hint">Everything, including the rendered clips and the final video. Can be large.</span>
+          </button>
+          <button class="menu-item" id="btnExportSetup" role="menuitem" type="button">
+            <span class="menu-item-title">Export Setup (no video)</span>
+            <span class="menu-item-hint">The storyboard, reference images and voices, prompts and logs. Small.</span>
+          </button>
+        </div>
+      </span>
+      <button class="btn btn-ghost btn-sm" id="btnSettings" title="Prosjektinnstillinger">Innstillinger</button>
+      <input type="file" id="importFile" accept="application/json,.json" hidden>
+
+      <div class="header-spacer"></div>
+
+      <!-- The picker's selected option already names the open project, so
+           this is the one place that says which project you're in — a
+           separate name/summary label next to it would just repeat it. -->
+      <div class="project-switcher">
+        <select id="boardPicker" class="board-picker" title="Switch storyboard"></select>
+        <span class="project-meta" id="projectMeta"></span>
+      </div>
+
+      <div class="header-spacer"></div>
+
+      <span class="save-state" id="saveState">saved</span>
+      <span class="backend-badge" id="backendBadge" data-healthy="true">—</span>
+      <button class="btn btn-danger" id="btnStop" disabled>Stop</button>
+      <button class="btn btn-primary" id="btnRender">▶ Generer manglende klipp</button>
+      <button class="btn btn-ghost" id="btnBatchRender"
+        title="Produser flere prosjekter i rekkefølge">☰ Flere prosjekter</button>
+      <button class="btn btn-ghost" id="btnAssemble"
+        title="Sett sammen eksisterende klipp til én film">⧉ Sett sammen på nytt</button>
+    </header>
+
+    <nav class="studio-nav" id="studioNav" aria-label="Arbeidsflate">
+      <button class="btn" type="button" data-workspace="film" aria-pressed="true">Film</button>
+      <button class="btn" type="button" data-workspace="images" aria-pressed="false">Bilder</button>
+      <button class="btn" type="button" data-workspace="library" aria-pressed="false">Bibliotek</button>
+      <span class="studio-nav-spacer"></span>
+      <button class="btn" type="button" id="studioDirector" aria-pressed="false" aria-controls="assistantBlade">Regissør</button>
+    </nav>
+    <section class="studio-content" id="studioContent" aria-label="Prosjektets arbeidsflate"></section>
+    <div class="studio-job" id="studioJob" role="status" aria-live="polite"></div>
+    <button type="button" id="directorScrim" tabindex="-1" aria-hidden="true" hidden></button>
+
+    <!-- ================= rail ================= -->
+    <aside class="rail">
+
+      <section class="panel">
+        <div class="pane-head pane-head-with-note">
+          <div class="card-heading"><span class="card-heading-title">Scene description</span><span class="card-heading-desc">reused every shot</span></div>
+          <div class="header-spacer"></div>
+          <span id="sceneWandSlot"></span>
+        </div>
+        <textarea id="sceneDescription" rows="5"
+          placeholder="Subject appearance and scene details that should stay true across every shot."></textarea>
+        <div class="proposal-slot" id="sceneProposalSlot"></div>
+      </section>
+
+      <section class="panel">
+        <div class="pane-head pane-head-with-note">
+          <div class="card-heading"><span class="card-heading-title">Render style</span><span class="card-heading-desc">reused in every shot</span></div>
+          <div class="header-spacer"></div>
+          <span id="renderStyleWandSlot"></span>
+        </div>
+        <textarea id="renderStyle" rows="5"
+          placeholder="e.g. Photorealistic cinematic live action, natural textures and lighting."></textarea>
+        <div class="proposal-slot" id="renderStyleProposalSlot"></div>
+        <div class="field-note">Applied to video generation together with the Scene description. Create Image follows this style unless its image setting overrides it.</div>
+      </section>
+
+      <section class="panel">
+        <div class="pane-head pane-head-with-note">
+          <div class="card-heading"><span class="card-heading-title">Background sound effects</span><span class="card-heading-desc">rendered by LTX-2.5 into every shot · music goes in Settings → Soundtrack</span></div>
+          <div class="header-spacer"></div>
+          <span id="soundscapeWandSlot"></span>
+        </div>
+        <textarea id="soundscape" rows="5"
+          placeholder="The ambient bed under every clip — e.g. “Deep engine roar, rushing wind, the hiss of spray off the water.” Appended after each shot's own description, which is where LTX-2.5 expects sound cues."></textarea>
+        <div class="proposal-slot" id="soundscapeProposalSlot"></div>
+        <label class="toggle rail-toggle">
+          <input type="checkbox" id="soundscapeInShots" checked>
+          <span class="toggle-track"></span>
+          <span>Render into each shot</span>
+        </label>
+      </section>
+
+      <section class="panel">
+        <div class="card-heading"><span class="card-heading-title">Cast</span><span class="card-heading-desc">call them by name in a shot</span></div>
+        <div class="cast-list" id="castList"></div>
+        <button class="btn btn-sm" id="addCharacter" style="margin-top:var(--sp-2)">
+          + Add character
+        </button>
+      </section>
+
+      <section class="panel">
+        <div class="pane-head pane-head-with-note">
+          <div class="card-heading"><span class="card-heading-title">Style references</span><span class="card-heading-desc">a library; add one to a shot's Reference images to include it in that render</span></div>
+        </div>
+        <div class="style-refs" id="styleRefs"></div>
+      </section>
+
+    </aside>
+
+    <!-- ================= main ================= -->
+    <main class="main">
+      <div class="strip-wrap">
+        <div class="strip-head">
+          <div class="card-heading" style="margin:0"><span class="card-heading-title">Storyboard</span><span class="card-heading-desc">drag to reorder · scroll horizontally</span></div>
+        </div>
+        <div class="strip" id="strip"></div>
+      </div>
+
+      <div class="workspace">
+        <section id="editor"></section>
+        <section id="preview"></section>
+      </div>
+    </main>
+
+    <!-- Hidden by default; its handle remains visible at the right edge. -->
+    <aside class="assistant-blade" id="assistantBlade" aria-label="Regissøragent" inert>
+      <button class="blade-handle" id="bladeHandle" type="button"
+        aria-expanded="false" aria-controls="bladePanel" title="Open Storyboard AD">
+        <span class="blade-handle-mark" aria-hidden="true">‹</span>
+        <span class="blade-handle-label">Storyboard AD</span>
+      </button>
+      <div class="blade-panel" id="bladePanel">
+        <header class="blade-head">
+          <div>
+            <div class="blade-title">Regissør</div>
+            <div class="blade-model" id="bladeModel">Prompt rewriting model</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" id="bladeNewChat" type="button"
+            title="Tøm samtalen i dette prosjektet">Ny samtale</button>
+          <button class="btn btn-ghost btn-sm blade-close" id="bladeClose" type="button"
+            aria-label="Lukk regissøren">×</button>
+        </header>
+        <div class="blade-context" id="bladeContext"></div>
+        <div class="director-shortcuts">
+          <button class="btn btn-sm" type="button" id="directorDraftPlan">Beskriv filmidé</button>
+          <button class="btn btn-sm btn-ghost" type="button" id="directorDraftReview">Vurder filmplanen</button>
+          <span class="field-note">Forslag gjennomgås før de brukes</span>
+        </div>
+        <div class="blade-speech" id="bladeSpeech">
+          <label class="toggle blade-speech-toggle" id="bladeSpeechToggleWrap">
+            <input type="checkbox" id="bladeSpeechToggle">
+            <span class="toggle-track"></span>
+            <span>Les svar høyt</span>
+          </label>
+          <select id="bladeSpeechVoice" title="Voice the Storyboard AD speaks replies in">
+            <option value="">Engine default voice</option>
+          </select>
+          <audio id="bladeSpeechAudio" hidden></audio>
+        </div>
+        <div class="blade-messages" id="bladeMessages" aria-live="polite"></div>
+        <div class="chat-proposal-actions" aria-label="Filmkontroll">
+          <button type="button" class="btn btn-sm btn-ghost" id="bladeFilmStatus">Filmstatus</button>
+          <button type="button" class="btn btn-sm btn-ghost" id="bladeFilmStart" disabled>Start planlagt film</button>
+          <button type="button" class="btn btn-sm btn-ghost" id="bladeFilmStop" disabled>Stopp film</button>
+          <button type="button" class="btn btn-sm btn-ghost" id="bladeFilmResume" disabled>Fortsett film</button>
+        </div>
+        <form class="blade-composer" id="bladeComposer">
+          <textarea id="bladeInput" rows="3"
+            aria-label="Melding til regissøren" placeholder="Beskriv en scene, be om en vurdering eller foreslå endringer…"></textarea>
+          <div class="blade-compose-row">
+            <span class="blade-compose-hint">Enter sender · Shift+Enter gir ny linje</span>
+            <select id="bladeThinking"
+              title="How hard the AD reasons before replying. Off is much faster on a local model; &ldquo;model default&rdquo; follows the model's own setting in Settings.">
+              <option value="none">Resonnering: av</option>
+              <option value="">Resonnering: modellstandard</option>
+              <option value="low">Resonnering: lav</option>
+              <option value="medium">Resonnering: middels</option>
+              <option value="high">Resonnering: høy</option>
+            </select>
+            <button class="btn btn-danger" id="bladeStop" type="button" hidden
+              title="Stop this reply; your message goes back in the box">Stop</button>
+            <button class="btn btn-primary" id="bladeSend" type="submit">Send</button>
+          </div>
+        </form>
+      </div>
+    </aside>
+
+  </div>
+
+  <div id="picker" class="modal" hidden>
+    <div class="modal-card">
+      <div class="modal-head">
+        <span id="pickerTitle">Choose an image</span>
+        <div class="header-spacer"></div>
+        <button class="btn btn-sm" id="pickerGenerate" type="button" hidden
+          title="Make a reference image of a prop or a location from a description">✦ Generate image…</button>
+        <button class="btn btn-sm" id="pickerUpload">Upload new…</button>
+        <button class="btn btn-ghost btn-sm" id="pickerClose">Close</button>
+      </div>
+      <div class="picker-gen" id="pickerGen" hidden></div>
+      <div class="modal-body" id="pickerGrid"></div>
+      <div class="modal-select" id="pickerSelect" hidden></div>
+      <div class="modal-pager" id="pickerPager" hidden></div>
+      <div class="modal-foot" id="pickerFoot"></div>
+    </div>
+  </div>
+
+  <div id="troubleDialog" class="modal" hidden>
+    <div class="modal-card trouble-card">
+      <div class="modal-head">
+        <span id="troubleTitle">Troubleshooting</span>
+        <span class="hint-inline" id="troubleSub"></span>
+        <div class="header-spacer"></div>
+        <button class="btn btn-ghost btn-sm" id="troubleClose">Close</button>
+      </div>
+      <div class="modal-body trouble-body" id="troubleBody"></div>
+    </div>
+  </div>
+
+  <div id="seedDialog" class="modal" hidden>
+    <div class="modal-card seed-card">
+      <div class="modal-head">
+        <span id="seedDialogTitle">Seed comparison</span>
+        <div class="header-spacer"></div>
+        <button class="btn btn-sm btn-danger" id="seedStop" type="button" title="Abort the seed comparison — stops the take rendering now and skips the queued ones. Finished takes are kept." hidden>■ Stop rendering</button>
+        <button class="btn btn-ghost btn-sm" id="seedPlayAll" type="button" title="Start every take from the beginning, together">▶ Play all from start</button>
+        <button class="btn btn-ghost btn-sm" id="seedPauseAll" type="button" title="Pause playback of the takes (does not stop rendering)">⏸ Pause all</button>
+        <button class="btn btn-ghost btn-sm" id="seedDelete" type="button" title="Delete this shot's seed takes to free disk space. The shot's own clip is kept.">Delete takes</button>
+        <button class="btn btn-ghost btn-sm" id="seedClose" type="button">Close</button>
+      </div>
+      <div class="seed-grid" id="seedGrid"></div>
+      <div class="modal-foot">
+        Every take is this shot with only the seed changed. Takes play muted —
+        press <b>🔈 Listen</b> on one to hear it. <b>Use this take</b> makes it the
+        shot's clip and seed without rendering again.
+      </div>
+    </div>
+  </div>
+
+  <div id="openDialog" class="modal" hidden>
+    <div class="modal-card" style="width:min(760px,100%)">
+      <div class="modal-head">
+        <span>Open a storyboard</span>
+        <div class="header-spacer"></div>
+        <button class="btn btn-ghost btn-sm" id="openClose">Close</button>
+      </div>
+      <div class="modal-body" style="display:block" id="openList"></div>
+      <div class="modal-foot">
+        <div>
+          Each row is one project's <code>storyboard.json</code> — the whole
+          board. Opening one edits that file in place.
+        </div>
+        <div style="margin-top:var(--sp-2)">
+          <button class="btn btn-sm btn-ghost" id="openElsewhere">
+            Copy in a board file from elsewhere…
+          </button>
+          <span class="hint">
+            — makes a new project here. A browser hands over a file's contents,
+            not its location, so this cannot open one in place; renders stay
+            with the original.
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="batchDialog" class="modal" hidden>
+    <div class="modal-card" style="width:min(560px,100%)">
+      <div class="modal-head">
+        <span>Batch Render</span>
+        <div class="header-spacer"></div>
+        <button class="btn btn-ghost btn-sm" id="batchClose">Close</button>
+      </div>
+      <div class="modal-body" style="display:block" id="batchList"></div>
+      <div class="modal-foot">
+        <div>
+          Each project renders in full — the same as clicking "Render all"
+          on it — using whatever draft/sketch/model settings that project
+          already has saved, then the next one starts automatically.
+        </div>
+        <div style="margin-top:var(--sp-3)">
+          <button class="btn btn-primary btn-sm" id="batchStart">Start batch</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="filmDialog" class="modal" role="dialog" aria-labelledby="filmDialogTitle" hidden>
+    <div class="modal-card" style="width:min(620px,100%)">
+      <div class="modal-head">
+        <span id="filmDialogTitle">Ny film fra idé</span>
+        <div class="header-spacer"></div>
+        <button class="btn btn-ghost btn-sm" id="filmClose" type="button">Lukk</button>
+      </div>
+      <div class="modal-body" style="display:block">
+        <div id="filmJobSummary" class="field-note" hidden></div>
+        <div id="filmSetup">
+        <div class="field">
+          <label for="filmTitle">Tittel <span class="hint-inline">valgfritt</span></label>
+          <input type="text" id="filmTitle" placeholder="For eksempel: Den siste ferden" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="filmDescription">Beskriv filmen</label>
+          <textarea id="filmDescription" rows="7" placeholder="Beskriv handling, karakterer, stemning, sted og hva som skal skje. Qwen deler dette inn i karakterer, referansebilder og klipp."></textarea>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="filmDuration">Lengde <span class="hint-inline">sekunder</span></label>
+            <input type="number" id="filmDuration" min="6" max="7200" step="1" value="7">
+          </div>
+          <div class="field" hidden>
+            <label for="filmImageEngine">Bildemodell for karakterkort og scenebilder</label>
+            <select id="filmImageEngine" aria-label="Bildemodell for karakterkort og scenebilder">
+              <option value="qwen-image-2.1-turbo">Qwen-Image-2.1-Turbo (ComfyUI)</option>
+            </select>
+          </div>
+        </div>
+        <details class="studio-film-advanced"><summary>Produksjonsvalg og avanserte innstillinger</summary>
+        <div class="field-row">
+          <div class="field"><label for="filmReviewMode">Kvalitetskontroll</label>
+            <select id="filmReviewMode"><option value="balanced">Balansert · inntil 3 visuelle modellkontroller</option><option value="fast">Rask · tekniske kontroller og egen gjennomgang</option><option value="thorough">Grundig · inntil 12 visuelle modellkontroller</option></select></div>
+          <div class="field"><label for="filmSpeechMode">Dialog</label><select id="filmSpeechMode"><option value="native">LTX lager tale</option><option value="recording">Faste stemmer fra valgt stemmemotor</option></select></div>
+        </div>
+        <label><input type="checkbox" id="filmPrepareOnly" checked disabled> Lag bildeplan for gjennomgang før video</label>
+        <div class="field-note">Godkjenn bildeplanen, og gjennomgå deretter hver kameragruppe med lyd og neste åpningsbilde. Balansert og Grundig starter 27B-modellen for utvalgte visuelle kontroller. Oppstart kan ta opptil 12 minutter, deretter opptil 3 minutter per vurdering. LTX og regissørmodellen kjører etter hverandre med bekreftet minnefrigjøring mellom. Modellens vurdering erstatter ikke din gjennomgang.</div>
+        <label><input type="checkbox" id="filmEndAnchors"> Automatiske sluttankre (valgfritt, kan begrense bevegelse)</label>
+        <div class="field"><label for="filmEndStrength">Styrke på automatisk sluttanker</label><input id="filmEndStrength" type="number" min="0" max="1" step="0.05" value="0.65"></div>
+        <label><input type="checkbox" id="filmContinuationAnchor"> Bruk scenens åpningsbilde som svakt anker i videreføringer</label>
+        <div class="field-note">Dette ekstra ankeret gjelder første nye bilde, styrke 0,35, og kan trekke handling og kamera tilbake mot åpningen. Karakterkort brukes bare som identitetsreferanser til komplette scenebilder. Automatiske sluttankre krever en eksplisitt sluttilstand; manuelle ankere har prioritet.</div>
+        <div class="field-note" style="margin-top:var(--sp-2)">Flyten bruker LTX-2.5 Q8 ved 384×256 og 24 fps. Videreføring bærer de siste 25 bildene med lyd innen samme scene; et sceneskift starter et nytt klippforløp. Lange filmer er ikke verifisert. Kontroller karakterlikhet, tale og handling i resultatet.</div>
+        </details>
+        <div class="field-note" id="filmEstimate">4–6 sekunder per klipp · 5 sekunder som mål ved 24 fps.</div>
+        <div class="field-note" style="margin-top:var(--sp-2)">Oppretter et nytt prosjekt og planlegger filmen på nytt. For å produsere klippene i prosjektet du har åpent, velg «Lag film fra denne planen» i Film.</div>
+        </div>
+        <a id="filmAnimatic" href="#" target="_blank" rel="noopener" hidden>Se animatic</a>
+        <section id="filmReview" aria-label="Gjennomgå bilder og video" hidden></section>
+        <div id="filmStatus" class="field-note" hidden aria-live="polite"></div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-danger btn-sm" id="filmStop" type="button" hidden>Stopp</button>
+        <button class="btn btn-sm" id="filmResume" type="button" hidden>Fortsett fra lagret plan</button>
+        <div class="header-spacer"></div>
+        <button class="btn btn-primary" id="filmStart" type="button">Planlegg og lag film</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="settings" class="modal" hidden>
+    <div class="modal-card" style="width:min(560px,100%)">
+      <div class="modal-head">
+        <span>Project settings</span>
+        <div class="header-spacer"></div>
+        <button class="btn btn-ghost btn-sm" id="settingsClose">Done</button>
+      </div>
+      <nav class="settings-tabs" role="tablist" aria-label="Settings categories">
+        <button class="settings-tab active" role="tab" aria-selected="true" data-settings-tab="general">General</button>
+        <button class="settings-tab" role="tab" aria-selected="false" data-settings-tab="video">Video</button>
+        <button class="settings-tab" role="tab" aria-selected="false" data-settings-tab="audio">Audio</button>
+        <button class="settings-tab" role="tab" aria-selected="false" data-settings-tab="soundtrack">Soundtrack</button>
+        <button class="settings-tab" role="tab" aria-selected="false" data-settings-tab="image">Image</button>
+      </nav>
+      <div class="modal-body settings-body">
+        <div class="settings-pane active" data-settings-pane="general">
+        <section>
+        <div class="card-heading"><span class="card-heading-title">Project</span><span class="card-heading-desc">the name and the folder move together</span></div>
+        <div class="field">
+          <label>Project name</label>
+          <div class="rename-row">
+            <input type="text" id="projName" autocomplete="off">
+            <button class="btn btn-sm" id="btnRename" disabled>Rename</button>
+            <button class="btn btn-danger btn-sm" id="btnDeleteBoard" type="button" title="Slett prosjektet etter bekreftelse">Slett prosjekt…</button>
+          </div>
+          <div class="field-note" id="projPath"></div>
+          <label class="checkbox-row"><input type="checkbox" id="projDeleteMedia"> Slett også bilder, filmer og andre prosjektfiler fra disk</label>
+        </div>
+        </section>
+
+        <section>
+        <div class="card-heading"><span class="card-heading-title">Storyboard data folder</span><span class="card-heading-desc">each project is stored directly inside this folder</span></div>
+        <div class="field">
+          <label>Folder path</label>
+          <input type="text" id="dataDirInput" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="field-note" id="dataDirWarn"></div>
+        <div class="field-note">
+          Example: choosing <code>/Volumes/Media/storyboard-projects</code>
+          stores a board under
+          <code>/Volumes/Media/storyboard-projects/my-board/</code>.
+          Changing this setting does not move existing folders.
+        </div>
+        <div class="rename-row" style="margin-top:var(--sp-2)">
+          <button class="btn btn-sm" id="btnSaveDataDir">Save &amp; restart server</button>
+        </div>
+        </section>
+
+        <section>
+        <div class="card-heading"><span class="card-heading-title">Prompt rewriting</span><span class="card-heading-desc">the 🪄 button</span></div>
+        <div class="field">
+          <label for="llmService">LLM service <span class="hint-inline">used by this project · services are shared by every project on this Mac</span></label>
+          <div class="rename-row">
+            <select id="llmService"></select>
+            <span class="chip" id="llmStatus" hidden></span>
+            <button class="btn btn-sm" id="btnStartLlm" type="button" hidden>Start</button>
+            <button class="btn btn-sm" id="btnEditLlmService" type="button">Edit</button>
+            <button class="btn btn-sm" id="btnNewLlmService" type="button">+ Add</button>
+          </div>
+          <div class="field-note" id="llmNote"></div>
+        </div>
+        <div class="llm-editor" id="llmEditor" hidden>
+          <div class="llm-editor-title" id="llmEditorTitle">New service</div>
+          <div class="field-row">
+            <div class="field"><label for="llmServiceLabel">Name</label><input type="text" id="llmServiceLabel" placeholder="e.g. Local Llama" autocomplete="off"></div>
+            <div class="field"><label for="llmServiceKind">Type</label><select id="llmServiceKind">
+              <optgroup label="On your computer or network">
+                <option value="ollama">Ollama</option>
+                <option value="lmstudio">LM Studio</option>
+                <option value="splash">Splash (lokal Qwen3.8)</option>
+                <option value="fable">Qwen3.8 Uncensored MLX 4-bit (lokal regi, 256K)</option>
+                <option value="openai">Other OpenAI-compatible server (llama.cpp, vLLM, MLX…)</option>
+              </optgroup>
+              <optgroup label="Cloud APIs (need an API key)">
+                <option value="openai-api">OpenAI</option>
+                <option value="anthropic">Anthropic (Claude)</option>
+                <option value="gemini">Google Gemini</option>
+                <option value="openrouter">OpenRouter</option>
+                <option value="groq">Groq</option>
+                <option value="mistral">Mistral</option>
+              </optgroup>
+            </select></div>
+          </div>
+          <div class="field"><label for="llmServiceUrl">Server URL</label><input type="text" id="llmServiceUrl" placeholder="http://localhost:11434" autocomplete="off" spellcheck="false"><div class="field-note" id="llmServiceUrlNote"></div></div>
+          <div class="field"><label for="llmServiceModel">Model</label><input type="text" id="llmServiceModel" placeholder="e.g. llama3.1:8b" autocomplete="off" spellcheck="false"><div class="field-note" id="llmServiceModelNote"></div></div>
+          <div class="field">
+            <label for="llmThinking">Thinking <span class="hint-inline">how long the model reasons before it answers</span></label>
+            <select id="llmThinking">
+              <option value="none">None — answer straight away</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+            <div class="field-note" id="llmThinkingNote">Thinking can improve rewrites and AD replies, but each request takes longer — on a local model, often minutes at High. Models that can't think ignore it.</div>
+          </div>
+          <div class="field" id="llmCtxField" hidden>
+            <label for="llmCtx">Context window <output id="llmCtxValue"></output></label>
+            <input type="range" id="llmCtx" class="ctx-range" min="0" max="11" step="1" value="1">
+            <div class="ctx-ticks" id="llmCtxTicks" aria-hidden="true"></div>
+            <div class="field-note">How much of the board and conversation the model can read. The AD chat sends the whole board every turn — a large board needs 24K or more, and Ollama fails with “HTTP 400 Bad Request” if the window is too small. A larger window uses more memory on the machine running Ollama.</div>
+          </div>
+          <label class="toggle"><input type="checkbox" id="llmServiceAuth"><span class="toggle-track"></span><span>Requires an API key</span></label>
+          <div class="field" id="llmServiceKeyWrap" hidden>
+            <label for="llmServiceKey">API key <span class="hint-inline">stored on this Mac only</span></label>
+            <input type="password" id="llmServiceKey" autocomplete="off" spellcheck="false">
+            <div class="field-note" id="llmServiceKeyNote"></div>
+            <div class="field-note" id="llmServiceKeyHelp"></div>
+          </div>
+          <div class="llm-editor-actions">
+            <button class="btn btn-primary btn-sm" id="btnSaveLlmService" type="button">Save</button>
+            <button class="btn btn-ghost btn-sm" id="btnCancelLlmService" type="button">Cancel</button>
+            <div class="header-spacer"></div>
+            <button class="btn btn-danger btn-sm" id="btnDeleteLlmService" type="button">Delete</button>
+          </div>
+        </div>
+        </section>
+
+        <section>
+        <div class="card-heading"><span class="card-heading-title">Clip settings</span><span class="card-heading-desc">applies to every shot</span></div>
+        <div class="field-row">
+          <div class="field">
+            <label>Aspect ratio</label>
+            <select id="projAspect"></select>
+          </div>
+          <div class="field">
+            <label>Frame size</label>
+            <select id="projResolution"></select>
+          </div>
+        </div>
+        <div class="field" id="resNoteField"></div>
+        <div class="field">
+          <label>Video engine <span class="hint-inline">for every shot without a per-shot override</span></label>
+          <select id="videoEngine"></select>
+          <div class="field-note" id="videoEngineNote"></div>
+        </div>
+        <div class="field">
+          <label>Frame rate</label>
+          <div class="readonly">24 fps — fixed by the models</div>
+        </div>
+        <div class="field">
+          <label>Default steps <span class="hint-inline">distilled · fixed 8+3 steps</span></label>
+          <input type="number" id="defSteps" value="8" readonly>
+        </div>
+        </section>
+
+        </div>
+        <div class="settings-pane" data-settings-pane="video">
+        <section>
+        <div class="card-heading"><span class="card-heading-title">Render engine</span><span class="card-heading-desc">which program runs LTX-2.5 Q8 — applies to every project</span></div>
+        <div class="field">
+          <label for="backendSelect">Engine</label>
+          <div class="rename-row">
+            <select id="backendSelect">
+              <option value="ltx">LTX-2.5 Q8 — MLX / ComfyUI</option>
+            </select>
+            <button class="btn btn-sm" id="btnSaveBackend" disabled>Save &amp; restart server</button>
+          </div>
+        </div>
+        <div class="field-note" id="backendNote"></div>
+        </section>
+
+        <section>
+        <div class="card-heading"><span class="card-heading-title">Draft mode</span><span class="card-heading-desc">fast, rough, same motion</span></div>
+        <label class="toggle" id="draftToggleWrap">
+          <input type="checkbox" id="draftToggle">
+          <span class="toggle-track"></span>
+          <span>Render drafts</span>
+        </label>
+        <div class="cast-note" id="draftNote" style="margin-top:var(--sp-2)"></div>
+        <label class="toggle" id="sketchToggleWrap" style="margin-top:var(--sp-3)">
+          <input type="checkbox" id="sketchToggle">
+          <span class="toggle-track"></span>
+          <span>Sketch preview <span class="hint-inline">— pencil outlines, silent, fastest</span></span>
+        </label>
+        <div class="cast-note" id="sketchNote" style="margin-top:var(--sp-2)"></div>
+        </section>
+        </div>
+        <div class="settings-pane" data-settings-pane="audio">
+        <section>
+        <div class="card-heading"><span class="card-heading-title">Audio settings</span></div>
+        <div class="field">
+          <label for="ttsEngine">Speech engine <span class="hint-inline">for dialogue in this project · engines are shared by every project on this Mac</span></label>
+          <div class="rename-row">
+            <select id="ttsEngine"></select>
+            <span class="chip" id="ttsStatus" hidden></span>
+            <button class="btn btn-sm" id="btnStartTts" type="button" hidden>Start</button>
+            <button class="btn btn-sm" id="btnEditTtsService" type="button">Edit</button>
+            <button class="btn btn-sm" id="btnNewTtsService" type="button">+ Add</button>
+          </div>
+          <div class="field-note" id="ttsNote"></div>
+        </div>
+        <div class="llm-editor" id="ttsEditor" hidden>
+          <div class="llm-editor-title" id="ttsEditorTitle">New speech engine</div>
+          <div class="field-row">
+            <div class="field"><label for="ttsServiceLabel">Name</label><input type="text" id="ttsServiceLabel" placeholder="e.g. Qwen3 voice clone" autocomplete="off"></div>
+            <div class="field"><label for="ttsServiceKind">Type</label><select id="ttsServiceKind">
+              <option value="qwen3-clone">Qwen3-TTS voice clone (server)</option>
+              <option value="plain-sherpa">Plain TTS server (sherpa-onnx, /api/tts)</option>
+              <option value="vpipe-moss">MOSS-TTS 8B via vpipe (this Mac)</option>
+            </select></div>
+          </div>
+          <div class="field-note" id="ttsServiceKindNote"></div>
+          <div class="field" id="ttsServiceUrlWrap"><label for="ttsServiceUrl">Server URL</label><input type="text" id="ttsServiceUrl" autocomplete="off" spellcheck="false"><div class="field-note" id="ttsServiceUrlNote"></div></div>
+          <div class="llm-editor-actions">
+            <button class="btn btn-primary btn-sm" id="btnSaveTtsService" type="button">Save</button>
+            <button class="btn btn-ghost btn-sm" id="btnCancelTtsService" type="button">Cancel</button>
+            <div class="header-spacer"></div>
+            <button class="btn btn-danger btn-sm" id="btnDeleteTtsService" type="button">Delete</button>
+          </div>
+        </div>
+        </section>
+        </div>
+        <div class="settings-pane" data-settings-pane="soundtrack">
+        <section>
+        <div class="card-heading"><span class="card-heading-title">Soundtrack</span><span class="card-heading-desc">one piece of music under the whole cut, mixed in at assembly</span></div>
+        <div id="soundtrackSettings"></div>
+        </section>
+        </div>
+        <div class="settings-pane" data-settings-pane="image">
+        <section>
+        <div class="card-heading"><span class="card-heading-title">Create Image</span><span class="card-heading-desc">a storyboard image of the shot's opening frame, from the scene prompt</span></div>
+        <div class="field">
+          <label for="stillsStyle">Render style</label>
+          <select id="stillsStyle">
+            <option value="global">Follow project Render Style</option>
+            <option value="colored-pencil">Coloured pencil sketch</option>
+            <option value="pencil">Black-and-white pencil sketch</option>
+          </select>
+          <div class="field-note">This setting changes Create Image only. Video renders continue to use the project Render Style above.</div>
+        </div>
+        <div class="field">
+          <label>Size</label>
+          <select id="stillsSize">
+            <option value="small">Small — fast preview</option>
+            <option value="large">Large — reference quality (slower)</option>
+          </select>
+        </div>
+        <div class="field-note" id="stillsSizeNote"></div>
+        <div class="field">
+          <label for="stillsEngine">Bildemodell <span class="hint-inline">fast modell for dette prosjektet</span></label>
+          <div class="rename-row">
+            <select id="stillsEngine"></select>
+            <span class="chip" id="stillsStatus" hidden></span>
+            <button class="btn btn-sm" id="btnEditStillsEngine" type="button" hidden>Edit</button>
+            <button class="btn btn-sm" id="btnNewStillsEngine" type="button" hidden>+ Add</button>
+          </div>
+        </div>
+        <div class="field-note" id="stillsEngineNote"></div>
+        <div class="llm-editor" id="stillsEditor" hidden aria-hidden="true">
+          <div class="llm-editor-title" id="stillsEditorTitle">New mflux engine</div>
+          <div class="field-row">
+            <div class="field"><label for="stillsEngLabel">Name</label><input type="text" id="stillsEngLabel" placeholder="e.g. Z-Image Turbo via mflux" autocomplete="off"></div>
+            <div class="field"><label for="stillsEngPreset">Model family</label><select id="stillsEngPreset"></select></div>
+          </div>
+          <div class="field-note" id="stillsEngPresetNote"></div>
+          <div class="field-row">
+            <div class="field"><label for="stillsEngCommand">mflux command</label><input type="text" id="stillsEngCommand" placeholder="mflux-generate-z-image-turbo" autocomplete="off" spellcheck="false"></div>
+            <div class="field"><label for="stillsEngModel">Model</label><input type="text" id="stillsEngModel" placeholder="z-image-turbo" autocomplete="off" spellcheck="false"></div>
+          </div>
+          <div class="field-note" id="stillsEngModelNote"></div>
+          <div class="field" id="stillsEngBaseWrap" hidden>
+            <label for="stillsEngBase">Base model <span class="hint-inline">which family this checkpoint belongs to</span></label>
+            <select id="stillsEngBase"></select>
+          </div>
+          <div class="field-row">
+            <div class="field"><label for="stillsEngQuantize">Quantize</label><select id="stillsEngQuantize">
+              <option value="8">8-bit (recommended)</option>
+              <option value="6">6-bit</option>
+              <option value="5">5-bit</option>
+              <option value="4">4-bit (smallest, some quality loss)</option>
+              <option value="3">3-bit</option>
+              <option value="">Full precision (most memory)</option>
+            </select></div>
+            <div class="field"><label for="stillsEngSteps">Default steps</label><input type="number" id="stillsEngSteps" min="1" max="100" step="1"></div>
+          </div>
+          <div class="llm-editor-actions">
+            <button class="btn btn-primary btn-sm" id="btnSaveStillsEngine" type="button">Save</button>
+            <button class="btn btn-ghost btn-sm" id="btnCancelStillsEngine" type="button">Cancel</button>
+            <div class="header-spacer"></div>
+            <button class="btn btn-danger btn-sm" id="btnDeleteStillsEngine" type="button">Delete</button>
+          </div>
+        </div>
+        <div id="stillsModelWrap" hidden>
+          <div class="field">
+            <label>Model <span class="hint-inline">— this Mac only</span></label>
+            <select id="stillsModel"></select>
+          </div>
+          <div class="field-note" id="stillsModelNote"></div>
+        </div>
+        <div class="field">
+          <label>Steps <span class="hint-inline">Qwen Turbo bruker fast 8</span></label>
+          <input type="number" id="stillsSteps" min="8" max="8" step="1" value="8" readonly aria-readonly="true">
+        </div>
+        <div class="field-note" id="stillsStepsNote"></div>
+        <div class="field">
+          <label>Seed <span class="hint-inline">blank = random each time</span></label>
+          <input type="number" id="stillsSeed" min="1" step="1" placeholder="Random">
+        </div>
+        <div class="field-note" id="stillsSeedNote"></div>
+        </section>
+        </div>
+
+        <section>
+        <div class="card-heading"><span class="card-heading-title">Web search</span><span class="card-heading-desc">optional; lets the Storyboard AD research things beyond this board</span></div>
+        <div class="field">
+          <label>Search engine URL</label>
+          <input type="text" id="searchUrlInput" autocomplete="off" spellcheck="false" placeholder="e.g. http://localhost:8080 (SearXNG)">
+        </div>
+        <div class="field-note" id="searchUrlWarn"></div>
+        <div class="field-note">
+          Points at a search engine already running somewhere on your
+          network that answers SearXNG's JSON search API — SearXNG itself is
+          just one example; anything speaking the same
+          <code>/search?q=...&amp;format=json</code> interface works. Leave
+          blank to skip — the AD answers from the board and its own
+          knowledge only, exactly as before.
+        </div>
+        </section>
+
+      </div>
+      <div class="modal-foot">
+        These apply to the whole storyboard. Scene description, background
+        sound effects and cast stay on the left, since those are what you edit
+        while writing.
+      </div>
+    </div>
+  </div>
+
+  <div id="castEditor" class="modal" hidden>
+    <div class="modal-card" style="width:min(560px,100%)">
+      <div class="modal-head">
+        <span id="castEditorTitle">Character</span>
+        <div class="header-spacer"></div>
+        <button class="btn btn-ghost btn-sm" id="castCancel">Cancel</button>
+        <button class="btn btn-primary btn-sm" id="castSave">Save</button>
+      </div>
+      <div class="modal-body" style="display:block">
+        <div class="field">
+          <label>Name <span class="hint-inline">required — how shots refer to them</span></label>
+          <input type="text" id="castName" placeholder="e.g. Kira">
+        </div>
+        <div class="field">
+          <div class="field-action-head">
+            <label>Description <span class="hint-inline">required — this is what conditions the model</span></label>
+            <div class="header-spacer"></div>
+            <button class="btn btn-sm wand" id="castDescribe" title="Describe the character and separate the environment">
+              <svg class="rewrite-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <use href="#stage-icon-rewrite"></use>
+              </svg><span>Rewrite</span>
+            </button>
+          </div>
+          <textarea id="castDesc" rows="4"
+            placeholder="Appearance, clothing, build, age — whatever should stay consistent whenever they appear."></textarea>
+          <div class="field-note">Separates character traits from the surrounding environment.</div>
+          <div class="proposal-slot" id="castDescProposal"></div>
+        </div>
+        <div class="field">
+          <label for="castVoiceDesc">Voice <span class="hint-inline">optional</span></label>
+          <textarea id="castVoiceDesc" rows="2"
+            placeholder="How they always sound: e.g. low, dry, slightly gravelly American baritone, unhurried."></textarea>
+          <div class="field-note">Added to the voice direction of every line they speak, ahead of that scene's own direction.</div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Character card <span class="hint-inline">optional — four full-body views</span></label>
+            <div class="ref-slot" id="castImage"></div>
+            <div class="cast-generate">
+              <button class="btn btn-sm" id="castGenerateImage" type="button">Lag karakterkort</button>
+              <span class="field-note" id="castGenerateNote"></span>
+            </div>
+          </div>
+          <div class="field">
+            <label>Reference voice <span class="hint-inline">optional</span></label>
+            <div class="ref-slot" id="castVoice"></div>
+          </div>
+        </div>
+        <div class="field">
+          <label>What the voice clip says
+            <span class="hint-inline">needed for cloning — the server can fill it in</span>
+          </label>
+          <div style="display:flex;gap:var(--sp-2)">
+            <input type="text" id="castVoiceText" placeholder="transcript of the reference clip">
+            <button class="btn btn-sm" id="castTranscribe" title="Transcribe the attached clip">Transcribe</button>
+          </div>
+        </div>
+        <div class="cast-note" id="castNote"></div>
+      </div>
+      <div class="modal-foot" id="castFoot"></div>
+    </div>
+  </div>
+
+  <div id="helpDialog" class="modal" hidden>
+    <div class="modal-card" style="width:min(920px,100%)">
+      <div class="modal-head">
+        <span>Storyboard prompt guide</span>
+        <div class="header-spacer"></div>
+        <button class="btn btn-ghost btn-sm" id="helpClose">Close</button>
+      </div>
+      <div class="modal-body help-body" style="display:block">
+        <details class="studio-film-advanced">
+          <summary>Filmstudioet: Bilder, Film og regissør</summary>
+          <p>I Bilder skriver du en beskrivelse, velger referanser, format og størrelse og trykker «Lag bilde». Det krever ikke et klipp. «Bruk i film» lar deg velge målklipp; video starter først ved egen produksjon.</p>
+          <p>Film viser scener, klipp, karakterer og ferdige resultater. «Lag film fra denne planen» gjennomgår det åpne prosjektet før start. «Ny film fra idé» lager et nytt prosjekt. Regissøren følger prosjektet og viser forslag før endringer brukes.</p>
+        </details>
+        <div class="help-tabs" role="tablist" aria-label="Storyboard prompt guide topics">
+          <button class="help-tab" id="helpTabFraming" type="button" role="tab" aria-selected="true" aria-controls="helpPanelFraming" tabindex="0">Framing</button>
+          <button class="help-tab" id="helpTabMovement" type="button" role="tab" aria-selected="false" aria-controls="helpPanelMovement" tabindex="-1">Camera movement</button>
+          <button class="help-tab" id="helpTabPrompting" type="button" role="tab" aria-selected="false" aria-controls="helpPanelPrompting" tabindex="-1">Writing the prompt</button>
+          <button class="help-tab" id="helpTabDialogue" type="button" role="tab" aria-selected="false" aria-controls="helpPanelDialogue" tabindex="-1">Dialogue &amp; sound</button>
+        </div>
+
+        <div class="help-panel" id="helpPanelFraming" role="tabpanel" aria-labelledby="helpTabFraming" tabindex="0">
+
+        <section class="help-section">
+          <div class="card-heading"><span class="card-heading-title">Camera level</span><span class="card-heading-desc">how high the camera sits relative to the subject</span></div>
+          <svg class="help-diagram" viewBox="0 0 640 480" role="img"
+               aria-label="A standing figure with six camera heights marked, from overhead down to ground level.">
+            <circle class="help-fig" cx="460" cy="60" r="32"/>
+            <rect class="help-fig" x="452" y="92" width="16" height="14"/>
+            <polygon class="help-fig" points="420,106 500,106 485,270 435,270"/>
+            <polygon class="help-fig" points="435,270 460,270 454,455 432,455"/>
+            <polygon class="help-fig" points="460,270 485,270 488,455 466,455"/>
+            <ellipse class="help-fig" cx="440" cy="458" rx="15" ry="6"/>
+            <ellipse class="help-fig" cx="478" cy="458" rx="15" ry="6"/>
+
+            <!-- overhead -->
+            <polyline class="help-line" points="300,12 460,12 460,26"/>
+            <g class="help-cam" transform="translate(447,2)"><use href="#help-cam-icon"/></g>
+            <text class="help-label" x="292" y="16" text-anchor="end">OVERHEAD</text>
+
+            <!-- eye level -->
+            <polyline class="help-line" points="300,58 425,58"/>
+            <g class="help-cam" transform="translate(250,50)"><use href="#help-cam-icon"/></g>
+            <text class="help-label" x="20" y="62">EYE LEVEL</text>
+
+            <!-- shoulder level -->
+            <polyline class="help-line" points="300,104 420,104"/>
+            <g class="help-cam" transform="translate(250,96)"><use href="#help-cam-icon"/></g>
+            <text class="help-label" x="20" y="108">SHOULDER LEVEL</text>
+
+            <!-- hip level -->
+            <polyline class="help-line" points="300,270 434,270"/>
+            <g class="help-cam" transform="translate(250,262)"><use href="#help-cam-icon"/></g>
+            <text class="help-label" x="20" y="274">HIP LEVEL</text>
+
+            <!-- knee level -->
+            <polyline class="help-line" points="300,380 432,380"/>
+            <g class="help-cam" transform="translate(250,372)"><use href="#help-cam-icon"/></g>
+            <text class="help-label" x="20" y="384">KNEE LEVEL</text>
+
+            <!-- ground level -->
+            <polyline class="help-line" points="300,455 432,455"/>
+            <g class="help-cam" transform="translate(250,447)"><use href="#help-cam-icon"/></g>
+            <text class="help-label" x="20" y="459">GROUND LEVEL</text>
+
+            <defs>
+              <g id="help-cam-icon">
+                <rect x="0" y="3" width="20" height="12" rx="2"/>
+                <polygon points="20,6 27,3 27,15 20,12"/>
+                <circle cx="6" cy="9" r="3.4" class="help-cam-lens"/>
+              </g>
+            </defs>
+          </svg>
+          <dl class="help-legend">
+            <div><dt>Overhead</dt><dd>straight down from above — lays out geography and scale, or disorients on purpose.</dd></div>
+            <div><dt>Eye level</dt><dd>matches how people actually look at each other — neutral, natural.</dd></div>
+            <div><dt>Shoulder level</dt><dd>a touch below eye level — common for handheld, observational coverage.</dd></div>
+            <div><dt>Hip level</dt><dd>around waist height, angled slightly up — common alongside a walking subject.</dd></div>
+            <div><dt>Knee level</dt><dd>low, looking further up — adds height and a little power to the subject.</dd></div>
+            <div><dt>Ground level</dt><dd>at the floor — makes a subject tower overhead, or reads action happening low.</dd></div>
+          </dl>
+        </section>
+
+        <section class="help-section">
+          <div class="card-heading"><span class="card-heading-title">Shot size</span><span class="card-heading-desc">how much of the subject the frame holds, tightest to widest</span></div>
+          <svg class="help-diagram" viewBox="0 0 640 480" role="img"
+               aria-label="A standing figure with seven nested crop lines, from an extreme close-up on the head down to a full shot of the whole body.">
+            <!-- The whole composition is drawn off-center (bunched toward
+                 x=85..405) so the crop-size tick labels have room to the
+                 right; shifted here so it reads centered in the viewBox
+                 instead of left-heavy. -->
+            <g transform="translate(75,0)">
+              <circle class="help-fig" cx="220" cy="60" r="32"/>
+              <rect class="help-fig" x="212" y="92" width="16" height="14"/>
+              <polygon class="help-fig" points="180,106 260,106 245,270 195,270"/>
+              <polygon class="help-fig" points="195,270 220,270 214,455 192,455"/>
+              <polygon class="help-fig" points="220,270 245,270 248,455 226,455"/>
+              <ellipse class="help-fig" cx="200" cy="458" rx="15" ry="6"/>
+              <ellipse class="help-fig" cx="238" cy="458" rx="15" ry="6"/>
+
+              <rect class="help-crop" x="175" y="15" width="90" height="80"/>
+              <rect class="help-crop" x="162" y="15" width="116" height="130"/>
+              <rect class="help-crop" x="150" y="15" width="140" height="180"/>
+              <rect class="help-crop" x="125" y="15" width="190" height="255"/>
+              <rect class="help-crop" x="110" y="15" width="220" height="325"/>
+              <rect class="help-crop" x="100" y="15" width="240" height="375"/>
+              <rect class="help-crop" x="85" y="15" width="270" height="445"/>
+
+              <g class="help-tick">
+                <line x1="265" y1="95" x2="290" y2="95"/><text x="296" y="99">ECU</text>
+                <line x1="278" y1="145" x2="303" y2="145"/><text x="309" y="149">CU</text>
+                <line x1="290" y1="195" x2="315" y2="195"/><text x="321" y="199">MCU</text>
+                <line x1="315" y1="270" x2="340" y2="270"/><text x="346" y="274">MS</text>
+                <line x1="330" y1="340" x2="355" y2="340"/><text x="361" y="344">CS</text>
+                <line x1="340" y1="390" x2="365" y2="390"/><text x="371" y="394">MFS</text>
+                <line x1="355" y1="460" x2="380" y2="460"/><text x="386" y="464">FS</text>
+              </g>
+            </g>
+          </svg>
+          <dl class="help-legend">
+            <div><dt>Extreme close-up (ECU)</dt><dd>just the eyes or mouth — intense emotion, or a tiny detail.</dd></div>
+            <div><dt>Close-up (CU)</dt><dd>the face, forehead to chin — reaction and emotion.</dd></div>
+            <div><dt>Medium close-up (MCU)</dt><dd>head and upper chest — the standard dialogue frame.</dd></div>
+            <div><dt>Medium shot (MS)</dt><dd>waist up — balances expression with body language.</dd></div>
+            <div><dt>Cowboy shot (CS)</dt><dd>mid-thigh up, named for a Western gunslinger's holster — body language plus a hint of the surroundings.</dd></div>
+            <div><dt>Medium full shot (MFS)</dt><dd>knees up.</dd></div>
+            <div><dt>Full shot (FS)</dt><dd>head to toe — posture, movement, and the subject's relationship to the space around them.</dd></div>
+          </dl>
+        </section>
+
+        </div>
+
+        <div class="help-panel" id="helpPanelMovement" role="tabpanel" aria-labelledby="helpTabMovement" tabindex="0" hidden>
+
+        <section class="help-section">
+          <div class="card-heading"><span class="card-heading-title">Camera movement</span><span class="card-heading-desc">how the camera itself moves during the shot, not what it sees</span></div>
+          <svg class="help-diagram" viewBox="0 0 640 320" role="img"
+               aria-label="Six camera moves: dolly, pedestal and truck move the camera itself through space; pan, tilt and roll rotate it in place.">
+
+            <!-- dolly: move forward/back along where the lens points -->
+            <use href="#move-cam-icon" class="help-cam" transform="translate(96.5,46)"/>
+            <line class="help-move-arrow" x1="55" y1="110" x2="165" y2="110"
+                  marker-start="url(#move-arrow-head)" marker-end="url(#move-arrow-head)"/>
+            <text class="help-label" x="110" y="170" text-anchor="middle">DOLLY</text>
+
+            <!-- pedestal: raise/lower the whole camera -->
+            <use href="#move-cam-icon" class="help-cam" transform="translate(306.5,46)"/>
+            <line class="help-move-arrow" x1="320" y1="80" x2="320" y2="140"
+                  marker-start="url(#move-arrow-head)" marker-end="url(#move-arrow-head)"/>
+            <text class="help-label" x="320" y="170" text-anchor="middle">PEDESTAL</text>
+
+            <!-- truck: move sideways, perpendicular to where the lens points
+                 (icon rotated 90° so the lens direction reads against the
+                 horizontal arrow, the same way dolly's arrow reads with it) -->
+            <g transform="translate(530,55) rotate(-90)">
+              <use href="#move-cam-icon" class="help-cam" x="-13.5" y="-9"/>
+            </g>
+            <line class="help-move-arrow" x1="475" y1="110" x2="585" y2="110"
+                  marker-start="url(#move-arrow-head)" marker-end="url(#move-arrow-head)"/>
+            <text class="help-label" x="530" y="170" text-anchor="middle">TRUCK</text>
+
+            <!-- pan: swivel left/right from a fixed position -->
+            <use href="#move-cam-icon" class="help-cam" transform="translate(96.5,236)"/>
+            <path class="help-move-arrow" d="M60,235 Q110,195 160,235"
+                  marker-start="url(#move-arrow-head)" marker-end="url(#move-arrow-head)"/>
+            <text class="help-label" x="110" y="285" text-anchor="middle">PAN</text>
+
+            <!-- tilt: swivel up/down from a fixed position -->
+            <use href="#move-cam-icon" class="help-cam" transform="translate(306.5,236)"/>
+            <path class="help-move-arrow" d="M350,225 Q385,245 350,265"
+                  marker-start="url(#move-arrow-head)" marker-end="url(#move-arrow-head)"/>
+            <text class="help-label" x="320" y="285" text-anchor="middle">TILT</text>
+
+            <!-- roll: rotate around the lens axis -->
+            <use href="#move-cam-icon" class="help-cam" transform="translate(516.5,236)"/>
+            <path class="help-move-arrow" d="M543,229 A16,16 0 1 1 527,245"
+                  marker-end="url(#move-arrow-head)"/>
+            <text class="help-label" x="530" y="285" text-anchor="middle">ROLL</text>
+
+            <defs>
+              <g id="move-cam-icon">
+                <rect x="0" y="3" width="20" height="12" rx="2"/>
+                <polygon points="20,6 27,3 27,15 20,12"/>
+                <circle cx="6" cy="9" r="3.4" class="help-cam-lens"/>
+              </g>
+              <marker id="move-arrow-head" viewBox="0 0 10 10" refX="5" refY="5"
+                      markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 z" class="help-move-arrow-head"/>
+              </marker>
+            </defs>
+          </svg>
+          <dl class="help-legend">
+            <div><dt>Dolly</dt><dd>move the whole camera toward or away from the subject — not a zoom, the camera itself travels.</dd></div>
+            <div><dt>Pedestal</dt><dd>raise or lower the whole camera, keeping it level.</dd></div>
+            <div><dt>Truck</dt><dd>move the whole camera sideways, left or right, at the same distance from the subject.</dd></div>
+            <div><dt>Pan</dt><dd>swivel the camera left or right from a fixed spot, like turning your head.</dd></div>
+            <div><dt>Tilt</dt><dd>swivel the camera up or down from a fixed spot, like nodding.</dd></div>
+            <div><dt>Roll</dt><dd>rotate the camera around the lens axis, tilting the horizon — used sparingly, for disorientation or a stylised look.</dd></div>
+          </dl>
+        </section>
+
+        </div>
+
+        <div class="help-panel" id="helpPanelPrompting" role="tabpanel" aria-labelledby="helpTabPrompting" tabindex="0" hidden>
+
+        <section class="help-section help-prompt">
+          <div class="card-heading"><span class="card-heading-title">Turn the idea into a prompt</span><span class="card-heading-desc">describe the opening composition, camera move, and how the shot develops</span></div>
+          <p class="help-intro">
+            LTX-2.5 responds more reliably to a clear opening composition followed by
+            one main camera move. Describe the move as an action in a sentence,
+            rather than as a list of camera terms. Copy any example below and
+            paste it into a shot prompt; replace the subject or scene details
+            to fit your shot.
+          </p>
+          <div class="help-recipe">
+            <div><strong>Opening composition</strong><span>State the shot size, camera angle or height, subject position, and important background details.</span></div>
+            <div><strong>Motion type</strong><span>Choose the move that describes what changes: tracking, push in/pull out, pan, truck, tilt, pedestal, arc, static, or shake.</span></div>
+            <div><strong>Direction and target</strong><span>Say which way the camera moves and what it follows or points toward. Keep the subject's movement distinct from the camera's.</span></div>
+            <div><strong>Amplitude</strong><span>Describe the range when it matters: small amplitude for a subtle change, large amplitude for a pronounced change. Medium is usually understood.</span></div>
+            <div><strong>Speed</strong><span>Specify slow or fast when important. Normal speed is usually understood.</span></div>
+            <div><strong>Result</strong><span>Describe the ending framing or what new part of the scene becomes visible, if the shot needs a specific endpoint.</span></div>
+          </div>
+          <div class="help-callout">
+            <strong>Keep similar moves distinct:</strong>
+            a <em>zoom</em> changes focal length from a fixed camera position;
+            a <em>push in/pull out</em> moves the camera forward or back. A
+            <em>pan</em> turns the camera in place; a <em>truck</em> moves it
+            sideways. Use “counterclockwise” for an orbit or roll; for a pan,
+            specify screen left or right. Add amplitude and speed only when
+            they help describe the intended movement.
+          </div>
+          <div class="help-examples">
+            <div class="help-example">
+              <strong>Slow tracking shot</strong>
+              <code>Begin in a medium rear view with the subject centered. The camera tracks behind them at slow speed, keeping the same distance and framing as they walk down the corridor.</code>
+              <button class="btn btn-secondary btn-sm help-copy" type="button">Copy direction</button>
+            </div>
+            <div class="help-example">
+              <strong>Pan with a framing change</strong>
+              <code>Begin in an eye-level medium shot. The camera pans from screen left to screen right with large amplitude at slow speed, ending in a medium close-up.</code>
+              <button class="btn btn-secondary btn-sm help-copy" type="button">Copy direction</button>
+            </div>
+            <div class="help-example">
+              <strong>Push in</strong>
+              <code>Begin in a knee-level full shot with the subject centered. The camera pushes in with small amplitude at slow speed toward the subject, ending in a medium shot.</code>
+              <button class="btn btn-secondary btn-sm help-copy" type="button">Copy direction</button>
+            </div>
+            <div class="help-example">
+              <strong>Truck sideways</strong>
+              <code>Begin in a side-on medium shot. The camera trucks right with small amplitude at slow speed, keeping the subject in view as the background shifts with lateral parallax.</code>
+              <button class="btn btn-secondary btn-sm help-copy" type="button">Copy direction</button>
+            </div>
+            <div class="help-example">
+              <strong>Static shot</strong>
+              <code>The camera holds a static eye-level medium shot as the subject walks out of frame; the camera position and lens remain still.</code>
+              <button class="btn btn-secondary btn-sm help-copy" type="button">Copy direction</button>
+            </div>
+          </div>
+          <p class="help-tip">
+            A complete movement can specify <em>type + amplitude + speed</em>,
+            for example, “The camera trucks right with small amplitude at slow
+            speed.” Omit amplitude or speed when they add no useful direction.
+            Describe the opening composition first so LTX-2.5 knows what the shot
+            begins on.
+          </p>
+        </section>
+
+        </div>
+
+        <div class="help-panel" id="helpPanelDialogue" role="tabpanel" aria-labelledby="helpTabDialogue" tabindex="0" hidden>
+          <section class="help-section help-prompt">
+            <div class="card-heading"><span class="card-heading-title">Speaking, voice direction &amp; sound accents</span><span class="card-heading-desc">copy a line into a shot prompt and replace the bracketed parts</span></div>
+            <p class="help-intro">
+              Keep the exact spoken words in quotation marks. Identify who speaks,
+              how the voice sounds, and the delivery. Put brief sound effects next
+              to the action that causes them so they land at the right moment.
+            </p>
+            <div class="help-examples">
+              <div class="help-example">
+                <strong>Dialogue with voice direction</strong>
+                <code>[Character] says, "[Exact dialogue]." Voice: [low/high] [rough/clear/breathy] tone, [slow/measured/quick] pace, [calm/urgent/warm] delivery.</code>
+                <button class="btn btn-secondary btn-sm help-copy" type="button">Copy direction</button>
+              </div>
+              <div class="help-example">
+                <strong>Accent and vocal consistency</strong>
+                <code>[Character] speaks in a [specific regional] accent with a [pitch] [timbre] voice and [pace] rhythm. Keep the same accent and voice throughout the shot.</code>
+                <button class="btn btn-secondary btn-sm help-copy" type="button">Copy direction</button>
+              </div>
+              <div class="help-example">
+                <strong>Pause and emphasis</strong>
+                <code>[Character] says, "[First phrase]... [Second phrase]." They pause briefly after the first phrase, then stress "[emphasized word]" in a [emotion] voice.</code>
+                <button class="btn btn-secondary btn-sm help-copy" type="button">Copy direction</button>
+              </div>
+              <div class="help-example">
+                <strong>Timed sound accents</strong>
+                <code>As [action happens], a sharp [sound] lands with the movement, followed by [short reverberation / rattling / fading ring]. Keep the accent brief and distinct over the continuing ambience.</code>
+                <button class="btn btn-secondary btn-sm help-copy" type="button">Copy direction</button>
+              </div>
+              <div class="help-example">
+                <strong>Dialogue with an action sound</strong>
+                <code>[Character] says, "[Exact dialogue]," in a [voice and delivery]. On the final word, [object/action] makes a crisp [sound accent], then the room tone continues.</code>
+                <button class="btn btn-secondary btn-sm help-copy" type="button">Copy direction</button>
+              </div>
+            </div>
+            <div class="help-callout">
+              <strong>Make each cue specific:</strong>
+              name the speaker, preserve the exact line, and use a few audible voice
+              qualities instead of broad labels alone. For sound accents, describe
+              the source, timing, texture, and short decay. Keep environmental
+              ambience separate from a one-time impact or cue.
+            </div>
+          </section>
+        </div>
+
+      </div>
+      <div class="modal-foot">
+        Copy a direction, paste it into the shot prompt, then replace the
+        bracketed details or adapt the example to your scene.
+      </div>
+    </div>
+  </div>
+
+  <!-- Stage-tile icons: hand-drawn to match this app's existing inline-SVG
+       style (see the help dialog above) rather than pulling in Font Awesome
+       or another icon font. This app runs fully offline with no build step
+       and no external assets (see docs/ADVANCED-SETUP.md) — a CDN-hosted
+       icon font would be the first thing here that stops working without a
+       network connection, and the app already has its own house style for
+       icons (stroke-based, single colour, inherits currentColor) that these
+       just extend. Referenced via <use href="#stage-icon-KEY"> in js/app.js. -->
+  <svg style="position:absolute;width:0;height:0" aria-hidden="true">
+    <defs>
+      <g id="stage-icon-prep" class="stage-icon">
+        <path d="M3 8l1.4-4h4l-1 4M8.6 8l1-4h4l-1 4M14.6 8l1-4h4l-1.4 4"/>
+        <rect x="3" y="8" width="18" height="12" rx="1.2"/>
+      </g>
+      <g id="stage-icon-refs" class="stage-icon">
+        <rect x="3" y="4.5" width="18" height="15" rx="1.5"/>
+        <circle class="stage-icon-dot" cx="8.5" cy="9.5" r="1.4"/>
+        <path d="M21 15.5l-5.2-5-3.8 4-2.8-2.8L3 16"/>
+      </g>
+      <g id="stage-icon-gen" class="stage-icon stage-icon-solid">
+        <path d="M12 3.5l1.5 4.6 4.6 1.5-4.6 1.5-1.5 4.6-1.5-4.6L6 9.6l4.5-1.5z"/>
+        <path d="M18.5 15l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/>
+      </g>
+      <g id="stage-icon-dev" class="stage-icon">
+        <rect x="6" y="3" width="12" height="18" rx="1"/>
+        <circle class="stage-icon-dot" cx="3.3" cy="6" r="0.9"/><circle class="stage-icon-dot" cx="3.3" cy="10" r="0.9"/>
+        <circle class="stage-icon-dot" cx="3.3" cy="14" r="0.9"/><circle class="stage-icon-dot" cx="3.3" cy="18" r="0.9"/>
+        <circle class="stage-icon-dot" cx="20.7" cy="6" r="0.9"/><circle class="stage-icon-dot" cx="20.7" cy="10" r="0.9"/>
+        <circle class="stage-icon-dot" cx="20.7" cy="14" r="0.9"/><circle class="stage-icon-dot" cx="20.7" cy="18" r="0.9"/>
+      </g>
+      <g id="stage-icon-voice" class="stage-icon">
+        <rect x="9.3" y="2.5" width="5.4" height="11" rx="2.7"/>
+        <path d="M5.5 11a6.5 6.5 0 0 0 13 0"/>
+        <path d="M12 17.5v3.2M9 20.7h6"/>
+      </g>
+      <g id="stage-icon-check" class="stage-icon">
+        <circle cx="10.3" cy="10.3" r="6.3"/>
+        <path d="M20 20l-4.6-4.6"/>
+      </g>
+      <g id="stage-icon-done" class="stage-icon">
+        <circle cx="12" cy="12" r="9"/>
+        <path d="M7.7 12.5l2.6 2.6 5.6-6.2"/>
+      </g>
+      <g id="stage-icon-rewrite" class="stage-icon">
+        <path d="M5 18.8l1.1-4.2L15.8 4.9a1.7 1.7 0 0 1 2.4 0l1 1a1.7 1.7 0 0 1 0 2.4L9.5 18.1z"/>
+        <path d="M14.4 6.3l3.3 3.3M4 20.5c2.1-1.1 3.5-.2 5.1.1 1.6.3 2.7-.5 4.2-.2 1.4.3 2.3 1 3.7.4"/>
+      </g>
+      <g id="stage-icon-sound" class="stage-icon">
+        <path d="M4 9v6h3.5l5 4V5l-5 4z"/>
+        <path d="M16 9a4.5 4.5 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>
+      </g>
+      <g id="stage-icon-sound-muted" class="stage-icon">
+        <path d="M4 9v6h3.5l5 4V5l-5 4z"/>
+        <path d="M16 9l5 6M21 9l-5 6"/>
+      </g>
+    </defs>
+  </svg>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/image-workspace.js"></script>
+  <script src="js/studio.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
