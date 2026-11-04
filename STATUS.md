@@ -51,6 +51,13 @@ the current overview and later entries; they are not a remaining-work list.
   bundle. Its deep/strict code signature stayed valid and no model inference ran.
   Source CPU verification passed 342 tests with five external-worker skips;
   all 268 app tests and seven CTest suites passed without skips.
+- Hosted run 41912248173 passed build, all app/native tests and contracts, then
+  exposed one CPU fixture that stubbed Qwen images but still read real model-file
+  metadata. It now uses the matching fake model identity and explicitly absent
+  model root, preserving checkpoint/run reuse and byte/timestamp assertions.
+  CPU CI explicitly selects an absent RAVEN_MODEL_ROOT to catch this dependency.
+  The complete 342-test CPU command also passed locally with a fresh empty model
+  root and absent external worker source (five expected skips, 87.3 seconds).
 
 # Studio open-button repair — 0.10.1/build 15, 2026-11-04
 

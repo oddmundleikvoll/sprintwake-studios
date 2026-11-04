@@ -15,6 +15,10 @@ production workspace. Use temporary workspaces and explicit fixtures. Changes
 affecting the native bridge, process lifetime, update gate or filesystem
 contracts require a focused test and a source-plus-relocated-bundle check.
 
+CPU checks must pass with RAVEN_MODEL_ROOT pointing at a nonexistent directory.
+Image-generation fixtures must also provide model identity (qwen_model_signature),
+so provenance/recipe checks never fall back to a developer's installed weights.
+
 Numeric loopback HTTP binding must not call reverse DNS: hosted macOS resolvers
 can block before the readiness endpoint begins serving. Keep standard server
 naming for other bind addresses. Focused CPU check from this directory:

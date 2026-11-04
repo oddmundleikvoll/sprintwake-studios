@@ -27,6 +27,7 @@ jobs:
         working-directory: engine
         env:
           PYTHONDONTWRITEBYTECODE: "1"
+          RAVEN_MODEL_ROOT: ${{ runner.temp }}/sprintwake-no-installed-models
         run: |
           export PATH="$PWD/../runtime/tools:$PATH"
           ../runtime/bundle-venv/bin/python -B -m unittest \

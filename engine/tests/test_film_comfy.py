@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 import tempfile
 import threading
@@ -321,12 +322,15 @@ class FilmComfyClientTests(unittest.TestCase):
     def test_desktop_film_restart_reuses_checkpoint_after_project_fingerprints_change(self, *_):
         from server.film import FilmController
         from tests.test_film import FilmTests, FakeComfy
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory() as directory, patch.dict(
+                os.environ, {"RAVEN_MODEL_ROOT": str(Path(directory) / "no-installed-models")}):
             root = Path(directory)
             ctx = FilmTests().context(root)
             _ComfyStub.state["output_root"] = root
             client = ComfyFilmClient(self.base, root)
-            client.qwen_image = FakeComfy().qwen_image
+            images = FakeComfy()
+            client.qwen_image = images.qwen_image
+            client.qwen_model_signature = images.qwen_model_signature
             film = FilmController(ctx, client)
             created = film.start({"description": "A robot waves.", "duration": 7, "continuationAnchor": True})
             FilmTests()._finish_checkpoints(ctx, film, created["slug"])
