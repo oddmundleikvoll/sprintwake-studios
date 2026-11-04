@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).parents[1]))
 
 from importing import import_project
 from backend import Backend
+from connections import defaults, write_private
 from workspace import Workspace
 
 
@@ -96,10 +97,23 @@ class ImportTests(unittest.TestCase):
             (source_root / "shots" / "01" / "clip.mp4").write_bytes(b"retained-output")
             (source_root / "final.mp4").write_bytes(b"retained-final")
 
-            backend = Backend(studio_root, runtime_python=runtime, startup_timeout=30)
+            # Importing retained files does not require any model services.
+            # Use private empty settings instead of probing this machine's
+            # optional ComfyUI/LLM/TTS defaults during server startup.
+            settings = root / "Settings"
+            for name in ("llm-services.json", "tts-services.json", "soundtrack-services.json"):
+                write_private(settings / name, {"services": []})
+            connections = defaults()
+            connections["selected"] = {"llm": "none", "image": "none", "video": "none"}
+            backend = Backend(studio_root, runtime_python=runtime, startup_timeout=30,
+                              workspace=root / "EngineWork",
+                              config_dir=settings, connection_settings=connections,
+                              credential_loader=lambda _: "")
             workspace = Workspace(studio_root)
             try:
                 backend.start()
+                self.assertEqual(backend.info["models"], [])
+                self.assertEqual([item["id"] for item in backend.info["llm"]["services"]], ["none"])
                 template = backend.post("/api/boards", {"name": "Template for import"})
                 board = template["board"]
                 board["name"] = "Endpoint import"

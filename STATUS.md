@@ -37,6 +37,12 @@ the current overview and later entries; they are not a remaining-work list.
   Local evidence is retained under ignored qa/public-source-60jarfch.noindex/.
   Hosted CI results are available in the repository's Actions tab; no signing
   credentials, model weights or app binaries are uploaded by CI.
+- Source commit 5c6a88f was published to the public repository. The first hosted
+  build passed, but its import fixture timed out while discovering ambient model
+  services. That fixture now explicitly disables model profiles and uses private
+  empty language/speech/music settings and no inherited keys. The real import,
+  media preservation and persistence assertions remain; startup limits and app
+  behavior are unchanged. The isolated focused import check passes locally.
 
 # Studio open-button repair — 0.10.1/build 15, 2026-11-04
 
@@ -410,7 +416,7 @@ Final repair verification: 79 Python tests and seven Raven CTest suites pass;
 project-local ffmpeg/ffprobe on PATH. Native smoke passes 21 checks with real
 project persistence and inert model replies. Manual packaged-app verification
 shows all 15 shared images and opens the direct-authoring sheet prefilled with
-the original ant-film request. No new model inference was run; the user project
+the qualification brief. No new model inference was run; the user project
 was not replaced with a hand-authored script.
 
 

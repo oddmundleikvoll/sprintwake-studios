@@ -42,6 +42,10 @@ RAVEN_BUNDLE_ENGINE remains an explicit override. Focused verification:
 uv run --frozen python -B -m unittest tests.test_source_setup tests.test_bundle -v
 ```
 
+CPU-only import fixtures must explicitly disable model profiles and use private
+empty language/speech/music settings with no inherited credentials. They must not
+depend on optional service discovery or a developer's running model servers.
+
 From this directory:
 
 ```sh

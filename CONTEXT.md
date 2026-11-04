@@ -14,6 +14,8 @@ tests use those same paths and the shared media-tool resolver; only checks of an
 external ComfyUI LTX worker may skip when its source is absent (RAVEN_LTX_BRIDGE
 selects it explicitly). Local settings/backups/temp files and runtime outputs
 stay ignored. NOTICE.md preserves upstream attribution and dependency boundaries.
+The real import endpoint fixture explicitly disables all model selections and
+uses empty private service settings, so CI does not wait for ambient model probes.
 
 # Boundaries
 
