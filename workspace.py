@@ -59,7 +59,7 @@ def _digest(path: Path) -> str:
 
 def _slug(slug: str) -> str:
     if not isinstance(slug, str) or not SLUG_RE.fullmatch(slug):
-        raise ValueError("Ugyldig prosjekt-ID")
+        raise ValueError("Invalid project ID")
     return slug
 
 
@@ -80,13 +80,13 @@ class Workspace:
     def _assert_managed_path(self, path: Path) -> None:
         """Reject symlinks in every existing component below the Raven root."""
         if not _inside(path, self.root):
-            raise ValueError("Sti utenfor arbeidsområdet")
+            raise ValueError("Path is outside the workspace")
         relative = path.relative_to(self.root)
         current = self.root
         for part in ("", *relative.parts):
             current = self.root if not part else current / part
             if current.is_symlink():
-                raise ValueError(f"Symlink er ikke tillatt i arbeidsområdet: {current}")
+                raise ValueError(f"Symlinks are not allowed in the workspace: {current}")
 
     def _mkdir(self, path: Path) -> None:
         self._assert_managed_path(path)
@@ -107,9 +107,9 @@ class Workspace:
         slug = _slug(slug)
         project = self.projects_dir / slug
         if project.exists() and project.is_symlink():
-            raise ValueError("Prosjektet kan ikke være en symlink")
+            raise ValueError("Project cannot be a symlink")
         if not _inside(project, self.projects_dir):
-            raise ValueError("Prosjekt utenfor arbeidsområdet")
+            raise ValueError("Project is outside the workspace")
         return project
 
     def ensure_project(self, slug: str) -> Path:
@@ -124,25 +124,25 @@ class Workspace:
         project = self.ensure_project(slug)
         shots = board.get("shots") or []
         lines = [f"# {board.get('name') or board.get('title') or slug}", "", "## Produksjonsbrief", ""]
-        for key, label in (("sceneDescription", "Scene"), ("renderStyle", "Visuell stil"), ("soundscape", "Lydlandskap")):
+        for key, label in (("sceneDescription", "Scene"), ("renderStyle", "Visual style"), ("soundscape", "Soundscape")):
             if board.get(key):
                 lines += [f"**{label}:** {board[key]}", ""]
         bible = board.get("filmBible") or {}
-        for key, heading in (("storyArc", "Historiebue"), ("theme", "Tema")):
+        for key, heading in (("storyArc", "Story arc"), ("theme", "Theme")):
             if bible.get(key): lines += [f"## {heading}", str(bible[key]), ""]
         acts = bible.get("acts") or []
         if acts:
-            lines += ["## Scener og akter", ""]
+            lines += ["## Scenes and acts", ""]
             for act in acts:
-                lines += [f"### {act.get('title') or act.get('name') or 'Akt'}", str(act.get("description") or act.get("summary") or ""), ""]
-        lines += ["## Klipp", ""]
+                lines += [f"### {act.get('title') or act.get('name') or 'Act'}", str(act.get("description") or act.get("summary") or ""), ""]
+        lines += ["## Shots", ""]
         for index, shot in enumerate(shots, 1):
-            lines += [f"### {index:02d} · {shot.get('title') or 'Nytt klipp'}"]
-            for key, label in (("start", "Start"), ("action", "Handling"), ("end", "Slutt"), ("camera", "Kamera"), ("dialogue", "Dialog")):
+            lines += [f"### {index:02d} · {shot.get('title') or 'New shot'}"]
+            for key, label in (("start", "Start"), ("action", "Action"), ("end", "End"), ("camera", "Camera"), ("dialogue", "Dialogue")):
                 if shot.get(key):
                     lines.append(f"- **{label}:** {shot[key]}")
             if shot.get("soundNote"):
-                lines.append(f"- **Lyd:** {shot['soundNote']}")
+                lines.append(f"- **Sound:** {shot['soundNote']}")
             if shot.get("prompt"):
                 lines.append(f"- **Videobeskrivelse:** {shot['prompt']}")
             lines.append("")
@@ -156,9 +156,9 @@ class Workspace:
         project = self.ensure_project(slug)
         source = Path(source).expanduser()
         if source.is_symlink() or not source.is_file() or source.suffix.lower() not in MEDIA_EXTENSIONS:
-            raise ValueError("Input må være en vanlig støttet mediefil")
+            raise ValueError("Input must be a supported regular media file")
         if source.stat().st_size > MAX_INPUT_BYTES:
-            raise ValueError("Input-filen er for stor")
+            raise ValueError("Input file is too large")
         digest = _digest(source)
         target = project / "Input" / f"{source.stem[:80]}-{digest[:12]}{source.suffix.lower()}"
         if target.exists() and _digest(target) == digest:
@@ -240,7 +240,7 @@ class Workspace:
         kind = kind.lower()
         allowed = {"image": IMAGE_EXTENSIONS, "video": VIDEO_EXTENSIONS, "audio": AUDIO_EXTENSIONS}
         if kind not in allowed or source.is_symlink() or not source.is_file() or source.suffix.lower() not in allowed[kind]:
-            raise ValueError("Ugyldig leveranse")
+            raise ValueError("Invalid delivery")
         destination_dir = project / "Output" / {"image": "Images", "video": "Video", "audio": "Audio"}[kind]
         digest = _digest(source)
         target = destination_dir / f"{source.stem[:80]}-{digest[:12]}{source.suffix.lower()}"
@@ -308,7 +308,7 @@ class Workspace:
         self.ensure()
         trash_dir = self.root / "Trash"
         if trash_dir.exists() and trash_dir.is_symlink():
-            raise ValueError("Trash kan ikke være en symlink")
+            raise ValueError("Trash cannot be a symlink")
         if not trash_dir.is_dir():
             return []
         self._assert_managed_path(trash_dir)
@@ -349,10 +349,10 @@ class Workspace:
         return module.restore_project(self.projects_dir,entry_id)
 
 
-def new_shot(title: str = "Nytt klipp", scene: int = 1) -> dict[str, Any]:
+def new_shot(title: str = "New shot", scene: int = 1) -> dict[str, Any]:
     """Return the current Storyboard default shot shape with Raven defaults."""
     if isinstance(scene, bool) or not isinstance(scene, int) or scene < 1:
-        raise ValueError("scene må være et positivt heltall")
+        raise ValueError("scene must be a positive integer")
     return {
         "id": f"s{uuid.uuid4().hex[:8]}", "title": title, "prompt": "", "start": "", "action": "", "end": "", "camera": "",
         "locationId": "", "stateBefore": "", "stateAfter": "", "motionIntent": "action", "propIds": [], "assetStates": {}, "promptVersions": [],

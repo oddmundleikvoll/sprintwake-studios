@@ -38,8 +38,8 @@ def draw_plan(painter,width,height,plan,selected):
         y=oy+i*scale
         r.Rdraw_line(painter,ox,y,ox+rw,y,1,.22,.29,.29,.6)
     r.Rdraw_rect_outline(painter,ox,oy,rw,rh,0,2,.55,.65,.64,1)
-    text(painter,ox+rw/2-15,oy-24,"NORD",10)
-    text(painter,ox+8,oy+rh+8,f"{plan['width']:g} × {plan['depth']:g} m · rutenett 1 m",11)
+    text(painter,ox+rw/2-15,oy-24,"NORTH",10)
+    text(painter,ox+8,oy+rh+8,f"{plan['width']:g} × {plan['depth']:g} m · grid 1 m",11)
     actors={a["id"]:a for a in plan["actors"]}
     if len(plan["axis"])==2:
         a,b=[actors[i] for i in plan["axis"]]
@@ -83,9 +83,9 @@ def draw_plan(painter,width,height,plan,selected):
 def draw_preview(painter,width,height,plan,camera,texture):
     r.Rdraw_rect(painter,0,0,width,height,8,.08,.10,.11,1)
     if not camera:
-        text(painter,18,18,"Foreslå kameraer for å se utsnittet.")
+        text(painter,18,18,"Suggest cameras to preview framing.")
         return
     w=min(width,height*plan["aspect"]);h=w/plan["aspect"];ox=(width-w)/2;oy=(height-h)/2
     if texture != r.R_INVALID_ID:
         r.Rdraw_image(painter,texture,ox,oy,w,h,1,1,1,1)
-    text(painter,12,10,"PLASSERING · IKKE GENERERT BILDE",10)
+    text(painter,12,10,"BLOCKING · IMAGE NOT GENERATED",10)

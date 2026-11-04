@@ -266,3 +266,24 @@ After QA, unregister and trash disposable app bundles; keep only the installed
 not executable test copies. Put future bundle test runs inside `.noindex`
 directories, and still unregister them after explicit GUI tests. Never remove
 Sprintwake Projects or production/configuration/model folders during this cleanup.
+
+## English public interface (0.10.2)
+
+The native interface, menus, new-work defaults and default director language are
+English. User/project text and dialogue can use any chosen language. Preserve legacy
+stored names, status enums, identifiers, schema keys, folder paths and Keychain domains.
+Modal titles also act as runtime routing sentinels: update both producers/consumers and
+fixture expectations together. Canonical director/anchor copy belongs in engine/server;
+refresh contracts/ through scripts/sync-contracts.py rather than editing its mirror.
+The installed app remains 0.10.1/build 15 until separately updated.
+
+Reproducible README screenshots, with an unlocked graphical macOS session:
+
+```sh
+./scripts/capture-showcase.sh --output "$PWD/qa/showcase-fresh"
+```
+
+Use a fresh directory. This opens a disposable fictional project in the real Raven
+window, uses existing public art and a clearly disclosed scripted director reply, and
+starts no model inference. Inspect the captures before copying only the PNGs into
+assets/screenshots/. Preserve user data and keep QA metadata/logs ignored.

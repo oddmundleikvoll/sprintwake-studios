@@ -74,8 +74,8 @@ class CoverageTests(unittest.TestCase):
 
     def test_crossing_axis_is_visible_and_blocks_storyboard(self):
         self.plan["cameras"][0]["y"]=1
-        self.assertIn("handlingsaksen",warnings(self.plan,self.plan["cameras"][0])[0])
-        with self.assertRaisesRegex(ValueError,"handlingsaksen"): storyboard_shots(self.board,self.plan)
+        self.assertIn("action axis",warnings(self.plan,self.plan["cameras"][0])[0])
+        with self.assertRaisesRegex(ValueError,"action axis"): storyboard_shots(self.board,self.plan)
         self.plan["cameras"][0]["selected"]=False
         self.assertEqual(len(storyboard_shots(self.board,self.plan)),4)
 
@@ -85,7 +85,7 @@ class CoverageTests(unittest.TestCase):
         plan=new_plan({"characters":[self.board["characters"][0]]},"room")
         self.assertEqual(len(propose(plan)),2)
         plan.update(actors=[],axis=[])
-        with self.assertRaisesRegex(ValueError,"én figur"): propose(plan)
+        with self.assertRaisesRegex(ValueError,"at least one actor"): propose(plan)
 
     def test_invalid_nonfinite_types_bounds_and_references_rejected(self):
         cases=[("width",float("nan")),("side",True),("depth",1),("aspect",4),("axis",["missing","actor-1"])]
@@ -118,9 +118,9 @@ class CoverageTests(unittest.TestCase):
     def test_placeholders_and_missing_bible_links_block_application(self):
         plan=new_plan({})
         plan["cameras"]=propose(plan)
-        with self.assertRaisesRegex(ValueError,"sted"): storyboard_shots(self.board,plan)
+        with self.assertRaisesRegex(ValueError,"location"): storyboard_shots(self.board,plan)
         plan["locationId"]="room"
-        with self.assertRaisesRegex(ValueError,"karakterer"): storyboard_shots(self.board,plan)
+        with self.assertRaisesRegex(ValueError,"characters"): storyboard_shots(self.board,plan)
 
     def test_persistent_history_cas_and_redo(self):
         initial=self.store.load()
@@ -133,13 +133,13 @@ class CoverageTests(unittest.TestCase):
         doc=self.store.commit(doc,doc["plans"],history="redo")
         self.assertEqual(doc["plans"]["room"],changed)
         before=self.store.path.read_bytes()
-        with self.assertRaisesRegex(ValueError,"annet vindu"): self.store.commit(initial,{"room":self.plan})
+        with self.assertRaisesRegex(ValueError,"another window"): self.store.commit(initial,{"room":self.plan})
         self.assertEqual(self.store.path.read_bytes(),before)
 
     def test_malformed_history_and_symlink_refused(self):
         doc=self.store.load();doc["undo"]=None
         self.store.path.write_text(json.dumps(doc))
-        with self.assertRaisesRegex(ValueError,"historikk"): self.store.load()
+        with self.assertRaisesRegex(ValueError,"history"): self.store.load()
         self.store.path.unlink()
         outside=Path(self.temporary.name)/"outside.json";outside.write_text("{}")
         self.store.path.symlink_to(outside)
@@ -177,7 +177,7 @@ class CoverageTests(unittest.TestCase):
         class Fake:
             def get(_,path): return {"board":self.board}
             def put(*args,**kwargs): raise AssertionError("Unexpected write")
-        with self.assertRaisesRegex(ValueError,"Manuset er endret"):
+        with self.assertRaisesRegex(ValueError,"Script changed"):
             apply_coverage(self.workspace,Fake(),"film","0"*64,self.plan)
 
 
@@ -199,7 +199,7 @@ class CoverageRealApiTests(unittest.TestCase):
                 again,count=apply_coverage(workspace,backend,slug,authoring_digest(actual),plan)
                 self.assertEqual(count,0)
                 self.assertEqual(again["shots"],actual["shots"])
-                self.assertIn("Totalbilde",(workspace.ensure_project(slug)/"Script/manus.md").read_text())
+                self.assertIn("Wide master",(workspace.ensure_project(slug)/"Script/manus.md").read_text())
                 ref,prompt=layout_reference(workspace,backend,slug,plan,plan["cameras"][0])
                 self.assertTrue(workspace.local_media(ref["path"]).read_bytes().startswith(b"\x89PNG"))
                 self.assertIn("reference 1",prompt)

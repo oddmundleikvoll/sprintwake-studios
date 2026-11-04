@@ -60,7 +60,7 @@ def run(studio, pump, wait, check):
         try:
             studio.on_action(None, "connections.show", None)
             pump(.2)
-            check(studio.modal_kind == "Modelltilkoblinger", "Native connection modal opens")
+            check(studio.modal_kind == "Models and connections", "Native connection modal opens")
             check(studio.find("connections.root") != r.R_INVALID_ID and studio.find("connections.comfy.key") != r.R_INVALID_ID, "Connection paths and password field are present")
             from app import ROOT
             import os
@@ -72,11 +72,11 @@ def run(studio, pump, wait, check):
             studio.set_text("connections.root", str(Path(temp) / "production"))
             studio.on_action(None, "connections.llm.add", None)
             pump(.1)
-            check(studio.modal_kind == "Legg til språkmodell", "LLM add form opens from main modal")
+            check(studio.modal_kind == "Add language model", "LLM add form opens from main modal")
             check(studio.connection_draft["paths"]["root"] == str(Path(temp) / "production"), "Main form draft survives opening LLM form")
             studio.on_action(None, "connections.llm.cancel", None)
             pump(.1)
-            check(studio.modal_kind == "Modelltilkoblinger" and studio.connection_draft["paths"]["root"] == str(Path(temp) / "production"), "Returning from LLM form preserves draft")
+            check(studio.modal_kind == "Models and connections" and studio.connection_draft["paths"]["root"] == str(Path(temp) / "production"), "Returning from LLM form preserves draft")
 
             profile_path = Path(temp) / "workflow.json"
             profile_path.write_text(json.dumps(_profile()), encoding="utf-8")

@@ -93,9 +93,9 @@ def view_project(slug: str, board: dict[str, Any], workspace: Workspace) -> Proj
         if not isinstance(duration, (int, float)) or isinstance(duration, bool):
             duration = float(frames) / 24 if isinstance(frames, (int, float)) and not isinstance(frames, bool) else 5.0
         image, video = _shot_media(slug, item, workspace, index)
-        takes = [Take("selected", "Produksjonsklipp", image=image, video=video,
-                       provenance="Storyboard-produksjon")] if image or video else []
-        shots.append(Shot(str(item.get("id") or f"s{index + 1}"), str(item.get("title") or f"Klipp {index + 1:02d}"),
+        takes = [Take("selected", "Production clip", image=image, video=video,
+                       provenance="Storyboard production")] if image or video else []
+        shots.append(Shot(str(item.get("id") or f"s{index + 1}"), str(item.get("title") or f"Shot {index + 1:02d}"),
                           float(duration), camera=str(item.get("camera") or ""),
                           start=str(item.get("start") or ""), action=str(item.get("action") or ""),
                           end=str(item.get("end") or ""), notes=str(item.get("ravenNotes", item.get("notes", "")) or ""),
@@ -133,7 +133,7 @@ def apply_view(board: dict[str, Any], view: Project) -> dict[str, Any]:
 def _reject_server(fields: set[str]) -> None:
     bad = fields & _SERVER_FIELDS
     if bad:
-        raise ValueError(f"Serverstyrte felter kan ikke foreslås: {', '.join(sorted(bad))}")
+        raise ValueError(f"Server-managed fields cannot be suggested: {', '.join(sorted(bad))}")
 
 
 def _cast_ids(board: dict[str, Any]) -> set[str]:
@@ -144,9 +144,9 @@ def _validate_cast(fields: dict[str, Any], cast: set[str]) -> None:
     if "characterIds" in fields:
         ids = fields["characterIds"]
         if not isinstance(ids, list) or any(not isinstance(i, str) or i not in cast for i in ids):
-            raise ValueError("Klippet refererer til en ukjent karakter")
+            raise ValueError("The shot refers to an unknown character")
     if "directorScene" in fields and (isinstance(fields["directorScene"], bool) or not isinstance(fields["directorScene"], int) or fields["directorScene"] < 1):
-        raise ValueError("directorScene må være et positivt heltall")
+        raise ValueError("directorScene must be a positive integer")
 
 
 _BIBLE_GROUPS = {"acts", "locations", "props"}
@@ -161,18 +161,18 @@ _BIBLE_REFERENCE_FIELDS = {"kind", "path", "url", "label", "sha256", "width", "h
 
 def _validate_bible_reference(value: Any) -> dict[str, Any]:
     if not isinstance(value, dict):
-        raise ValueError("filmBible-referansen må være et objekt")
+        raise ValueError("filmBible reference must be an object")
     unknown = set(value) - _BIBLE_REFERENCE_FIELDS
     if unknown:
-        raise ValueError("Ukjent felt i filmBible-referanse")
+        raise ValueError("Unknown field in filmBible reference")
     clean = copy.deepcopy(value)
     path = clean.get("path")
     if path is not None:
         if not isinstance(path, str) or not path or Path(path).is_absolute() or ".." in Path(path).parts:
-            raise ValueError("filmBible-referansen kan bare bruke en trygg relativ sti")
+            raise ValueError("filmBible reference may only use a safe relative path")
     url = clean.get("url")
     if url is not None and (not isinstance(url, str) or not url.startswith("/media/")):
-        raise ValueError("filmBible-url må være en lokal mediareferanse")
+        raise ValueError("filmBible-url must be a local media reference")
     return clean
 
 
@@ -184,42 +184,42 @@ def _validate_film_bible(value: Any, board: dict[str, Any]) -> dict[str, Any]:
     must never arrive through a director proposal.
     """
     if not isinstance(value, dict):
-        raise ValueError("filmBible må være et objekt")
+        raise ValueError("filmBible must be an object")
     unknown_groups = set(value) - _BIBLE_GROUPS - {"storyArc", "theme"}
     if unknown_groups:
-        raise ValueError("Ukjent filmBible-seksjon")
+        raise ValueError("Unknown filmBible section")
     existing = board.get("filmBible") if isinstance(board.get("filmBible"), dict) else {}
     result: dict[str, Any] = copy.deepcopy(existing)
     for field in ("storyArc", "theme"):
         if field in value:
             if not isinstance(value[field], str):
-                raise ValueError(f"filmBible.{field} må være tekst")
+                raise ValueError(f"filmBible.{field} must be text")
             result[field] = value[field][:8000]
     for group in _BIBLE_GROUPS:
         if group not in value:
             continue
         entries = value[group]
         if not isinstance(entries, list):
-            raise ValueError(f"filmBible.{group} må være en liste")
+            raise ValueError(f"filmBible.{group} must be a list")
         old = {str(item.get("id")): item for item in (existing.get(group) or [])
                if isinstance(item, dict) and item.get("id")}
         clean: list[dict[str, Any]] = []
         seen: set[str] = set()
         for raw in entries:
             if not isinstance(raw, dict):
-                raise ValueError(f"filmBible.{group} inneholder et ugyldig element")
+                raise ValueError(f"filmBible.{group} contains an invalid item")
             if set(raw) - _BIBLE_ITEM_FIELDS:
-                raise ValueError(f"Ukjent felt i filmBible.{group}")
+                raise ValueError(f"Unknown field in filmBible.{group}")
             item = copy.deepcopy(raw)
             ident = item.get("id") or f"{group[:-1]}-{uuid.uuid4().hex[:8]}"
             if not isinstance(ident, str) or not ident or ident in seen:
-                raise ValueError(f"filmBible.{group} må ha unike ID-er")
+                raise ValueError(f"filmBible.{group} must have unique IDs")
             item["id"] = ident
             if "referenceImage" in item:
                 item["referenceImage"] = _validate_bible_reference(item["referenceImage"])
             if "referenceImageId" in item and item["referenceImageId"] is not None \
                     and (not isinstance(item["referenceImageId"], str) or not item["referenceImageId"]):
-                raise ValueError("referenceImageId må være en tekst eller null")
+                raise ValueError("referenceImageId must be text or null")
             # A partial edit must not erase a known, server-sanitized ref.
             previous = old.get(ident)
             if previous:
@@ -235,67 +235,67 @@ def _validate_film_bible(value: Any, board: dict[str, Any]) -> dict[str, Any]:
 def apply_proposals(board: dict[str, Any], actions: list[dict[str, Any]]) -> dict[str, Any]:
     result = copy.deepcopy(board)
     if not isinstance(actions, list):
-        raise ValueError("Forslag må være en liste")
+        raise ValueError("Forslag must be a list")
     cast = _cast_ids(result)
     for action in actions:
         if not isinstance(action, dict) or action.get("reviewed") is not True:
-            raise ValueError("Bare gjennomgåtte redigeringsforslag kan brukes")
+            raise ValueError("Only reviewed edit suggestions can be used")
         op = action.get("operation") or action.get("tool") or action.get("op")
         payload = action.get("fields") if isinstance(action.get("fields"), dict) else action.get("shot") if isinstance(action.get("shot"), dict) else action.get("character") if isinstance(action.get("character"), dict) else {}
         if op == "set_board_fields":
             _reject_server(set(payload))
             unknown = set(payload) - _BOARD_EDITABLE
-            if unknown: raise ValueError(f"Ukjente prosjektfelter: {', '.join(sorted(unknown))}")
+            if unknown: raise ValueError(f"Unknown project fields: {', '.join(sorted(unknown))}")
             if "filmBible" in payload:
                 payload = {**payload, "filmBible": _validate_film_bible(payload["filmBible"], result)}
             result.update(copy.deepcopy(payload))
         elif op == "add_character":
             _reject_server(set(payload)); unknown = set(payload) - _CHAR_EDITABLE - {"id"}
-            if unknown: raise ValueError("Ukjent karakterfelt")
+            if unknown: raise ValueError("Unknown character field")
             ident = payload.get("id") or f"c{uuid.uuid4().hex[:8]}"
-            if not isinstance(ident, str) or not ident or ident in cast: raise ValueError("Ny karakter må ha en unik ID")
+            if not isinstance(ident, str) or not ident or ident in cast: raise ValueError("A new character must have a unique ID")
             payload = {**payload, "id": ident}
             result.setdefault("characters", []).append(copy.deepcopy(payload)); cast.add(ident)
         elif op == "update_character":
             ident = action.get("id") or action.get("characterId") or payload.get("id")
             target = next((c for c in result.get("characters", []) if isinstance(c, dict) and c.get("id") == ident), None)
-            if target is None: raise ValueError("Ukjent karakter")
+            if target is None: raise ValueError("Unknown character")
             fields = {k: v for k, v in payload.items() if k != "id"}; _reject_server(set(fields))
-            if set(fields) - _CHAR_EDITABLE: raise ValueError("Ukjent karakterfelt")
+            if set(fields) - _CHAR_EDITABLE: raise ValueError("Unknown character field")
             target.update(copy.deepcopy(fields))
         elif op == "add_shot":
             _reject_server(set(payload)); unknown = set(payload) - _SHOT_EDITABLE - {"id", "directorScene"}
-            if unknown: raise ValueError("Ukjent klippfelt")
-            if cast and "characterIds" not in payload: raise ValueError("Ny scene må ha eksplisitte karakterkoblinger")
+            if unknown: raise ValueError("Unknown shot field")
+            if cast and "characterIds" not in payload: raise ValueError("A new scene must have explicit character links")
             _validate_cast(payload, cast)
-            shot = new_shot(str(payload.get("title") or "Nytt klipp"), len(result.get("shots", [])) + 1)
+            shot = new_shot(str(payload.get("title") or "New shot"), len(result.get("shots", [])) + 1)
             shot["dialogueSource"] = "native"
             ident = payload.get("id")
             if ident is not None:
-                if not isinstance(ident, str) or any(s.get("id") == ident for s in result.get("shots", [])): raise ValueError("Ugyldig eller brukt klipp-ID")
+                if not isinstance(ident, str) or any(s.get("id") == ident for s in result.get("shots", [])): raise ValueError("Invalid or used shot ID")
                 shot["id"] = ident
             shot.update(copy.deepcopy({k: v for k, v in payload.items() if k != "id"})); result.setdefault("shots", []).append(shot)
         elif op == "update_shot":
             ident = action.get("id") or action.get("shotId") or payload.get("id")
             target = next((s for s in result.get("shots", []) if isinstance(s, dict) and s.get("id") == ident), None)
-            if target is None: raise ValueError("Ukjent klipp")
+            if target is None: raise ValueError("Unknown shot")
             fields = {k: v for k, v in payload.items() if k != "id"}; _reject_server(set(fields))
-            if set(fields) - _SHOT_EDITABLE: raise ValueError("Ukjent klippfelt")
+            if set(fields) - _SHOT_EDITABLE: raise ValueError("Unknown shot field")
             _validate_cast(fields, cast); target.update(copy.deepcopy(fields))
         else:
-            raise ValueError("Ukjent forslagshandling")
+            raise ValueError("Unknown suggestion operation")
     return result
 
 
 def proposal_title(action: dict[str, Any]) -> str:
-    return {"set_board_fields": "Oppdater prosjekt", "add_shot": "Legg til klipp", "update_shot": "Oppdater klipp", "add_character": "Legg til karakter", "update_character": "Oppdater karakter"}.get(action.get("operation") or action.get("tool") or action.get("op"), "Rediger forslag")
+    return {"set_board_fields": "Update project", "add_shot": "Add shot", "update_shot": "Update shot", "add_character": "Add character", "update_character": "Update character"}.get(action.get("operation") or action.get("tool") or action.get("op"), "Edit suggestion")
 
 
 def _project_context(context: dict[str, Any]) -> tuple[dict[str, Any], str]:
     project = context.get("project") if isinstance(context.get("project"), dict) else context
-    if not isinstance(project, dict): raise ValueError("Mangler filmstatus")
+    if not isinstance(project, dict): raise ValueError("Film status is missing")
     slug = project.get("slug")
-    if not isinstance(slug, str) or not slug: raise ValueError("Mangler film-ID")
+    if not isinstance(slug, str) or not slug: raise ValueError("Film ID is missing")
     return project, slug
 
 
@@ -305,10 +305,10 @@ def film_action(context: dict[str, Any], kind: str, accepted: bool = False, note
     anchor = context.get("anchorRevision") or project.get("anchorRevision") or project.get("revision")
     revision = project.get("revision") if is_film else anchor
     if not isinstance(revision, str) or not revision:
-        raise ValueError("Mangler gjeldende filmrevisjon")
+        raise ValueError("Current film revision is missing")
     continuation = project.get("continuationAnchor", False)
     if not isinstance(continuation, bool):
-        raise ValueError("Ugyldig videreføringsanker")
+        raise ValueError("Invalid continuation anchor")
     if kind == "prepare":
         tool = "resume_film" if is_film else "render_storyboard"
         action = {"tool": tool, "slug": slug, "revision": revision, "imageEngine": IMAGE_ENGINE, "continuationAnchor": continuation, "prepareOnly": True}
@@ -319,34 +319,34 @@ def film_action(context: dict[str, Any], kind: str, accepted: bool = False, note
         action = {"tool": tool, "slug": slug, "revision": revision, "imageEngine": IMAGE_ENGINE, "continuationAnchor": continuation}
         if tool == "render_storyboard": action.update(copy.deepcopy(project.get("plannedFilm") or {}))
         return action
-    if not is_film: raise ValueError("Dette prosjektet er ikke en filmjobb")
-    if kind in {"approve_images", "approve_review"} and not accepted: raise ValueError("Godkjenning krever eksplisitt bekreftelse")
+    if not is_film: raise ValueError("This project is not a film job")
+    if kind in {"approve_images", "approve_review"} and not accepted: raise ValueError("Approval requires explicit confirmation")
     action = {"tool": "resume_film", "slug": slug, "revision": revision, "continuationAnchor": continuation}
     if kind == "approve_images":
         plan = project.get("imagePlan") or {}; digest = plan.get("digest")
-        if project.get("imagePlanStale") or not project.get("imageApprovalRequired", True) or not isinstance(digest, str) or not digest: raise ValueError("Bildeplanen er tom, ikke ventende eller foreldet")
+        if project.get("imagePlanStale") or not project.get("imageApprovalRequired", True) or not isinstance(digest, str) or not digest: raise ValueError("The image plan is empty, not pending, or stale")
         action["acceptImagePlan"] = digest
     elif kind == "approve_review":
         if not project.get("reviewRequired") or not project.get("reviewPreview"):
-            raise ValueError("Kvalitetsgjennomgangen mangler eller er ikke ventende")
+            raise ValueError("The quality review is missing or not pending")
         action["acceptReview"] = True; action["reviewNote"] = str(note or "")
-    elif kind != "resume": raise ValueError("Ukjent filmhandling")
+    elif kind != "resume": raise ValueError("Unknown film operation")
     return action
 
 
 def next_step(board: dict[str, Any], context: dict[str, Any] | None = None) -> dict[str, str]:
     shots = [s for s in board.get("shots") or [] if isinstance(s, dict)]
-    if not board.get("sceneDescription"): return {"label": "Skriv brief", "page": "brief", "action": "create_brief", "detail": "Start med én setning om hva filmen skal føles som."}
-    if not board.get("characters") and not shots: return {"label": "Bygg filmbibel", "page": "bible", "action": "add_character", "detail": "Legg til karakterer hvis historien trenger dem, eller gå rett til et scenery-klipp."}
-    if not shots: return {"label": "Lag første klipp", "page": "storyboard", "action": "add_shot", "detail": "Beskriv åpningen, handlingen og kameraet."}
+    if not board.get("sceneDescription"): return {"label": "Write brief", "page": "brief", "action": "create_brief", "detail": "Start with one sentence about how the film should feel."}
+    if not board.get("characters") and not shots: return {"label": "Build film bible", "page": "bible", "action": "add_character", "detail": "Add characters if the story needs them, or go straight to a scenery clip."}
+    if not shots: return {"label": "Create first clip", "page": "storyboard", "action": "add_shot", "detail": "Describe the opening, action, and camera."}
     status = (context.get("project") if isinstance(context, dict) and isinstance(context.get("project"), dict) else context) if context else {}
     status = status if isinstance(status, dict) else {}
     if status.get("imageApprovalRequired") and status.get("imagePlan"):
-        return {"label": "Godkjenn bildene", "page": "production", "action": "approve_images", "detail": "Se gjennom bildeplanen før video kan produseres."}
+        return {"label": "Approve images", "page": "production", "action": "approve_images", "detail": "Review the image plan before video can be produced."}
     if status.get("reviewRequired"):
-        return {"label": "Gå gjennom filmen", "page": "production", "action": "approve_review", "detail": "Se gjennom kvalitetsrapporten før filmen fortsetter."}
+        return {"label": "Review the film", "page": "production", "action": "approve_review", "detail": "Review the quality report before the film continues."}
     if status and status.get("canProduce") is False:
-        return {"label": "Vent på produksjonen", "page": "production", "action": "film_status", "detail": "Produksjonen arbeider fortsatt eller trenger en oppdatert plan."}
-    if any(not all(s.get(k) for k in ("start", "action", "end", "camera")) for s in shots): return {"label": "Form scenene", "page": "storyboard", "action": "edit_shot", "detail": "Gi hvert klipp en tydelig start, handling, slutt og kameraføring."}
-    if not any(s.get("startRef") or s.get("thumb") or s.get("stills") for s in shots): return {"label": "Lag åpningsbilder", "page": "images", "action": "prepare_images", "detail": "Forhåndsvis og godkjenn bildene før video."}
-    return {"label": "Produser filmen", "page": "production", "action": "produce", "detail": "Alt er klart for å starte produksjonen."}
+        return {"label": "Wait for production", "page": "production", "action": "film_status", "detail": "Production is still working or needs an updated plan."}
+    if any(not all(s.get(k) for k in ("start", "action", "end", "camera")) for s in shots): return {"label": "Shape the scenes", "page": "storyboard", "action": "edit_shot", "detail": "Give each clip a clear start, action, ending, and camera direction."}
+    if not any(s.get("startRef") or s.get("thumb") or s.get("stills") for s in shots): return {"label": "Create opening images", "page": "images", "action": "prepare_images", "detail": "Preview and approve images before video."}
+    return {"label": "Produce the film", "page": "production", "action": "produce", "detail": "Everything is ready to start production."}

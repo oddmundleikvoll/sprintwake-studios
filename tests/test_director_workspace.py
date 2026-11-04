@@ -51,4 +51,4 @@ class DirectorWorkspaceRenderTests(unittest.TestCase):
         studio = self.fixture(turn)
         studio.render_conversation()
         self.assertIn('OnClicked="director.diagnostics.0"', studio.rendered)
-        self.assertIn("Detaljloggen trenger oppfølging", studio.rendered)
+        self.assertIn("Review diagnostic log", studio.rendered)

@@ -70,12 +70,12 @@ class MediaLibrary:
 
     def _assert_destination(self, path: Path) -> None:
         if not _inside(path, self.workspace.root):
-            raise ValueError("Biblioteksti utenfor arbeidsområdet")
+            raise ValueError("Library path is outside the workspace")
         current = self.workspace.root
         for part in ("", *path.relative_to(self.workspace.root).parts):
             current = self.workspace.root if not part else current / part
             if current.is_symlink():
-                raise ValueError(f"Symlink er ikke tillatt i biblioteket: {current}")
+                raise ValueError(f"Symlinks are not allowed in the library: {current}")
 
     def _read(self) -> list[dict[str, Any]]:
         if not self.index_path.is_file() or self.index_path.is_symlink():
@@ -83,9 +83,9 @@ class MediaLibrary:
         try:
             value = json.loads(self.index_path.read_text(encoding="utf-8"))
         except (OSError, ValueError) as exc:
-            raise ValueError("Bibliotekindeksen er ugyldig") from exc
+            raise ValueError("The library index is invalid") from exc
         if not isinstance(value, list):
-            raise ValueError("Bibliotekindeksen er ugyldig")
+            raise ValueError("The library index is invalid")
         return value
 
     def _assert_library_path(self, path: Path) -> Path:
@@ -102,15 +102,15 @@ class MediaLibrary:
             # caller may have canonicalised an otherwise valid library path.
             checked_root = canonical_library
         else:
-            raise ValueError("Sti utenfor bildebiblioteket")
+            raise ValueError("Path is outside the image library")
         current = checked_root
         for part in raw.relative_to(checked_root).parts:
             current = current / part
             if current.is_symlink():
-                raise ValueError(f"Symlink er ikke tillatt i bildebiblioteket: {current}")
+                raise ValueError(f"Symlinks are not allowed in the image library: {current}")
         resolved = raw.resolve(strict=False)
         if not _inside(resolved, canonical_library):
-            raise ValueError("Biblioteksti peker utenfor bildebiblioteket")
+            raise ValueError("Library path points outside the image library")
         return raw
 
     @staticmethod
@@ -120,7 +120,7 @@ class MediaLibrary:
         # macOS has system aliases such as /var -> /private/var.  Rejecting
         # every parent symlink would make ordinary local folders unusable.
         if path.is_symlink():
-            raise ValueError(f"Kilde kan ikke være en symlink: {path}")
+            raise ValueError(f"Source cannot be a symlink: {path}")
 
     def _files(self, source: Path) -> list[Path]:
         if source.is_file():
@@ -128,7 +128,7 @@ class MediaLibrary:
                 return [source]
             return []
         if not source.is_dir():
-            raise ValueError(f"Kilden finnes ikke: {source}")
+            raise ValueError(f"Source not found: {source}")
         result: list[Path] = []
         for directory, dirs, files in os.walk(source, topdown=True, followlinks=False):
             directory_path = Path(directory)
@@ -199,7 +199,7 @@ class MediaLibrary:
                     destination = self._assert_library_path(self.library_dir / name)
                     if destination.exists() or destination.is_symlink():
                         if not destination.is_file() or _sha256(destination) != digest:
-                            raise ValueError(f"Bibliotekmål finnes allerede med annet innhold: {destination}")
+                            raise ValueError(f"Library destination already exists with different content: {destination}")
                     else:
                         self._copy_verified(path, destination, digest)
                     record = {"id": digest, "kind": "image", "path": str(destination), "relative": str(destination.relative_to(self.library_dir)), "name": destination.name, "sha256": digest, "origins": [origin], "bytes": stat.st_size, "modifiedAt": destination.stat().st_mtime}
@@ -247,6 +247,6 @@ class MediaLibrary:
     def adopt(self, slug: str, asset_id: str, backend: Any) -> Any:
         source = self.resolve(asset_id)
         if source is None:
-            raise ValueError("Ukjent eller ugyldig bibliotekbilde")
+            raise ValueError("Unknown or invalid library image")
         copied = self.workspace.import_input(slug, source)
         return backend.upload(slug, copied)

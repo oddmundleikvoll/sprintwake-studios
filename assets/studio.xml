@@ -19,71 +19,71 @@
           <Label Text="STUDIOS" TextSize="10" Class="accent" Slot.VAlign="Center" />
         </HBox>
         <HBox Name="header.actions" Spacing="12" Slot.HAlign="Right" Slot.Padding="0,0,20,0">
-          <Button Name="updates.button" Text="Oppdateringer" Style="Flat" OnClicked="updates.show" />
-          <Button Text="Modeller" Style="Flat" OnClicked="connections.show" />
+          <Button Name="updates.button" Text="Updates" Style="Flat" OnClicked="updates.show" />
+          <Button Text="Models" Style="Flat" OnClicked="connections.show" />
           <Label Name="save.state" Text="Sprintwake Studios" Class="muted" Slot.VAlign="Center" />
-          <Button Text="Finn …  ⌘K" Style="Flat" OnClicked="command.show" Tooltip="Prosjekter og handlinger · ⌘K" />
-          <Button Name="file.save" Text="Lagre prosjekt" Style="Primary" OnClicked="file.save" Tooltip="Lagre prosjektet · ⌘S" />
-          <Button Text="Nytt prosjekt" Style="Flat" OnClicked="project.new" />
+          <Button Text="Search …  ⌘K" Style="Flat" OnClicked="command.show" Tooltip="Projects and actions · ⌘K" />
+          <Button Name="file.save" Text="Save project" Style="Primary" OnClicked="file.save" Tooltip="Save projectet · ⌘S" />
+          <Button Text="New project" Style="Flat" OnClicked="project.new" />
         </HBox>
       </HeaderBar>
       <Separator />
       <HBox Height="55" Slot.Padding="22,8">
-        <Button Name="nav.home" Text="Start" Class="nav" Width="65" OnClicked="page.home" Slot.VAlign="Center" />
+        <Button Name="nav.home" Text="Home" Class="nav" Width="65" OnClicked="page.home" Slot.VAlign="Center" />
         <HBox Name="navigation.create" Spacing="3" Height="32" Slot.VAlign="Center">
-          <Button Text="Generer et bilde" Class="nav" OnClicked="home.image" />
-          <Button Text="Lag et klipp" Class="nav" OnClicked="home.clip" />
-          <Button Name="nav.projects" Text="Filmstudio" Class="nav" OnClicked="page.projects" />
-          <Button Name="navigation.clip" Text="Til klippstudioet" Class="nav" OnClicked="page.clip" Visibility="Collapsed" />
+          <Button Text="Generate an image" Class="nav" OnClicked="home.image" />
+          <Button Text="Create a clip" Class="nav" OnClicked="home.clip" />
+          <Button Name="nav.projects" Text="Film Studio" Class="nav" OnClicked="page.projects" />
+          <Button Name="navigation.clip" Text="To clip studio" Class="nav" OnClicked="page.clip" Visibility="Collapsed" />
         </HBox>
         <HBox Name="navigation.film" Spacing="3" Height="32" Slot.VAlign="Center">
-          <Button Text="Prosjekter" Class="nav" Width="90" OnClicked="page.projects" />
-          <Button Name="nav.overview" Text="Oversikt" Class="nav" Width="80" OnClicked="page.overview" />
-          <Button Name="nav.brief" Text="Manus" Class="nav" Width="74" OnClicked="page.brief" />
-          <Button Name="nav.bible" Text="Filmbibel" Class="nav" Width="86" OnClicked="mode.bible" />
-          <Button Name="nav.images" Text="Bilder" Class="nav" Width="70" OnClicked="page.images" />
-          <Button Name="nav.film" Text="Arbeidsflate" Class="nav nav-active" Width="110" OnClicked="mode.film" />
-          <Button Name="nav.production" Text="Produksjon" Class="nav" Width="98" OnClicked="page.production" />
-          <Button Name="nav.library" Text="Bibliotek" Class="nav" Width="88" OnClicked="mode.library" />
+          <Button Text="Projects" Class="nav" Width="90" OnClicked="page.projects" />
+          <Button Name="nav.overview" Text="Overview" Class="nav" Width="80" OnClicked="page.overview" />
+          <Button Name="nav.brief" Text="Script" Class="nav" Width="74" OnClicked="page.brief" />
+          <Button Name="nav.bible" Text="Film bible" Class="nav" Width="86" OnClicked="mode.bible" />
+          <Button Name="nav.images" Text="Images" Class="nav" Width="70" OnClicked="page.images" />
+          <Button Name="nav.film" Text="Workspace" Class="nav nav-active" Width="110" OnClicked="mode.film" />
+          <Button Name="nav.production" Text="Production" Class="nav" Width="98" OnClicked="page.production" />
+          <Button Name="nav.library" Text="Library" Class="nav" Width="88" OnClicked="mode.library" />
         </HBox>
         <Spacer Slot.Fill="1" />
-        <Button Text="Regissør" Class="nav" OnClicked="page.director" Slot.VAlign="Center" />
+        <Button Text="AI Director" Class="nav" OnClicked="page.director" Slot.VAlign="Center" />
         <Border Background="#252D27" CornerRadius="4" Padding="9,5" Slot.Padding="14,0,0,0" Slot.VAlign="Center">
-          <Label Text="LOKALT STUDIO" TextSize="9" Color="#B5CCB7" />
+          <Label Text="LOCAL STUDIO" TextSize="9" Color="#B5CCB7" />
         </Border>
       </HBox>
       <Separator />
       <Switcher Name="workspace" Index="0" Slot.Fill="1">
         <VBox Name="film.page">
           <HBox Name="workspace.bar" Height="48" Spacing="5" Slot.Padding="16,6">
-            <Label Name="project.title" Text="Et lite hei" TextSize="20" Font="/System/Library/Fonts/NewYork.ttf" Slot.Fill="1" MaxHeight="28" />
-            <Button Name="workspace.nav.scenes" Text="Scener" Class="nav" OnClicked="page.scenes" />
-            <Button Name="workspace.nav.structure" Text="Struktur" Class="nav" OnClicked="page.structure" />
-            <Button Name="workspace.nav.film" Text="Regi" Class="nav" OnClicked="page.film" />
-            <Button Name="workspace.nav.cut" Text="Klipp" Class="nav" OnClicked="page.cut" />
-            <Button Name="workspace.nav.sound" Text="Lydspor" Class="nav" OnClicked="page.sound" />
+            <Label Name="project.title" Text="A Little Hello" TextSize="20" Font="/System/Library/Fonts/NewYork.ttf" Slot.Fill="1" MaxHeight="28" />
+            <Button Name="workspace.nav.scenes" Text="Scenes" Class="nav" OnClicked="page.scenes" />
+            <Button Name="workspace.nav.structure" Text="Structure" Class="nav" OnClicked="page.structure" />
+            <Button Name="workspace.nav.film" Text="Direction" Class="nav" OnClicked="page.film" />
+            <Button Name="workspace.nav.cut" Text="Cut" Class="nav" OnClicked="page.cut" />
+            <Button Name="workspace.nav.sound" Text="Sound" Class="nav" OnClicked="page.sound" />
             <Separator Orientation="Vertical" Slot.Padding="6,0" />
-            <Button Text="Romkart" Class="nav" OnClicked="page.coverage" />
+            <Button Text="Room map" Class="nav" OnClicked="page.coverage" />
           </HBox>
           <Separator />
           <HBox Name="workspace.columns" Slot.Fill="1">
             <Border Material="Solid" Background="#16191B" Width="260" Padding="12,14,12,10" Name="workspace.sidebar" CornerRadius="0">
               <VBox Spacing="10">
-                <Label Text="PROSJEKT" Class="eyebrow" />
+                <Label Text="PROJECT" Class="eyebrow" />
                 <ComboBox Name="projects" Items="" Selected="0" OnChanged="project.select" />
-                <Label Name="project.subtitle" Text="En liten historie om å legge merke til noe." Class="muted" Wrap="true" TextSize="11" MaxHeight="34" />
+                <Label Name="project.subtitle" Text="A small story about noticing something." Class="muted" Wrap="true" TextSize="11" MaxHeight="34" />
                 <HBox>
-                  <Label Text="SCENER OG KLIPP" Class="eyebrow" Slot.Fill="1" />
+                  <Label Text="SCENES AND CLIPS" Class="eyebrow" Slot.Fill="1" />
                   <Label Name="sidebar.count" Class="eyebrow" />
                 </HBox>
                 <Label Name="sidebar.scene" Visibility="Collapsed" />
-                <Button Name="outline.root" Text="Hele filmen" Style="Flat" OnClicked="outline.root" />
+                <Button Name="outline.root" Text="Whole film" Style="Flat" OnClicked="outline.root" />
                 <ScrollBox Name="outline.scroll" Slot.Fill="1">
                   <VBox Name="shots" />
                 </ScrollBox>
                 <HBox Name="shot.authoring" Spacing="5">
-                  <Button Text="+ Klipp" OnClicked="shot.add" Slot.Fill="1" />
-                  <Button Text="Viderefør" OnClicked="shot.continue" Slot.Fill="1" />
+                  <Button Text="+ Edit" OnClicked="shot.add" Slot.Fill="1" />
+                  <Button Text="Continue" OnClicked="shot.continue" Slot.Fill="1" />
                 </HBox>
               </VBox>
             </Border>
@@ -93,70 +93,70 @@
                 <Overlay>
                   <Image Name="viewer" Stretch="Fit" Slot.Padding="0" />
                   <VBox Name="viewer.empty" Spacing="12" Slot.HAlign="Center" Slot.VAlign="Center" Visibility="Collapsed">
-                    <Label Text="En scene venter på deg" TextSize="22" Font="/System/Library/Fonts/NewYork.ttf" />
-                    <Label Text="Ingen medier er lagret for dette klippet." Class="muted" />
+                    <Label Text="A scene is waiting for you" TextSize="22" Font="/System/Library/Fonts/NewYork.ttf" />
+                    <Label Text="No media is saved for this clip." Class="muted" />
                   </VBox>
                   <Border Background="#111315D9" Padding="10,6" CornerRadius="4" Slot.HAlign="Left" Slot.VAlign="Top" Slot.Padding="14">
-                    <Label Name="viewer.kind" Text="BILDEPLAN" TextSize="9" Color="#F0E4D2" />
+                    <Label Name="viewer.kind" Text="IMAGE PLAN" TextSize="9" Color="#F0E4D2" />
                   </Border>
                   <Border Background="#111315D9" Padding="10,6" CornerRadius="4" Slot.HAlign="Right" Slot.VAlign="Top" Slot.Padding="14" Clip="true" MaxWidth="270">
-                    <Label Name="viewer.camera" Text="Fast kamera · total" TextSize="10" Color="#E1DDD3" Wrap="true" MaxHeight="32" MaxWidth="240" />
+                    <Label Name="viewer.camera" Text="Locked camera · wide" TextSize="10" Color="#E1DDD3" Wrap="true" MaxHeight="32" MaxWidth="240" />
                   </Border>
                 </Overlay>
               </Border>
               <HBox Spacing="8" Height="38">
-                <Button Text="|‹" Width="32" Style="Flat" OnClicked="transport.prev" Tooltip="Forrige klipp" />
-                <Button Name="play" Text="▶" Width="43" Style="Primary" OnClicked="transport.play" Tooltip="Spill av / pause · mellomrom" />
-                <Button Text="›|" Width="32" Style="Flat" OnClicked="transport.next" Tooltip="Neste klipp" />
+                <Button Text="|‹" Width="32" Style="Flat" OnClicked="transport.prev" Tooltip="Previous clip" />
+                <Button Name="play" Text="▶" Width="43" Style="Primary" OnClicked="transport.play" Tooltip="Play / pause · space" />
+                <Button Text="›|" Width="32" Style="Flat" OnClicked="transport.next" Tooltip="Next clip" />
                 <Label Name="time" Text="00:00:00" Font="monospace" TextSize="12" Slot.Padding="8,0" Slot.VAlign="Center" />
                 <Label Text="/" Class="muted" Slot.VAlign="Center" />
                 <Label Name="total" Text="00:15:00" Font="monospace" TextSize="12" Class="muted" Slot.VAlign="Center" />
                 <Spacer Slot.Fill="1" />
-                <Button Name="audio" Text="Uten lyd" Style="Flat" OnClicked="transport.mute" />
+                <Button Name="audio" Text="No audio" Style="Flat" OnClicked="transport.mute" />
               </HBox>
               <HBox>
-                <Label Name="viewer.caption" Text="01 / Et lite møte" TextSize="12" Slot.Fill="1" />
+                <Label Name="viewer.caption" Text="01 / A small meeting" TextSize="12" Slot.Fill="1" />
                 <Label Text="24 FPS" TextSize="10" Class="muted" />
               </HBox>
-              <Label Name="viewer.source" Text="Bevart Qwen-bilde" Class="muted" TextSize="10" />
+              <Label Name="viewer.source" Text="Preserved Qwen image" Class="muted" TextSize="10" />
             </VBox>
             <Separator Orientation="Vertical" />
             <Border Material="Solid" Background="#181B1D" Width="300" Padding="14,14,14,10" Name="workspace.details" CornerRadius="0">
               <VBox Slot.Fill="1">
                 <VBox Name="inspector" Spacing="10" Slot.Fill="1">
-                  <Label Name="shot.meta" Text="KLIPP 01 / 5.0 SEKUNDER" Class="eyebrow" />
-                  <Label Name="shot.title" Text="Et lite møte" TextSize="21" Wrap="true" Font="/System/Library/Fonts/NewYork.ttf" />
+                  <Label Name="shot.meta" Text="CLIP 01 / 5.0 SECONDS" Class="eyebrow" />
+                  <Label Name="shot.title" Text="A small meeting" TextSize="21" Wrap="true" Font="/System/Library/Fonts/NewYork.ttf" />
                   <HBox Spacing="4">
-                    <Button Name="tab.regi" Class="nav nav-active" Text="Regi" Width="76" OnClicked="tab.regi" />
+                    <Button Name="tab.regi" Class="nav nav-active" Text="Direction" Width="76" OnClicked="tab.regi" />
                     <Button Name="tab.takes" Class="nav" Text="Takes" Width="76" OnClicked="tab.takes" />
-                    <Button Text="Detaljer" Class="nav" Width="80" OnClicked="shot.details" />
+                    <Button Text="Details" Class="nav" Width="80" OnClicked="shot.details" />
                   </HBox>
                   <ScrollBox Slot.Fill="1">
                     <VBox Spacing="14">
                       <VBox Name="regi" Spacing="10">
-                        <Label Text="STARTTILSTAND" Class="eyebrow" Slot.Padding="0,3,0,0" />
+                        <Label Text="START STATE" Class="eyebrow" Slot.Padding="0,3,0,0" />
                         <TextEditor Name="start" Height="54" Wrap="true" LineNumbers="false" Font="/System/Library/Fonts/SFNS.ttf" />
-                        <Label Text="HANDLING" Class="eyebrow" Slot.Padding="0,5,0,0" />
+                        <Label Text="ACTION" Class="eyebrow" Slot.Padding="0,5,0,0" />
                         <TextEditor Name="action" Height="54" Wrap="true" LineNumbers="false" Font="/System/Library/Fonts/SFNS.ttf" />
-                        <Label Text="SLUTTILSTAND" Class="eyebrow" Slot.Padding="0,5,0,0" />
+                        <Label Text="END STATE" Class="eyebrow" Slot.Padding="0,5,0,0" />
                         <TextEditor Name="end" Height="54" Wrap="true" LineNumbers="false" Font="/System/Library/Fonts/SFNS.ttf" />
                         <Separator Slot.Padding="0,8" />
-                        <Label Text="REGINOTAT" Class="eyebrow" />
-                        <TextEditor Name="notes" Height="62" Wrap="true" LineNumbers="false" Placeholder="Hva vil du justere i dette øyeblikket?" Font="/System/Library/Fonts/SFNS.ttf" />
+                        <Label Text="DIRECTOR NOTE" Class="eyebrow" />
+                        <TextEditor Name="notes" Height="62" Wrap="true" LineNumbers="false" Placeholder="What would you adjust in this moment?" Font="/System/Library/Fonts/SFNS.ttf" />
                       </VBox>
                       <VBox Name="takes" Visibility="Collapsed" Spacing="14">
-                        <Label Text="VELG UTTRYKKET" Class="eyebrow" />
-                        <Label Text="Behold alternativene. Finn bildet som forteller best." Wrap="true" Class="muted" />
-                        <Button Text="Åpne opptakshistorikk" OnClicked="take.history" />
+                        <Label Text="CHOOSE THE LOOK" Class="eyebrow" />
+                        <Label Text="Keep the alternatives. Find the image that tells the story best." Wrap="true" Class="muted" />
+                        <Button Text="Open take history" OnClicked="take.history" />
                         <VBox Name="take.list" />
-                        <Label Text="Beholdte opptak har egne seeds og oppskrifter. Se gjennom en variant før du velger den." Wrap="true" Class="muted" TextSize="11" />
+                        <Label Text="Saved takes have their own seeds and recipes. Review a variant before choosing it." Wrap="true" Class="muted" TextSize="11" />
                       </VBox>
                     </VBox>
                   </ScrollBox>
                   <Separator />
-                  <VBox Name="shot.workflow" Visibility="Collapsed" Spacing="7"><Label Name="video.status" Text="" Wrap="true" Class="muted"/><Button Text="Lag workflow-take" Style="Primary" OnClicked="video.generate"/><Button Text="Opptakshistorikk" OnClicked="take.history"/><Button Text="Stopp eget opptak" OnClicked="video.stop"/></VBox>
-                    <Label Name="review.state" Text="Klar for din gjennomgang" Color="#B4C5B2" TextSize="11" Wrap="true" />
-                  <Button Name="review" Text="Merk gjennomgått" OnClicked="review.toggle" Tooltip="Egen reginotatmarkering. Produksjonsgjennomgangen gjøres i Produksjon." />
+                  <VBox Name="shot.workflow" Visibility="Collapsed" Spacing="7"><Label Name="video.status" Text="" Wrap="true" Class="muted"/><Button Text="Create workflow take" Style="Primary" OnClicked="video.generate"/><Button Text="Take history" OnClicked="take.history"/><Button Text="Stop my take" OnClicked="video.stop"/></VBox>
+                    <Label Name="review.state" Text="Ready for your review" Color="#B4C5B2" TextSize="11" Wrap="true" />
+                  <Button Name="review" Text="Mark as reviewed" OnClicked="review.toggle" Tooltip="Personal director note marker. Production review happens in Production." />
                 </VBox>
                 <ScrollBox Name="cut.inspector" Visibility="Collapsed" Slot.Fill="1">
                   <VBox Name="cut.inspector.content" Spacing="12" />
@@ -169,20 +169,20 @@
                 </ScrollBox>
                 <VBox Name="sound.details" Visibility="Collapsed" Slot.Fill="1" Spacing="10">
                   <HBox Spacing="5">
-                    <Button Name="sound.tab.clip" Text="Lydklipp" OnClicked="workspace.sound.clip" Slot.Fill="1" />
-                    <Button Name="sound.tab.mixer" Text="Mikser" OnClicked="workspace.sound.mixer" Slot.Fill="1" />
+                    <Button Name="sound.tab.clip" Text="Audio clip" OnClicked="workspace.sound.clip" Slot.Fill="1" />
+                    <Button Name="sound.tab.mixer" Text="Mixer" OnClicked="workspace.sound.mixer" Slot.Fill="1" />
                   </HBox>
                   <VBox Name="sound.cue" Slot.Fill="1" Spacing="10">
                     <ScrollBox Slot.Fill="1">
                       <VBox Name="sound.inspector" Spacing="10" />
                     </ScrollBox>
-                    <Button Name="sound.apply" Text="Bruk lydklippendringer" Style="Primary" OnClicked="sound.clip.apply" />
+                    <Button Name="sound.apply" Text="Apply audio clip changes" Style="Primary" OnClicked="sound.clip.apply" />
                   </VBox>
                   <VBox Name="sound.mix" Visibility="Collapsed" Slot.Fill="1" Spacing="10">
                     <ScrollBox Slot.Fill="1">
                       <VBox Name="sound.mixer" Spacing="10" />
                     </ScrollBox>
-                    <Button Text="Bruk nivåer, av og solo" Style="Primary" OnClicked="sound.mixer.apply" />
+                    <Button Text="Apply levels, mute, and solo" Style="Primary" OnClicked="sound.mixer.apply" />
                   </VBox>
                 </VBox>
               </VBox>
@@ -193,29 +193,29 @@
             <VBox Slot.Fill="1">
               <VBox Spacing="8" Name="picture.timeline" Slot.Fill="1">
                 <HBox>
-                  <Label Text="SEKVENS" Class="eyebrow" />
-                  <Label Name="plan.summary" Text="3 klipp / 15 sekunder / 24 fps" Class="muted" TextSize="10" Slot.Padding="16,0" Slot.Fill="1" />
-                  <Label Name="timeline.hint" Text="← → Ett bilde · Mellomrom Avspilling" Class="muted" TextSize="10" />
+                  <Label Text="SEQUENCE" Class="eyebrow" />
+                  <Label Name="plan.summary" Text="3 clips / 15 seconds / 24 fps" Class="muted" TextSize="10" Slot.Padding="16,0" Slot.Fill="1" />
+                  <Label Name="timeline.hint" Text="← → One frame · Space Play" Class="muted" TextSize="10" />
                   <HBox Name="cut.toolbar" Visibility="Collapsed" Spacing="8">
-                    <Button Name="cut.undo" Text="Angre ⌘Z" OnClicked="cut.undo" />
-                    <Button Name="cut.redo" Text="Gjør om" OnClicked="cut.redo" />
-                    <Button Text="Eksporter grovklipp" Style="Primary" OnClicked="cut.export" />
+                    <Button Name="cut.undo" Text="Undo ⌘Z" OnClicked="cut.undo" />
+                    <Button Name="cut.redo" Text="Redo" OnClicked="cut.redo" />
+                    <Button Text="Export rough cut" Style="Primary" OnClicked="cut.export" />
                   </HBox>
                 </HBox>
                 <Timeline Name="timeline" Duration="15" FrameRate="24" HeaderWidth="112" Slot.Fill="1" />
               </VBox>
               <VBox Name="sound.panel" Visibility="Collapsed" Slot.Fill="1" Spacing="6">
                 <HBox Spacing="7">
-                  <Label Text="LYDSPOR" Class="eyebrow" Slot.Padding="0,0,8,0" />
-                  <ComboBox Name="sound.import.track" Items="Dialog|Musikk|Miljølyd|Effekter" Width="122" Selected="0" />
-                  <Button Text="Importer lyd…" Style="Primary" OnClicked="sound.import" />
-                  <Button Text="Prosjektlyd" OnClicked="sound.library" />
-                  <Button Text="Hør miks" OnClicked="sound.listen" />
-                  <Button Text="Se med miks" OnClicked="sound.film" />
+                  <Label Text="SOUNDTRACK" Class="eyebrow" Slot.Padding="0,0,8,0" />
+                  <ComboBox Name="sound.import.track" Items="Dialogue|Music|Ambient sound|Effects" Width="122" Selected="0" />
+                  <Button Text="Import audio…" Style="Primary" OnClicked="sound.import" />
+                  <Button Text="Project audio" OnClicked="sound.library" />
+                  <Button Text="Listen to mix" OnClicked="sound.listen" />
+                  <Button Text="View with mix" OnClicked="sound.film" />
                   <Spacer Slot.Fill="1" />
-                  <Button Name="sound.undo" Text="Angre" OnClicked="sound.undo" />
-                  <Button Name="sound.redo" Text="Gjør om" OnClicked="sound.redo" />
-                  <Button Text="Eksporter" OnClicked="sound.export" />
+                  <Button Name="sound.undo" Text="Undo" OnClicked="sound.undo" />
+                  <Button Name="sound.redo" Text="Redo" OnClicked="sound.redo" />
+                  <Button Text="Export" OnClicked="sound.export" />
                 </HBox>
                 <Timeline Name="sound.timeline" Duration="20" FrameRate="24" HeaderWidth="152" Slot.Fill="1" />
                 <Label Name="sound.status" Text="" Class="muted" TextSize="10" />
@@ -241,7 +241,7 @@
       </Switcher>
       <Separator />
       <HBox Height="30" Slot.Padding="20,0">
-        <Label Name="status" Text="Bildeplanen er klar" TextSize="10" Class="muted" Slot.Fill="1" Slot.VAlign="Center" />
+        <Label Name="status" Text="Image plan is ready" TextSize="10" Class="muted" Slot.Fill="1" Slot.VAlign="Center" />
         <Label Text="SPRINTWAKE STUDIOS" Class="eyebrow" TextSize="9" Slot.VAlign="Center" />
       </HBox>
     </VBox>

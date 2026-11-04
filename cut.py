@@ -22,41 +22,41 @@ MAX_CLIPS = 500
 
 def frames(seconds: float) -> int:
     if isinstance(seconds, bool) or not isinstance(seconds, (int, float)) or not math.isfinite(seconds):
-        raise ValueError("Tid må være et endelig tall.")
+        raise ValueError("Time must be finite.")
     return round(seconds * FPS)
 
 
 def _integer(value, minimum=0):
     if type(value) is not int or not minimum <= value <= 86400 * FPS:
-        raise ValueError("Klippet har ugyldige rammetall.")
+        raise ValueError("The shot has invalid frame numbers.")
     return value
 
 
 def validate_clips(clips):
     if not isinstance(clips, list) or len(clips) > MAX_CLIPS:
-        raise ValueError("Klippelaget støtter opptil 500 klipp.")
+        raise ValueError("Cut layer supports up to 500 clips.")
     ids = set()
     for clip in clips:
         if not isinstance(clip, dict) or set(clip) != {"shotId", "source", "inFrame", "outFrame", "sourceFrames", "included"}:
-            raise ValueError("Ugyldig klippelag.")
+            raise ValueError("Invalid cut layer.")
         sid = clip["shotId"]
         if not isinstance(sid, str) or not sid or sid in ids:
-            raise ValueError("Klippelaget har ugyldige eller dupliserte klipp-ID-er.")
+            raise ValueError("Cut layer has invalid or duplicate shot IDs.")
         ids.add(sid)
         start, end, total = (_integer(clip[k]) for k in ("inFrame", "outFrame", "sourceFrames"))
         if not 0 <= start < end <= total or type(clip["included"]) is not bool:
-            raise ValueError("Inn og ut må avgrense minst én ramme i opptaket.")
+            raise ValueError("In and out points must cover at least one frame in the take.")
         source = clip["source"]
         if source is not None:
             if not isinstance(source, dict) or set(source) != {"id", "label", "video", "image"}:
-                raise ValueError("Ugyldig opptak i klippelaget.")
+                raise ValueError("Invalid take in cut layer.")
             if any(not isinstance(source[k], str) for k in source):
-                raise ValueError("Ugyldig opptaksreferanse.")
+                raise ValueError("Invalid take reference.")
             for key in ("video", "image"):
                 if source[key]:
                     path = Path(source[key])
                     if path.is_absolute() or ".." in path.parts or path.parts[0] != "Input":
-                        raise ValueError("Klippelaget kan bare bruke bevarte medier i Input.")
+                        raise ValueError("Cut layer can only use preserved media in Input.")
     return clips
 
 
@@ -170,18 +170,18 @@ class CutStore:
             return {"format": "raven-cut", "version": 1, "fps": FPS, "revision": 0,
                     "clips": [], "undo": [], "redo": []}
         if self.path.stat().st_size > 16_000_000:
-            raise ValueError("Klippelaget er for stort.")
+            raise ValueError("Cut state is too large.")
         doc = json.loads(self.path.read_text())
         if not isinstance(doc, dict) or doc.get("format") != "raven-cut" or doc.get("version") != 1 or doc.get("fps") != FPS:
-            raise ValueError("Ukjent klippelagformat.")
+            raise ValueError("Unknown shotelagformat.")
         _integer(doc.get("revision"))
         validate_clips(doc.get("clips"))
         for key in ("undo", "redo"):
             if not isinstance(doc.get(key), list) or len(doc[key]) > HISTORY_LIMIT:
-                raise ValueError("Ugyldig angrehistorikk.")
+                raise ValueError("Invalid undo history.")
             for item in doc[key]:
                 if not isinstance(item, dict) or set(item) != {"label", "clips"} or not isinstance(item["label"], str):
-                    raise ValueError("Ugyldig angrehistorikk.")
+                    raise ValueError("Invalid undo history.")
                 validate_clips(item["clips"])
         return doc
 
@@ -208,7 +208,7 @@ class CutStore:
         with self.locked():
             actual = self.load()
             if actual["revision"] != doc["revision"]:
-                raise ValueError("Klippelaget er endret i et annet vindu. Åpne Klipp på nytt.")
+                raise ValueError("Cut layer changed in another window. Reopen Cut.")
             if clips == actual["clips"]:
                 return actual
             if remember:
@@ -220,7 +220,7 @@ class CutStore:
         with self.locked():
             actual = self.load()
             if actual["revision"] != doc["revision"]:
-                raise ValueError("Klippelaget er endret i et annet vindu. Åpne Klipp på nytt.")
+                raise ValueError("Cut layer changed in another window. Reopen Cut.")
             source, dest = ("redo", "undo") if redo else ("undo", "redo")
             if not actual[source]:
                 return actual
@@ -233,33 +233,33 @@ class CutStore:
         by_id = {s.id: s for s in production.shots}
         shots = []
         for clip in visible_clips(doc["clips"]):
-            shot = copy.deepcopy(by_id.get(clip["shotId"], Shot(clip["shotId"], "Bevart klipp fra tidligere manus")))
+            shot = copy.deepcopy(by_id.get(clip["shotId"], Shot(clip["shotId"], "Retained shot from an earlier script")))
             source = clip["source"]
             if source:
                 def resolve(key):
                     path = self.project / source[key]
                     self.workspace._assert_managed_path(path)
                     return str(path) if source[key] and path.is_file() else ""
-                shot.takes = [Take(source["id"], source["label"], resolve("image"), resolve("video"), "Bevart opptak · klippelag")]
+                shot.takes = [Take(source["id"], source["label"], resolve("image"), resolve("video"), "Retained take · cut")]
                 shot.selected_take = 0
             else:
                 # An unbound card is a still placeholder, never an implicit
                 # "latest take" which a render could silently replace.
-                shot.takes = [Take("placeholder", "Bildeplan", image=shot.take.image, provenance="Bildeplan · video ikke valgt")] if shot.take and shot.take.image else []
+                shot.takes = [Take("placeholder", "Storyboard", image=shot.take.image, provenance="Storyboard · no video selected")] if shot.take and shot.take.image else []
                 shot.selected_take = 0
             shot.duration = (clip["outFrame"] - clip["inFrame"]) / FPS
             shot.source_start = clip["inFrame"] / FPS if source and source["video"] else 0
             shots.append(shot)
-        return Project(production.id, production.title, "Klippelag · bevarte opptak og bildeplan", shots)
+        return Project(production.id, production.title, "Cut · retained takes and storyboard", shots)
 
 
 def scene_groups(board):
     """Camera groups are not narrative acts; preserve contiguous plan order."""
-    locations = {x.get("id"): x.get("title") or x.get("name") or "Sted" for x in (board.get("filmBible") or {}).get("locations", [])}
+    locations = {x.get("id"): x.get("title") or x.get("name") or "Location" for x in (board.get("filmBible") or {}).get("locations", [])}
     result = []
     for index, shot in enumerate(board.get("shots") or []):
         key = shot.get("directorScene", 1)
         if not result or result[-1]["scene"] != key:
-            result.append({"scene": key, "location": locations.get(shot.get("locationId"), "Sted ikke valgt"), "shots": []})
+            result.append({"scene": key, "location": locations.get(shot.get("locationId"), "No location selected"), "shots": []})
         result[-1]["shots"].append((index, shot))
     return result

@@ -66,6 +66,10 @@ class BundleTests(unittest.TestCase):
             self.assertEqual((output / "Contents/Resources/release.json").read_text().find("sprintwake-studios") >= 0, True)
             plist = (output / "Contents/Info.plist").read_text()
             self.assertIn("Sprintwake Studios", plist)
+            import plistlib
+            locale = plistlib.loads((output / "Contents/Info.plist").read_bytes())
+            self.assertEqual(locale["CFBundleDevelopmentRegion"], "en")
+            self.assertEqual(locale["CFBundleLocalizations"], ["en"])
             self.assertIn("SUFeedURL", plist)
             self.assertIn("SURequireSignedFeed", plist)
             wrapper = (output / "Contents/Resources/Studio/engine/local/bin/ffprobe").read_text()

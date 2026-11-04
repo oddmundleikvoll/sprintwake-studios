@@ -10,12 +10,12 @@ def time_text(frames):
 
 def time_frames(text):
     parts=text.strip().replace(",", ".").split(":")
-    if not 1<=len(parts)<=3: raise ValueError("Skriv sekunder, mm:ss eller tt:mm:ss.")
+    if not 1<=len(parts)<=3: raise ValueError("Enter seconds, mm:ss or hh:mm:ss.")
     values=[float(p) for p in parts]
     if any(not math.isfinite(n) or n<0 for n in values) or any(n>=60 for n in values[1:]):
-        raise ValueError("Tiden må være positiv, med minutter/sekunder under 60 etter kolon.")
+        raise ValueError("Time must be positive, with minutes/seconds below 60 after the colon.")
     total=sum(n*60**i for i,n in enumerate(reversed(values)))
-    if total>86400: raise ValueError("Tiden kan være høyst 24 timer.")
+    if total>86400: raise ValueError("Time cannot exceed 24 hours.")
     return round(total*24)
 
 

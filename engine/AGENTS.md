@@ -26,3 +26,17 @@ naming for other bind addresses. Focused CPU check from this directory:
 ```sh
 ../runtime/bundle-venv/bin/python -B -m unittest tests.test_http_startup -v
 ```
+
+The public native app and expert director guide use English by default, with the
+user's requested project/dialogue language preserved. Human-readable contract
+errors and the guide are canonical here; refresh the native contracts/ mirrors
+with scripts/sync-contracts.py --write from the app root. Keep tool IDs, schemas,
+frame rules and review/continuity requirements unchanged when translating prose.
+Focused guide/anchor and native-facing error verification from this directory:
+
+```sh
+RAVEN_LTX_BRIDGE="$PWD/../qa/no-external-worker" ../runtime/bundle-venv/bin/python -B -m unittest tests.test_raven_contract tests.test_ltx_anchors tests.test_film_chat -v
+```
+
+This uses the explicit unavailable-external-worker branch; the pure contracts
+remain required. Actual model/worker qualification is separate from UI localization.

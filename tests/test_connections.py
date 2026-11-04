@@ -104,7 +104,7 @@ class EngineConnectionTests(unittest.TestCase):
         doc['llmProfiles']=[{'id':'my-llm','label':'Mine','kind':'openai-compatible','url':url+'/v1','model':'my-text-model','vision':False}]
         doc['selected']={'llm':'my-llm','image':'none','video':'none'}
         result={row['name']:row for row in probe_connections(doc,lambda _:'probe-key')}
-        self.assertEqual(result['Språkmodell']['status'],'klar');self.assertEqual(result['ComfyUI']['status'],'klar')
+        self.assertEqual(result['Language model']['status'],'klar');self.assertEqual(result['ComfyUI']['status'],'klar')
         self.assertTrue(Provider.calls);self.assertTrue(all(call[0]=='GET' for call in Provider.calls))
         self.assertTrue(all(call[2]=='Bearer probe-key' for call in Provider.calls))
     def test_own_llm_and_image_use_real_engine_apis_without_global_config_or_secrets(self):

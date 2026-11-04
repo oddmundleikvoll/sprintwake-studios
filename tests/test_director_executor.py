@@ -145,7 +145,7 @@ class DirectorCreateWriteTests(unittest.TestCase):
         self.assertEqual(writer.call_count,1)
         self.assertEqual(result["operationStatus"],"done")
         self.assertEqual(len(result["board"]["shots"]),1)
-        self.assertIn("1 nye klipp",result["message"])
+        self.assertIn("1 new shots",result["message"])
         self.assertTrue((self.workspace.projects_dir/"maursoldaten/Script/manus.md").is_file())
         self.assertFalse(any(c[0]=="POST" and c[1] in {"/api/images","/api/film/action"} for c in self.backend.calls))
 

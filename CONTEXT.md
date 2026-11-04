@@ -20,6 +20,14 @@ Engine numeric-loopback HTTP binding bypasses HTTPServer's optional reverse-DNS
 lookup, which stalled hosted macOS startup for ~35 seconds before any API served.
 Other bind addresses retain standard naming; the readiness socket test forbids DNS.
 
+# English interface
+
+The 0.10.2 source uses English native chrome, menus, defaults and director guidance.
+User text/dialogue and existing saved labels retain their language. Display copy must
+not rename stored IDs, connection statuses, contracts or private paths. Public README
+screenshots are real native captures from an isolated fictional project; the director
+response is scripted and explicitly disclosed. Capture via scripts/capture-showcase.sh.
+
 # Boundaries
 
 - `creation_panel.py` / `creation_smoke.py`: native three-card start page and

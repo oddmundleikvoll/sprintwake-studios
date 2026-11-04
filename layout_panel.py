@@ -39,10 +39,10 @@ class LayoutMixin(LayoutPlaybackMixin):
                     continue
                 for sid in scene['shotIds']:
                     i = indices[sid]; shot = self.project.shots[i]; take = shot.take
-                    status = 'VIDEO' if take and take.video else 'BILDE' if take and take.image else 'MANGLER BILDE'
+                    status = 'VIDEO' if take and take.video else 'IMAGE' if take and take.image else 'MISSING IMAGE'
                     image = v.image(take.image, width=44, height=34) if take and take.image else '<Border Background="#242C2F" Width="44" Height="34" CornerRadius="5"><Label Text="—" Class="muted" Slot.HAlign="Center" Slot.VAlign="Center"/></Border>'
                     body += f'<Button Name="shot.{i}" Class="shot {"shot-active" if i==self.index else ""}" Height="62" OnClicked="shot.{i}" Metric.PaddingX="6" Metric.PaddingY="5"><HBox Spacing="8" HitTestable="false">{image}<VBox Slot.Fill="1" Spacing="3"><Label Text="{v.esc(f"{i+1:02}  {shot.title}")}" TextSize="12" Wrap="true" MaxHeight="30"/>{v.label(status+f" · {shot.duration:.1f} s",9,True)}</VBox></HBox></Button>'
-        return '<VBox Spacing="5">' + (body or v.label('Legg til et klipp for å begynne.',12,True)) + '</VBox>'
+        return '<VBox Spacing="5">' + (body or v.label('Add a shot to begin.',12,True)) + '</VBox>'
 
     def outline_heading(self, kind, ident, title, count):
         key = (kind, ident)
@@ -82,18 +82,18 @@ class LayoutMixin(LayoutPlaybackMixin):
         scene = next((s for seq in self.layout_sequences for s in seq['scenes'] if s['id']==self.layout_group[1]),None)
         if scene is None and self.shot:
             scene = next((s for seq in self.layout_sequences for s in seq['scenes'] if self.shot.id in s['shotIds']),None)
-        body=v.label('SCENEOVERSIKT',10,True)
+        body=v.label('SCENE OVERVIEW',10,True)
         if scene:
             body += v.label(scene['title'],22,**{'Font':'/System/Library/Fonts/NewYork.ttf'})
-            body += v.label(f"{len(scene['shotIds'])} klipp · {time_text(scene['frames'])}",12,True)
+            body += v.label(f"{len(scene['shotIds'])} shots · {time_text(scene['frames'])}",12,True)
         if self.shot:
             take=self.shot.take
             body += '<Separator/>'+v.label(self.shot.title,18)
-            body += v.label('Opptak klart' if take and take.video else 'Bildeplan' if take and take.image else 'Venter på bilde',12,True)
-            body += v.label(self.shot.action or 'Beskriv handlingen i Regi.',13)
-            body += v.label(self.shot.camera or 'Kamera er ikke beskrevet.',12,True)
-            body += v.button('Åpne regi','page.film',True)+v.button('Rediger klippen','page.cut')
-        body += '<Separator/>'+v.button('Sekvenser og spilletid','page.structure')+v.button('Romkart og coverage','page.coverage')+v.button('Produksjon og gjennomgang','page.production')
+            body += v.label('Take ready' if take and take.video else 'Image plan' if take and take.image else 'Waiting for image',12,True)
+            body += v.label(self.shot.action or 'Describe the action in Direction.',13)
+            body += v.label(self.shot.camera or 'Camera not described.',12,True)
+            body += v.button('Open direction','page.film',True)+v.button('Edit cut','page.cut')
+        body += '<Separator/>'+v.button('Sequences and runtime','page.structure')+v.button('Room map and coverage','page.coverage')+v.button('Production and review','page.production')
         self.replace_host('scene.details',body)
 
     def layout_action(self, action):

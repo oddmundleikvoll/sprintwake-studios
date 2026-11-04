@@ -14,29 +14,29 @@ FPS = 24
 HISTORY_LIMIT = 50
 MAX_CLIPS = 1000
 TRACKS = (
-    ("dialogue", "Dialog"),
-    ("music", "Musikk"),
-    ("ambience", "Miljølyd"),
-    ("effects", "Effekter"),
+    ("dialogue", "Dialogue"),
+    ("music", "Music"),
+    ("ambience", "Ambience"),
+    ("effects", "Effects"),
 )
 TRACK_IDS = {item[0] for item in TRACKS}
 
 
 def _number(value, label="gainDb"):
     if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
-        raise ValueError(f"Ugyldig {label}.")
+        raise ValueError(f"Invalid {label}.")
     return float(value)
 
 
 def _frame(value, minimum=0):
     if type(value) is not int or value < minimum or value > 86400 * FPS:
-        raise ValueError("Ugyldig lydramme.")
+        raise ValueError("Invalid audio frame.")
     return value
 
 
 def _path(value):
     if not isinstance(value, str) or not value or Path(value).is_absolute() or ".." in Path(value).parts or not value.startswith("Input/"):
-        raise ValueError("Lyd kan bare bruke bevarte medier i Input.")
+        raise ValueError("Audio can only use preserved media in Input.")
     return value
 
 
@@ -46,43 +46,43 @@ def default_state():
 
 def validate_state(state):
     if not isinstance(state, dict) or set(state) != {"tracks", "clips", "original"}:
-        raise ValueError("Ugyldig lydlag.")
+        raise ValueError("Invalid sound layer.")
     tracks = state["tracks"]
     if not isinstance(tracks, list) or len(tracks) != len(TRACKS):
-        raise ValueError("Lydlaget må ha fire faste spor.")
+        raise ValueError("Sound layer must have four fixed tracks.")
     seen = set()
     for track, (expected, default_name) in zip(tracks, TRACKS):
         if not isinstance(track, dict) or set(track) != {"id", "name", "gainDb", "muted", "solo"}:
-            raise ValueError("Ugyldig lydspor.")
+            raise ValueError("Invalid audio track.")
         if track["id"] != expected or track["id"] in seen or not isinstance(track["name"], str) or not track["name"]:
-            raise ValueError("Ugyldige faste lydspor.")
+            raise ValueError("Invalid fixed audio tracks.")
         if _number(track["gainDb"]) < -120 or _number(track["gainDb"]) > 24 or type(track["muted"]) is not bool or type(track["solo"]) is not bool:
-            raise ValueError("Ugyldig lydsporforsterkning.")
+            raise ValueError("Invalid audio track gain.")
         seen.add(track["id"])
     clips = state["clips"]
     if not isinstance(clips, list) or len(clips) > MAX_CLIPS:
-        raise ValueError("Lydlaget støtter opptil 1000 klipp.")
+        raise ValueError("Sound layer supports up to 1,000 clips.")
     ids = set()
     keys = {"id", "track", "label", "path", "sourceFrames", "inFrame", "outFrame", "atFrame", "gainDb", "fadeIn", "fadeOut", "muted"}
     for clip in clips:
         if not isinstance(clip, dict) or set(clip) != keys or not isinstance(clip["id"], str) or not clip["id"] or clip["id"] in ids:
-            raise ValueError("Ugyldige eller dupliserte lydklipp.")
+            raise ValueError("Invalid or duplicate audio clips.")
         if clip["track"] not in TRACK_IDS or not isinstance(clip["label"], str):
-            raise ValueError("Ugyldig lydklipp.")
+            raise ValueError("Invalid audio clip.")
         _path(clip["path"])
         total = _frame(clip["sourceFrames"], 1)
         start, end = _frame(clip["inFrame"]), _frame(clip["outFrame"])
         if not start < end <= total or _frame(clip["atFrame"]) < 0:
-            raise ValueError("Ugyldig lydklipptrim eller plassering.")
+            raise ValueError("Invalid audio clip trim or placement.")
         duration = end - start
         if _frame(clip["fadeIn"]) > duration or _frame(clip["fadeOut"]) > duration or type(clip["muted"]) is not bool:
-            raise ValueError("Ugyldig lydklippfade.")
+            raise ValueError("Invalid audio clip fade.")
         if _number(clip["gainDb"]) < -120 or _number(clip["gainDb"]) > 24:
-            raise ValueError("Ugyldig lydklippforsterkning.")
+            raise ValueError("Invalid audio clip gain.")
         ids.add(clip["id"])
     original = state["original"]
     if not isinstance(original, dict) or set(original) != {"enabled", "gainDb"} or type(original["enabled"]) is not bool or _number(original["gainDb"]) < -120 or _number(original["gainDb"]) > 24:
-        raise ValueError("Ugyldig original lydinnstilling.")
+        raise ValueError("Invalid original audio setting.")
     return state
 
 
@@ -90,7 +90,7 @@ def update_clip(state, clip_id, **fields):
     result = copy.deepcopy(state)
     allowed = {"track", "label", "path", "sourceFrames", "inFrame", "outFrame", "atFrame", "gainDb", "fadeIn", "fadeOut", "muted"}
     if not fields.keys() <= allowed:
-        raise ValueError("Ukjent lydklippfelt.")
+        raise ValueError("Unknown audio clip field.")
     clip = next((item for item in result["clips"] if item["id"] == clip_id), None)
     if clip is None:
         raise KeyError(clip_id)
@@ -133,14 +133,14 @@ class SoundStore:
 
     def _validate_doc(self, doc):
         if not isinstance(doc, dict) or set(doc) != {"format", "version", "fps", "revision", "state", "undo", "redo"} or doc["format"] != "raven-sound" or doc["version"] != 1 or doc["fps"] != FPS or type(doc["revision"]) is not int or doc["revision"] < 0:
-            raise ValueError("Ukjent lydlagformat.")
+            raise ValueError("Unknown sound state format.")
         validate_state(doc["state"])
         for key in ("undo", "redo"):
             if not isinstance(doc[key], list) or len(doc[key]) > HISTORY_LIMIT:
-                raise ValueError("Ugyldig lydhistorikk.")
+                raise ValueError("Invalid sound history.")
             for item in doc[key]:
                 if not isinstance(item, dict) or set(item) != {"label", "state"} or not isinstance(item["label"], str):
-                    raise ValueError("Ugyldig lydhistorikk.")
+                    raise ValueError("Invalid sound history.")
                 validate_state(item["state"])
         return doc
 
@@ -149,23 +149,23 @@ class SoundStore:
         if not self.path.exists():
             return self._default()
         if self.path.stat().st_size > 32_000_000:
-            raise ValueError("Lydlaget er for stort.")
+            raise ValueError("Sound state is too large.")
         return self._validate_doc(json.loads(self.path.read_text(encoding="utf-8")))
 
     def _write(self, doc):
         self._validate_doc(doc)
         body=json.dumps(doc, ensure_ascii=False, indent=2, allow_nan=False) + "\n"
-        if len(body.encode())>32_000_000: raise ValueError("Lydlaget og historikken er for store til å lagres.")
+        if len(body.encode())>32_000_000: raise ValueError("Sound layer and history are too large to save.")
         return _atomic_text(self.path, body) or doc
 
     def commit(self, doc, state, label):
         validate_state(state)
         if not isinstance(label, str) or not label:
-            raise ValueError("Lydendringen må ha en etikett.")
+            raise ValueError("Sound change must have a label.")
         with self.locked():
             actual = self.load()
             if actual["revision"] != doc["revision"]:
-                raise ValueError("Lydlaget er endret i et annet vindu. Åpne Lyd på nytt.")
+                raise ValueError("Sound layer changed in another window. Reopen Sound.")
             if state == actual["state"]:
                 return actual
             actual["undo"] = (actual["undo"] + [{"label": label, "state": copy.deepcopy(actual["state"])}])[-HISTORY_LIMIT:]
@@ -176,7 +176,7 @@ class SoundStore:
         with self.locked():
             actual = self.load()
             if actual["revision"] != doc["revision"]:
-                raise ValueError("Lydlaget er endret i et annet vindu. Åpne Lyd på nytt.")
+                raise ValueError("Sound layer changed in another window. Reopen Sound.")
             source, target = (("redo", "undo") if redo else ("undo", "redo"))
             if not actual[source]:
                 return actual

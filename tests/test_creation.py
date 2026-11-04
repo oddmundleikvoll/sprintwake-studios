@@ -35,7 +35,7 @@ class CreationTests(unittest.TestCase):
                     panel.create_work()
                     self.assertEqual(panel.opened,[('new-work','images' if kind=='image' else 'clip')])
                     self.assertEqual(panel.saved['sceneDescription'],prompt)
-                    self.assertEqual(requests,[{'name':name or prompt or ('Nytt bilde' if kind=='image' else 'Nytt klipp')}])
+                    self.assertEqual(requests,[{'name':name or prompt or ('New image' if kind=='image' else 'New clip')}])
                     self.assertEqual(creation_kind(panel.workspace,'new-work'),kind)
                     if kind=='image':self.assertEqual(panel.drafts['new-work']['imagePrompt'],prompt)
                     else:self.assertEqual(panel.saved['shots'][0]['prompt'],prompt)

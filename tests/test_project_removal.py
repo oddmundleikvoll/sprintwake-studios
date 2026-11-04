@@ -54,11 +54,11 @@ class ProjectRemovalTests(unittest.TestCase):
         studio.delete_project(); studio.complete()
         self.assertTrue((studio.workspace.projects_dir/"film/storyboard.json").is_file())
         self.assertEqual(studio.workspace.trashed_projects(),[])
-        self.assertEqual(studio.modal_kind,"Prosjektet kunne ikke slettes")
+        self.assertEqual(studio.modal_kind,"Could not delete project")
     def test_delete_rebinds_history_clears_selection_and_restore_opens_project(self):
         studio=self.studio
         studio.show_delete_project()
-        self.assertEqual(studio.modal_kind,"Slett prosjekt?")
+        self.assertEqual(studio.modal_kind,"Delete project?")
         studio.delete_project(); studio.complete()
         self.assertIsNone(studio.board)
         self.assertEqual(studio.summaries,[])
@@ -88,7 +88,7 @@ class ProjectRemovalTests(unittest.TestCase):
         studio.delete_project(); studio.complete()
         self.assertFalse((studio.workspace.projects_dir/"film").exists())
         self.assertIsNone(studio.board)
-        self.assertEqual(studio.modal_kind,"Prosjektet er flyttet til papirkurven")
+        self.assertEqual(studio.modal_kind,"Project moved to Trash")
         self.assertIsNone(studio.current_conversation["projectSlug"])
 
     def test_committed_restore_reports_success_when_local_index_refresh_fails(self):
@@ -99,4 +99,4 @@ class ProjectRemovalTests(unittest.TestCase):
         studio.workspace.project_summaries=unavailable
         studio.restore_deleted_project(entry["id"]); studio.complete()
         self.assertTrue((studio.workspace.projects_dir/"film/storyboard.json").is_file())
-        self.assertEqual(studio.modal_kind,"Prosjektet er gjenopprettet")
+        self.assertEqual(studio.modal_kind,"Project restored")

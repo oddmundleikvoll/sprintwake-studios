@@ -25,14 +25,14 @@ def anchor_error(shot):
         clean_anchors(shot.get('imageAnchors', []), int(shot.get('frames') or 0))
         return ''
     except (ValueError, TypeError):
-        return 'Ugyldige bildeankre — rett eller tøm ankerlisten før lagring/rendering'
+        return 'Invalid image anchors — fix or clear the anchor list before saving/rendering'
 
 
 def frame_index(value, frames):
     if value == 'last' or (type(value) is int and value == -1):
         return frames - 1
     if type(value) is not int or not 0 <= value < frames:
-        raise ValueError(f'Ankerets bildeindeks må være 0–{frames - 1} eller last')
+        raise ValueError(f'Anchor frame index must be 0–{frames - 1} or last')
     return value
 
 
@@ -40,25 +40,25 @@ def clean_anchors(value, frames, *, image_key='ref'):
     """Validate the whole list; never silently discard an invalid anchor."""
     limit = MAX_ANCHORS if image_key == 'ref' else MAX_SCENE_ANCHORS
     if not isinstance(value, list) or len(value) > limit:
-        raise ValueError(f'Oppgi en liste med høyst {limit} bildeankre per klipp')
+        raise ValueError(f'Provide a list with at most {limit} image anchors per shot')
     result, seen = [], set()
     for item in value:
         if not isinstance(item, dict) or image_key not in item:
-            raise ValueError('Hvert bildeanker må ha et bilde, en bildeindeks og en styrke')
+            raise ValueError('Each image anchor must have an image, frame index, and strength')
         image = item[image_key]
         if image_key == 'ref':
             if (not isinstance(image, dict) or image.get('kind') == 'chain'
                     or not isinstance(image.get('path') or image.get('url'), str)):
-                raise ValueError('Velg et lagret bilde for hvert anker')
+                raise ValueError('Choose a saved image for each anchor')
         elif not isinstance(image, (str, Path)) or not str(image):
-            raise ValueError('Ugyldig ankerbilde')
+            raise ValueError('Invalid anchor image')
         frame = frame_index(item.get('frame'), frames)
         strength = item.get('strength')
         if (type(strength) not in (int, float) or not math.isfinite(strength)
                 or not 0 < strength <= 1):
-            raise ValueError('Ankerstyrke må være større enn 0 og høyst 1')
+            raise ValueError('Anchor strength must be greater than 0 and at most 1')
         if frame in seen:
-            raise ValueError(f'Flere bildeankre peker på samme videoramme ({frame})')
+            raise ValueError(f'Multiple image anchors point to the same video frame ({frame})')
         seen.add(frame)
         result.append({image_key: copy.deepcopy(item[image_key]),
                        'frame': 'last' if item['frame'] in ('last', -1) else frame,
@@ -69,21 +69,21 @@ def clean_anchors(value, frames, *, image_key='ref'):
 def image_path(ref, data_dir, *, verify=False):
     """Only local images under the projects tree; no URLs, chains or traversal."""
     if not isinstance(ref, dict) or ref.get('kind') == 'chain':
-        raise ValueError('Velg et lagret bilde for ankeret; kjeding styres med Start-bildet')
+        raise ValueError('Choose a saved image for the anchor; chaining is controlled by the Start image')
     rel = ref.get('path') or ref.get('url') or ''
     if not isinstance(rel, str):
-        raise ValueError('Ugyldig ankerbilde')
+        raise ValueError('Invalid anchor image')
     if rel.startswith('/media/'):
         rel = rel[7:]
     parts = PurePosixPath(rel)
     if not rel or parts.is_absolute() or '..' in parts.parts or ':' in rel or '\\' in rel:
-        raise ValueError('Ankerbildet må ligge i prosjektets mediebibliotek')
+        raise ValueError('Anchor image must be in the project media library')
     root = Path(data_dir).resolve()
     path = (root / rel).resolve()
     if not path.is_relative_to(root) or not path.is_file():
-        raise ValueError('Ankerbildet mangler eller ligger utenfor mediebiblioteket')
+        raise ValueError('Anchor image is missing or outside the media library')
     if path.suffix.lower() not in ('.png', '.jpg', '.jpeg', '.webp', '.bmp'):
-        raise ValueError('Velg et PNG-, JPEG-, WebP- eller BMP-bilde')
+        raise ValueError('Choose a PNG, JPEG, WebP, or BMP image')
     if verify:
         from PIL import Image
         with Image.open(path) as image:

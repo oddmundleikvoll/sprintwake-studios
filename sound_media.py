@@ -37,17 +37,17 @@ def _probe(path):
         result = subprocess.run(command, check=True, capture_output=True, text=True, timeout=30)
         payload = json.loads(result.stdout or "{}")
     except (OSError, subprocess.SubprocessError, ValueError) as exc:
-        raise ValueError("Kunne ikke lese lydmediet.") from exc
+        raise ValueError("Could not read audio media.") from exc
     streams = [stream for stream in (payload.get("streams") or []) if stream.get("codec_type") == "audio"]
     if not streams:
-        raise ValueError("Mediet har ingen lydstrøm.")
+        raise ValueError("Media has no audio stream.")
     duration = streams[0].get("duration") or (payload.get("format") or {}).get("duration")
     try:
         seconds = float(duration)
     except (TypeError, ValueError):
-        raise ValueError("Lydmediet mangler varighet.")
+        raise ValueError("Audio media is missing duration.")
     if not math.isfinite(seconds) or not 0 < seconds <= 86400:
-        raise ValueError("Lydmediet er tomt.")
+        raise ValueError("Audio media is empty.")
     return max(1, round(seconds * 24))
 
 
@@ -57,27 +57,27 @@ def _audio_frames(path):
     try:
         payload = json.loads(subprocess.run(command, check=True, capture_output=True, text=True, timeout=30).stdout or "{}")
     except (OSError, subprocess.SubprocessError, ValueError) as exc:
-        raise ValueError("Kunne ikke lese mediet.") from exc
+        raise ValueError("Could not read media.") from exc
     streams = [stream for stream in (payload.get("streams") or []) if stream.get("codec_type") == "audio"]
     if not streams:
         return None
     duration = streams[0].get("duration") or (payload.get("format") or {}).get("duration")
     try:
         seconds=float(duration)
-        if not math.isfinite(seconds) or not 0<seconds<=86400: raise ValueError("Ugyldig lydvarighet.")
+        if not math.isfinite(seconds) or not 0<seconds<=86400: raise ValueError("Invalid audio duration.")
         return max(1, round(seconds * 24))
     except (TypeError, ValueError):
-        raise ValueError("Lydmediet mangler varighet.")
+        raise ValueError("Audio media is missing duration.")
 
 
 def preserve_audio(store: SoundStore, source):
     source = Path(source).expanduser()
     if source.is_symlink() or not source.is_file():
-        raise ValueError("Lydkilde må være en vanlig fil.")
+        raise ValueError("Audio source must be a regular file.")
     before=_digest(source)
     stored = store.workspace.import_input(store.slug, source)
     if before!=_digest(stored) or before!=_digest(source):
-        raise ValueError("Lydkilden endret seg under import. Prøv igjen.")
+        raise ValueError("Audio source changed during import. Try again.")
     source_frames = _probe(stored)
     relative = str(stored.relative_to(store.project))
     return {"id": uuid.uuid4().hex, "track": "dialogue", "label": source.stem, "path": relative,
@@ -92,11 +92,11 @@ def _frames(cut_doc):
 
 def _safe_media(store, relative):
     if not isinstance(relative, str) or Path(relative).is_absolute() or ".." in Path(relative).parts or not relative.startswith("Input/"):
-        raise ValueError("Utrygg lydreferanse.")
+        raise ValueError("Unsafe audio reference.")
     path = store.project / relative
     store.workspace._assert_managed_path(path)
     if not path.is_file() or path.is_symlink():
-        raise ValueError("Lydreferansen finnes ikke.")
+        raise ValueError("Audio reference does not exist.")
     return path
 
 
@@ -109,7 +109,7 @@ def render_mix(store: SoundStore, doc, cut_doc, *, include_original=True):
     validate_state(state)
     film_frames = _frames(cut_doc)
     if film_frames <= 0:
-        raise ValueError("Kan ikke lage lydmiks for et tomt klipp.")
+        raise ValueError("Cannot create an audio mix for an empty cut.")
     duration = film_frames / 24
     cues = []
     media_hashes = {}
@@ -129,9 +129,9 @@ def render_mix(store: SoundStore, doc, cut_doc, *, include_original=True):
             continue
         path,measured = media(clip["path"])
         if measured is None:
-            raise ValueError("Importert lydklipp har ingen lydstrøm.")
+            raise ValueError("Imported audio clip has no audio stream.")
         if measured + 1 < clip["outFrame"]:
-            raise ValueError("Importert lydklipp er kortere enn lagret trim.")
+            raise ValueError("The imported audio clip is shorter than its saved trim.")
         duration_frames = clip["outFrame"] - clip["inFrame"]
         usable = min(duration_frames, film_frames - clip["atFrame"])
         if usable > 0:
@@ -161,7 +161,7 @@ def render_mix(store: SoundStore, doc, cut_doc, *, include_original=True):
     store.workspace._assert_managed_path(output)
     store.workspace._assert_managed_path(meta)
     if output.exists() and output.is_symlink() or meta.exists() and meta.is_symlink():
-        raise ValueError("Lydcache kan ikke være en symlink.")
+        raise ValueError("Audio cache cannot be a symlink.")
     if output.exists() and meta.exists() and not output.is_symlink() and not meta.is_symlink():
         try:
             cached = json.loads(meta.read_text(encoding="utf-8"))
@@ -171,7 +171,7 @@ def render_mix(store: SoundStore, doc, cut_doc, *, include_original=True):
         except (OSError, ValueError, json.JSONDecodeError):
             pass
     if len(cues) > MAX_CUES:
-        raise ValueError("Lydmiksen har en urealistisk mengde lydkilder.")
+        raise ValueError("The sound mix has too many audio sources.")
     with tempfile.TemporaryDirectory(prefix="raven-sound-", dir=store.project / "System") as temp:
         temporary_output = Path(temp) / "mix.wav"
         previous=None
@@ -207,13 +207,13 @@ def render_mix(store: SoundStore, doc, cut_doc, *, include_original=True):
             command=[_ffmpeg(),"-v","error","-nostdin","-y","-f","lavfi","-i",f"anullsrc=r={SAMPLE_RATE}:cl=stereo","-af",f"atrim=end_sample={film_frames*2000}","-c:a","pcm_s16le",str(temporary_output)]
         _run_mix(command,max(120,duration*2))
         if not temporary_output.is_file() or _wav_frames(temporary_output) != film_frames * 2000:
-            raise ValueError("FFmpeg laget ikke en lydfil med eksakt filmlengde.")
+            raise ValueError("FFmpeg did not produce audio with the exact film duration.")
         for relative,expected_hash in media_hashes.items():
             if _digest(_safe_media(store,relative))!=expected_hash:
-                raise ValueError("Et lydmedium endret seg under miksing. Prøv igjen.")
+                raise ValueError("An audio asset changed during mixing. Try again.")
         store.workspace._assert_managed_path(output)
         if output.exists() and output.is_symlink():
-            raise ValueError("Lydcache kan ikke være en symlink.")
+            raise ValueError("Audio cache cannot be a symlink.")
         os.replace(temporary_output, output)
     metadata = {"key": key, "frames": film_frames, "media": media_hashes, "sha256": _digest(output)}
     _atomic_text(meta, json.dumps(metadata, sort_keys=True) + "\n")
@@ -224,7 +224,7 @@ def _run_mix(command,timeout):
     try:
         subprocess.run(command,check=True,capture_output=True,timeout=timeout,text=True)
     except (OSError,subprocess.SubprocessError) as exc:
-        raise ValueError("FFmpeg kunne ikke lage lydmiksen.") from exc
+        raise ValueError("FFmpeg could not create the audio mix.") from exc
 
 
 def _wav_frames(path):

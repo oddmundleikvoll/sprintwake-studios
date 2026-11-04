@@ -92,9 +92,9 @@ class DirectorAuthoringTests(unittest.TestCase):
         self.assertEqual(result["completed"], 6)
         for payload in backend.chats[2:4]:
             prompt = payload["message"]
-            slots, _ = json.JSONDecoder().raw_decode(prompt.split("Skriv den kreative handlingen selv fra brief og bibel.\n", 1)[1])
+            slots, _ = json.JSONDecoder().raw_decode(prompt[prompt.index("["):])
             self.assertEqual([s["position"] for s in slots], [1, 2, 3])
-            self.assertIn("nøyaktig 3 nye", prompt)
+            self.assertIn("exactly 3 new", prompt)
             self.assertIn("Ada møter lyset", prompt)
         self.assertEqual(len(backend.puts), 3)
 
@@ -118,7 +118,7 @@ class DirectorAuthoringTests(unittest.TestCase):
         with self.assertRaises(ValueError) as raised:
             author_project(backend, self.workspace, "film", "Kort historie", 6,
                            resume_only=True, expected_digest=authoring_digest(backend.board))
-        self.assertIn("endret", str(raised.exception))
+        self.assertIn("changed", str(raised.exception))
         self.assertEqual(len(backend.chats), chat_count)
         self.assertEqual(len(backend.puts), put_count)
 
@@ -197,7 +197,7 @@ class DirectorAuthoringTests(unittest.TestCase):
         result = author_project(backend, self.workspace, "film", "Historie", 1)
         self.assertEqual(result["status"], "failed")
         self.assertEqual(len(backend.puts), 0)
-        self.assertIn("endret", result["error"])
+        self.assertIn("changed", result["error"])
         self.assertEqual(result["board"]["sceneDescription"], "Brukerens endring")
 
     def test_cancellation_returns_actual_partial_board(self):
@@ -256,7 +256,7 @@ class DirectorAuthoringTests(unittest.TestCase):
         self.assertEqual(len(backend.puts), 2)
         self.assertEqual(backend.chats[0]["authoringStage"], "setup")
         self.assertEqual(backend.chats[1]["authoringStage"], "shots")
-        self.assertIn("Den faktiske valideringsfeilen", backend.chats[2]["message"])
+        self.assertIn("actual validation error", backend.chats[2]["message"])
         self.assertIn(brief, backend.chats[2]["message"])
 
     def test_invalid_camera_gets_one_model_correction_without_duplicate_put(self):
@@ -284,10 +284,10 @@ class DirectorAuthoringTests(unittest.TestCase):
         with self.assertRaises(ValueError) as failure:
             _validated_shot_candidate(self.board,{"actions":[first,second]},2)
         text=str(failure.exception)
-        self.assertIn("Klipp 2",text)
-        self.assertIn("fortsettelsesramme",text)
-        self.assertIn("En kontinuerlig kameragruppe",text)
-        self.assertIn("NY directorScene",text)
+        self.assertIn("Shot 2",text)
+        self.assertIn("continuation frame",text)
+        self.assertIn("continuous camera group",text)
+        self.assertIn("NEW directorScene",text)
 
     def test_empty_film_bible_gets_one_setup_correction_then_commits(self):
         bad_setup = {"proposalStatus": "ready", "actions": [
@@ -298,7 +298,7 @@ class DirectorAuthoringTests(unittest.TestCase):
         result = author_project(backend, self.workspace, "film", "En maursoldat", 1)
         self.assertEqual(result["status"], "done")
         self.assertEqual(len(backend.puts), 2)
-        self.assertIn("filmBible-act", backend.chats[1]["message"])
+        self.assertIn("filmBible act", backend.chats[1]["message"])
         self.assertIn("En maursoldat", backend.chats[1]["message"])
 
 

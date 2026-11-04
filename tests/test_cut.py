@@ -43,7 +43,7 @@ class CutTests(unittest.TestCase):
     def test_failed_and_stale_edits_preserve_saved_journal(self):
         doc = self.store.commit(self.doc, move(self.doc["clips"], "a", 1), "Flytt")
         before = self.store.path.read_bytes()
-        with self.assertRaisesRegex(ValueError, "annet vindu"):
+        with self.assertRaisesRegex(ValueError, "another window"):
             self.store.commit(self.doc, trim(self.doc["clips"], "a", 1, 10), "Gammel")
         with self.assertRaises(ValueError):
             self.store.commit(doc, trim(doc["clips"], "a", 120, 121), "Ugyldig")

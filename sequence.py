@@ -23,49 +23,49 @@ def _id(prefix: str) -> str:
     return f"{prefix}-{uuid.uuid4().hex[:12]}"
 
 
-def _frames(value, *, name="rammetall"):
+def _frames(value, *, name="frame count"):
     if type(value) is not int or value < 0 or value > 86400 * 24:
-        raise ValueError(f"Ugyldige {name}.")
+        raise ValueError(f"Invalid {name}.")
     return value
 
 
 def _title(value):
     if not isinstance(value, str) or not value.strip() or len(value) > 300:
-        raise ValueError("Ugyldig gruppetittel.")
+        raise ValueError("Invalid group title.")
     return value.strip()
 
 
 def validate_state(state):
     if not isinstance(state, dict) or set(state) != {"targetFrames", "sequences"}:
-        raise ValueError("Ugyldig sekvensstruktur.")
-    _frames(state["targetFrames"], name="målrammer")
+        raise ValueError("Invalid sequence structure.")
+    _frames(state["targetFrames"], name="target frames")
     sequences = state["sequences"]
     if not isinstance(sequences, list) or len(sequences) > MAX_GROUPS:
-        raise ValueError("For mange sekvenser.")
+        raise ValueError("Too many sequences.")
     ids, shots = set(), set()
     for sequence in sequences:
         if not isinstance(sequence, dict) or set(sequence) != {"id", "title", "targetFrames", "scenes"}:
-            raise ValueError("Ugyldig sekvens.")
+            raise ValueError("Invalid sequence.")
         if not isinstance(sequence["id"], str) or not sequence["id"] or sequence["id"] in ids:
-            raise ValueError("Duplisert eller ugyldig sekvens-ID.")
+            raise ValueError("Duplicate or invalid sequence ID.")
         ids.add(sequence["id"])
-        _title(sequence["title"]); _frames(sequence["targetFrames"], name="målrammer")
+        _title(sequence["title"]); _frames(sequence["targetFrames"], name="target frames")
         scenes = sequence["scenes"]
         if not isinstance(scenes, list) or len(scenes) > MAX_GROUPS:
-            raise ValueError("For mange scener.")
+            raise ValueError("Too many scenes.")
         for scene in scenes:
             if not isinstance(scene, dict) or set(scene) != {"id", "title", "targetFrames", "shotIds"}:
-                raise ValueError("Ugyldig scene.")
+                raise ValueError("Invalid scene.")
             if not isinstance(scene["id"], str) or not scene["id"] or scene["id"] in ids:
-                raise ValueError("Duplisert eller ugyldig scene-ID.")
+                raise ValueError("Duplicate or invalid scene ID.")
             ids.add(scene["id"])
-            _title(scene["title"]); _frames(scene["targetFrames"], name="målrammer")
+            _title(scene["title"]); _frames(scene["targetFrames"], name="target frames")
             shot_ids = scene["shotIds"]
             if not isinstance(shot_ids, list) or len(shot_ids) > MAX_SHOTS:
-                raise ValueError("For mange klipp i scenen.")
+                raise ValueError("Too many shots in scene.")
             for shot_id in shot_ids:
                 if not isinstance(shot_id, str) or not shot_id or shot_id in shots:
-                    raise ValueError("Klipp kan bare tildeles én scene.")
+                    raise ValueError("A shot can only be assigned to one scene.")
                 shots.add(shot_id)
     return state
 
@@ -84,16 +84,16 @@ def _find(state, kind, ident):
             for scene in sequence["scenes"]:
                 if scene["id"] == ident:
                     return scene, sequence
-    raise ValueError("Fant ikke gruppen.")
+    raise ValueError("Group not found.")
 
 
-def add_sequence(state, title="Ny sekvens"):
+def add_sequence(state, title="New sequence"):
     validate_state(state); result = copy.deepcopy(state)
     result["sequences"].append({"id": _id("sequence"), "title": _title(title), "targetFrames": 0, "scenes": []})
     validate_state(result); return result
 
 
-def add_scene(state, sequence_id, title="Ny scene"):
+def add_scene(state, sequence_id, title="New scene"):
     validate_state(state); result = copy.deepcopy(state)
     sequence, _ = _find(result, "sequence", sequence_id)
     sequence["scenes"].append({"id": _id("scene"), "title": _title(title), "targetFrames": 0, "shotIds": []})
@@ -103,19 +103,19 @@ def add_scene(state, sequence_id, title="Ny scene"):
 def edit_group(state, kind, ident, *, title=None, targetFrames=None):
     validate_state(state); result = copy.deepcopy(state)
     if kind == "film":
-        if title is not None: raise ValueError("Filmen har ingen tittel her.")
-        if targetFrames is not None: result["targetFrames"] = _frames(targetFrames, name="målrammer")
+        if title is not None: raise ValueError("The film has no title here.")
+        if targetFrames is not None: result["targetFrames"] = _frames(targetFrames, name="target frames")
     else:
         group, _ = _find(result, kind, ident)
         if title is not None: group["title"] = _title(title)
-        if targetFrames is not None: group["targetFrames"] = _frames(targetFrames, name="målrammer")
+        if targetFrames is not None: group["targetFrames"] = _frames(targetFrames, name="target frames")
     validate_state(result); return result
 
 
 def assign_shots(state, scene_id, shot_ids):
     validate_state(state)
     if not isinstance(shot_ids, list) or any(not isinstance(s, str) or not s for s in shot_ids):
-        raise ValueError("Ugyldige klipp-ID-er.")
+        raise ValueError("Invalid shot IDs.")
     result = copy.deepcopy(state); target, _ = _find(result, "scene", scene_id)
     wanted, seen = [], set()
     for shot_id in shot_ids:
@@ -129,14 +129,14 @@ def assign_shots(state, scene_id, shot_ids):
 
 def move_group(state, kind, ident, delta):
     validate_state(state)
-    if type(delta) is not int: raise ValueError("Ugyldig flytting.")
+    if type(delta) is not int: raise ValueError("Invalid move.")
     result = copy.deepcopy(state)
     if kind == "sequence":
         groups, index = result["sequences"], next((i for i, x in enumerate(result["sequences"]) if x["id"] == ident), None)
     elif kind == "scene":
         owner = _find(result, "scene", ident)[1]; groups, index = owner["scenes"], next(i for i, x in enumerate(owner["scenes"]) if x["id"] == ident)
-    else: raise ValueError("Kan bare flytte sekvenser eller scener.")
-    if index is None: raise ValueError("Fant ikke gruppen.")
+    else: raise ValueError("Only sequences or scenes can be moved.")
+    if index is None: raise ValueError("Group not found.")
     item = groups.pop(index); groups.insert(max(0, min(len(groups), index + delta)), item)
     return result
 
@@ -148,16 +148,16 @@ def remove_group(state, kind, ident):
     elif kind == "scene":
         owner = _find(result, "scene", ident)[1]
         owner["scenes"] = [s for s in owner["scenes"] if s["id"] != ident]
-    else: raise ValueError("Filmen kan ikke slettes.")
+    else: raise ValueError("Film cannot be deleted.")
     validate_state(result); return result
 
 
 def _clip_map(cut_clips):
-    if not isinstance(cut_clips, list): raise ValueError("Ugyldig klippelag.")
+    if not isinstance(cut_clips, list): raise ValueError("Invalid cut layer.")
     result = {}
     for clip in cut_clips:
-        if not isinstance(clip, dict) or not isinstance(clip.get("shotId"), str): raise ValueError("Ugyldig klippelag.")
-        if clip["shotId"] in result: raise ValueError("Duplisert klipp-ID.")
+        if not isinstance(clip, dict) or not isinstance(clip.get("shotId"), str): raise ValueError("Invalid cut layer.")
+        if clip["shotId"] in result: raise ValueError("Duplicate shot ID.")
         result[clip["shotId"]] = clip
     return result
 
@@ -211,22 +211,22 @@ class SequenceStore:
     def load(self):
         self.workspace._assert_managed_path(self.path)
         if not self.path.exists(): return self._empty_doc()
-        if self.path.stat().st_size > 16_000_000: raise ValueError("Sekvensstrukturen er for stor.")
+        if self.path.stat().st_size > 16_000_000: raise ValueError("Sequence structure is too large.")
         doc = json.loads(self.path.read_text())
-        if not isinstance(doc, dict) or not set(doc).issubset({"format", "version", "revision", "state", "undo", "redo", "knownShotIds"}) or not {"format", "version", "revision", "state", "undo", "redo"}.issubset(doc) or doc["format"] != "raven-structure" or doc["version"] != 1 or type(doc["revision"]) is not int or doc["revision"] < 0: raise ValueError("Ukjent sekvensformat.")
+        if not isinstance(doc, dict) or not set(doc).issubset({"format", "version", "revision", "state", "undo", "redo", "knownShotIds"}) or not {"format", "version", "revision", "state", "undo", "redo"}.issubset(doc) or doc["format"] != "raven-structure" or doc["version"] != 1 or type(doc["revision"]) is not int or doc["revision"] < 0: raise ValueError("Unknown sequence format.")
         known = doc.setdefault("knownShotIds", [])
-        if not isinstance(known, list) or any(not isinstance(s, str) or not s for s in known) or len(set(known)) != len(known): raise ValueError("Ugyldig kjent klippregister.")
+        if not isinstance(known, list) or any(not isinstance(s, str) or not s for s in known) or len(set(known)) != len(known): raise ValueError("Invalid known-shot register.")
         validate_state(doc["state"])
         for key in ("undo", "redo"):
-            if not isinstance(doc[key], list) or len(doc[key]) > HISTORY_LIMIT: raise ValueError("Ugyldig sekvenshistorikk.")
+            if not isinstance(doc[key], list) or len(doc[key]) > HISTORY_LIMIT: raise ValueError("Invalid sequence history.")
             for item in doc[key]:
-                if not isinstance(item, dict) or set(item) != {"label", "state"} or not isinstance(item["label"], str): raise ValueError("Ugyldig sekvenshistorikk.")
+                if not isinstance(item, dict) or set(item) != {"label", "state"} or not isinstance(item["label"], str): raise ValueError("Invalid sequence history.")
                 validate_state(item["state"])
         return doc
 
     def _write(self, doc):
         body=json.dumps(doc, ensure_ascii=False, indent=2, allow_nan=False) + "\n"
-        if len(body.encode())>16_000_000: raise ValueError("Sekvensstrukturen og historikken er for store til å lagres.")
+        if len(body.encode())>16_000_000: raise ValueError("Sequence structure and history are too large to save.")
         return _atomic_text(self.path, body) or doc
 
     def initialize(self, board, cut_clips):
@@ -237,7 +237,7 @@ class SequenceStore:
             known = set(doc.get("knownShotIds", []))
             incoming = list(dict.fromkeys(sid for sid in ids if sid not in known))
             if not state["sequences"] and not existed:
-                sequence = {"id": _id("sequence"), "title": "Filmen", "targetFrames": 0, "scenes": []}
+                sequence = {"id": _id("sequence"), "title": "The film", "targetFrames": 0, "scenes": []}
                 last, scene = object(), None
                 shots = {s.get("id"): s for s in (board.get("shots") or []) if isinstance(s, dict)}
                 for sid in ids:
@@ -248,14 +248,14 @@ class SequenceStore:
                 state["sequences"] = [sequence]
             else:
                 if not state["sequences"] and incoming:
-                    state["sequences"] = [{"id": _id("sequence"), "title": "Filmen", "targetFrames": 0, "scenes": []}]
+                    state["sequences"] = [{"id": _id("sequence"), "title": "The film", "targetFrames": 0, "scenes": []}]
                 if not state["sequences"]: incoming = []
                 sequence = state["sequences"][0] if state["sequences"] else None
-                unassigned = next((s for s in sequence["scenes"] if s["title"] == "Ufordelt"), None) if sequence else None
+                unassigned = next((s for s in sequence["scenes"] if s["title"] == "Unassigned"), None) if sequence else None
                 new = incoming
                 if new:
                     if unassigned is None:
-                        unassigned = {"id": _id("scene"), "title": "Ufordelt", "targetFrames": 0, "shotIds": []}; sequence["scenes"].append(unassigned)
+                        unassigned = {"id": _id("scene"), "title": "Unassigned", "targetFrames": 0, "shotIds": []}; sequence["scenes"].append(unassigned)
                     unassigned["shotIds"].extend(dict.fromkeys(new))
             # The register is durable, so an intentionally unassigned card is
             # not mistaken for a new card on the next open.  Historical states
@@ -265,11 +265,11 @@ class SequenceStore:
                 hstate = historical["state"]
                 if incoming:
                     if not hstate["sequences"]:
-                        hstate["sequences"] = [{"id": _id("sequence"), "title": "Filmen", "targetFrames": 0, "scenes": []}]
+                        hstate["sequences"] = [{"id": _id("sequence"), "title": "The film", "targetFrames": 0, "scenes": []}]
                     hseq = hstate["sequences"][0]
-                    hscene = next((s for s in hseq["scenes"] if s["title"] == "Ufordelt"), None)
+                    hscene = next((s for s in hseq["scenes"] if s["title"] == "Unassigned"), None)
                     if hscene is None:
-                        hscene = {"id": _id("scene"), "title": "Ufordelt", "targetFrames": 0, "shotIds": []}; hseq["scenes"].append(hscene)
+                        hscene = {"id": _id("scene"), "title": "Unassigned", "targetFrames": 0, "shotIds": []}; hseq["scenes"].append(hscene)
                     assigned = {sid for hs in hstate["sequences"] for hg in hs["scenes"] for sid in hg["shotIds"]}
                     hscene["shotIds"].extend(sid for sid in incoming if sid not in assigned)
                 validate_state(hstate)
@@ -280,10 +280,10 @@ class SequenceStore:
 
     def commit(self, doc, state, label):
         validate_state(state)
-        if not isinstance(label, str) or len(label) > 300: raise ValueError("Ugyldig historikketikett.")
+        if not isinstance(label, str) or len(label) > 300: raise ValueError("Invalid history label.")
         with self.locked():
             actual = self.load()
-            if actual["revision"] != doc["revision"]: raise ValueError("Sekvensstrukturen er endret i et annet vindu.")
+            if actual["revision"] != doc["revision"]: raise ValueError("Sequence structure changed in another window.")
             if state == actual["state"]: return actual
             actual["undo"] = (actual["undo"] + [{"label": label, "state": actual["state"]}])[-HISTORY_LIMIT:]
             actual.update(state=copy.deepcopy(state), redo=[], revision=actual["revision"] + 1); self._write(actual); return actual
@@ -291,7 +291,7 @@ class SequenceStore:
     def history(self, doc, redo=False):
         with self.locked():
             actual = self.load()
-            if actual["revision"] != doc["revision"]: raise ValueError("Sekvensstrukturen er endret i et annet vindu.")
+            if actual["revision"] != doc["revision"]: raise ValueError("Sequence structure changed in another window.")
             source, dest = ("redo", "undo") if redo else ("undo", "redo")
             if not actual[source]: return actual
             state = actual[source].pop(); actual[dest] = (actual[dest] + [{"label": state["label"], "state": actual["state"]}])[-HISTORY_LIMIT:]

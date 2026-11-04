@@ -45,7 +45,7 @@ def run(studio,pump,wait,check):
         check(not studio.text('creation.title') and not studio.text('creation.prompt'),f'{kind} entrance begins with optional empty fields')
         click_open()
         wait(lambda:studio.mode==destination and not studio.opening and 'creation' not in studio.pending,f'Empty {kind} studio opens through actual native button')
-        check(studio.board['name']==('Nytt bilde' if kind=='image' else 'Nytt klipp') and not studio.board['sceneDescription'],f'{kind} studio opens without a name or description')
+        check(studio.board['name']==('New image' if kind=='image' else 'New clip') and not studio.board['sceneDescription'],f'{kind} studio opens without a name or description')
         check(not studio._busy() and 'image.generate' not in studio.pending and 'clip.generate' not in studio.pending,f'Opening empty {kind} studio never generates media')
         studio.on_action(None,'page.home',None);pump(.1)
     enter('image')

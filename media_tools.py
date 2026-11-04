@@ -13,4 +13,4 @@ def executable(name):
     candidates += [Path('/opt/homebrew/bin')/name,Path('/usr/local/bin')/name]
     for candidate in candidates:
         if candidate.is_file() and os.access(candidate,os.X_OK):return str(candidate)
-    raise ValueError(name+' mangler. Installer FFmpeg eller angi RAVEN_'+name.upper()+'.')
+    raise ValueError(name+' is missing. Install FFmpeg or set RAVEN_'+name.upper()+'.')

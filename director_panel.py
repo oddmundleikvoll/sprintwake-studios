@@ -13,7 +13,7 @@ class DirectorAuthoringMixin:
         if not self.board:
             self.show_new_project(); return
         if "chat" in self.pending or "director.author" in self.pending:
-            raise ValueError("Regissøren arbeider allerede. Vent til svaret er klart.")
+            raise ValueError("The director is already working. Wait for the response to finish.")
         brief = self.board.get("sceneDescription") or next((turn.get("content", "") for turn in reversed(self.history) if turn.get("role") == "user"), "")
         count = 12
         checkpoint = self.workspace.ensure_project(self.slug) / "System" / "director-authoring.json"
@@ -23,10 +23,10 @@ class DirectorAuthoringMixin:
                 brief, count = previous["brief"], previous["total"]
         except (OSError, ValueError, KeyError):
             pass
-        body = v.field("author.brief", "Hva skal filmen handle om?", brief, height=170)
-        body += v.field("author.count", "Antall nye klipp i utkastet · 1 til 48", str(count), height=36, multiline=False)
-        body += v.label("Regissøren oppretter filmidé, scener, filmbibel og klipp direkte i dette prosjektet. Hver del lagres fortløpende og kan redigeres etterpå. Bilder er neste steg.",13,True)
-        self.show_modal("Lag manus og klipp", body, "director.author.start", "Lag og lagre manus")
+        body = v.field("author.brief", "What should the film be about?", brief, height=170)
+        body += v.field("author.count", "New shots in draft · 1 to 48", str(count), height=36, multiline=False)
+        body += v.label("The director creates the film idea, scenes, film bible, and shots directly in this project. Each part is saved as it is created and can be edited afterward. Images are next.",13,True)
+        self.show_modal("Create script and shots", body, "director.author.start", "Create and save script")
 
     def start_authoring(self):
         if getattr(self, "author_starting", False) or "director.author" in self.pending:
@@ -34,9 +34,9 @@ class DirectorAuthoringMixin:
         brief = self.text("author.brief").strip()
         count = int(self.text("author.count"))
         if not brief or not 1 <= count <= 48:
-            raise ValueError("Skriv en filmidé og velg mellom 1 og 48 klipp.")
+            raise ValueError("Write a film idea and choose between 1 and 48 shots.")
         if self._busy() or "chat" in self.pending:
-            raise ValueError("Vent til pågående arbeid er ferdig før regissøren skriver manuset.")
+            raise ValueError("Wait for the current work to finish before the director writes the script.")
         self.author_starting = True
         self.author_cancel = threading.Event()
         def launch():
@@ -45,13 +45,13 @@ class DirectorAuthoringMixin:
                 return
             slug, epoch = self.slug, self.epoch
             digest = authoring_digest(self.board)
-            body = v.label("Regissøren skriver og lagrer prosjektet.",20)
-            body += '<Label Name="author.progress" Text="Forbereder manus…" Wrap="true"/>'
-            body += v.label(f"Mål: {count} klipp. Et avbrudd beholder det som allerede er lagret.",13,True)
-            self.show_modal("Regissøren lager manus",body,"director.author.cancel","Stopp manusarbeidet",allow_close=False)
+            body = v.label("The director is writing and saving the project.",20)
+            body += '<Label Name="author.progress" Text="Preparing script…" Wrap="true"/>'
+            body += v.label(f"Target: {count} shots. Stopping preserves everything already saved.",13,True)
+            self.show_modal("The director is writing the script",body,"director.author.cancel","Stop script work",allow_close=False)
             def progress(event):
                 def show(data):
-                    text = f"{data.get('completed',0)} av {data.get('total',count)} klipp lagret · {data.get('detail','Arbeider…')}"
+                    text = f"{data.get('completed',0)} of {data.get('total',count)} shots saved · {data.get('detail','Working…')}"
                     self.set_label("author.progress",text)
                     self.toast(text)
                 self.completions.put(("director.author.progress",epoch,show,event,None))
@@ -79,4 +79,4 @@ class DirectorAuthoringMixin:
         event = getattr(self,"author_cancel",None)
         if event:
             event.set()
-            self.set_label("author.progress","Stopper etter gjeldende regissørsvar. Allerede lagrede deler beholdes.")
+            self.set_label("author.progress","Stopping after the current director response. Already saved parts are preserved.")

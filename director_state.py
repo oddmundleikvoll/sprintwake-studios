@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import copy
 
-INCOMPLETE_MESSAGE = "Regissørsvaret ble avbrutt. Ingen manusendringer eller klipp ble opprettet fra dette svaret. Be om en mindre del, med opptil seks klipp om gangen."
-REJECTED_MESSAGE = "Forslaget kunne ikke brukes. Ingen endringer er lagt i prosjektet."
+INCOMPLETE_MESSAGE = "The director response was interrupted. No script changes or shots were created from this response. Request a smaller batch, with up to six shots at a time."
+REJECTED_MESSAGE = "The proposal could not be used. No changes were applied to the project."
 
 
 def normalize_turn(turn):
@@ -32,24 +32,24 @@ def normalize_turn(turn):
 
 
 def response_turn(response, source):
-    return normalize_turn({"role": "assistant", "content": response.get("message") or response.get("reply") or "Regissøren svarte uten tekst.", "actions": response.get("actions", []), "proposalStatus": response.get("proposalStatus"), "source": source,"errors":response.get("errors",[]),"traceId":response.get("traceId"),"attempts":response.get("attempts"),"repaired":response.get("repaired",False),"traceWriteError":response.get("traceWriteError")})
+    return normalize_turn({"role": "assistant", "content": response.get("message") or response.get("reply") or "The director returned no text.", "actions": response.get("actions", []), "proposalStatus": response.get("proposalStatus"), "source": source,"errors":response.get("errors",[]),"traceId":response.get("traceId"),"attempts":response.get("attempts"),"repaired":response.get("repaired",False),"traceWriteError":response.get("traceWriteError")})
 
 
 def proposal_summary(actions):
     count = sum(a.get("tool") == "add_shot" for a in actions if isinstance(a, dict))
-    return f"Forslag · {count} nye klipp · ikke lagret ennå" if count else f"Forslag · {len(actions)} endringer · ikke lagret ennå"
+    return f"Proposal · {count} new shots · not saved yet" if count else f"Proposal · {len(actions)} changes · not saved yet"
 
 
 def authoring_turn(result):
     completed, total = result.get("completed", 0), result.get("total", 0)
     saved = bool(completed or result.get("setupDone"))
     if result.get("status") == "done":
-        content = f"Manuset er opprettet og lagret i prosjektet: {completed} nye klipp med filmidé og filmbibel. Du kan lese og redigere dem i Manus og Storyboard."
+        content = f"Script created and saved in the project: {completed} new shots with film idea and film bible. You can read and edit them in Script and Storyboard."
     else:
-        content = f"Manusarbeidet stoppet. {completed} av {total} nye klipp er lagret. "
+        content = f"Script work stopped. {completed} of {total} new shots are saved. "
         if result.get("setupDone"):
-            content += "Filmideen og filmbibelen er lagret. "
-        content += result.get("error", "Du kan fortsette senere.")
+            content += "Film idea and film bible are saved. "
+        content += result.get("error", "You can continue later.")
     return {"role":"assistant", "content":content, "actions":[], "applied":saved,
             "proposalStatus":"applied" if saved else "rejected", "authoringStatus":result.get("status")}
 

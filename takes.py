@@ -37,7 +37,7 @@ class TakePanelMixin:
             return False
         epoch = getattr(self, "epoch", 0)
         self._take_context = (slug, shot_id, epoch)
-        self.show_modal("Opptakshistorikk", v.label("Henter beholdte takes…", 13, True))
+        self.show_modal("Take history", v.label("Loading preserved takes…", 13, True))
 
         def operation():
             return self.backend.get(f"/api/boards/{quote(slug)}/shots/{quote(shot_id)}/seed-takes")
@@ -55,21 +55,21 @@ class TakePanelMixin:
         takes = getattr(self, "_seed_takes", [])
         if not takes:
             selected = getattr(getattr(self, "shot", None), "take", None)
-            selected_text = "Det valgte opptaket beholdes som det er." if selected else "Klippet har ikke et valgt opptak ennå."
-            body = v.label("Ingen beholdte seed-takes", 17) + v.label(selected_text, 13, True)
-            body += v.label("Seed-historikk vises her etter at en sammenligningsrunde er kjørt. Åpne historikken starter ikke en ny jobb.", 12, True)
-            self.show_modal("Opptakshistorikk", body, "modal.close", "Lukk")
+            selected_text = "The selected take remains unchanged." if selected else "The shot does not have a selected take yet."
+            body = v.label("No preserved seed takes", 17) + v.label(selected_text, 13, True)
+            body += v.label("Seed history appears here after a comparison run. Opening history does not start a new job.", 12, True)
+            self.show_modal("Take history", body, "modal.close", "Close")
             return
         cards = []
         for index, take in enumerate(takes):
             seed = take.get("seed", "?")
             status = take.get("status") or "ukjent"
-            current = " · samsvarer med scenen" if take.get("current") else " · eldre scenerevisjon"
-            recipe = f"Seed {seed} · {status}{current} · oppskrift: {take.get('recipe') or 'bevart serveroppskrift'}"
+            current = " · matches scene" if take.get("current") else " · older scene revision"
+            recipe = f"Seed {seed} · {status}{current} · oppskrift: {take.get('recipe') or 'preserved server recipe'}"
             if take.get("runtimeSeconds") is not None:
                 recipe += f" · {take['runtimeSeconds']} s"
-            cards.append(v.button(f"Vis take {seed}", f"take.preview.{index}") + v.label(recipe, 12, True) + v.button("Bruk dette opptaket", f"take.adopt.{index}"))
-        self.show_modal("Opptakshistorikk", "<VBox Spacing=\"14\">" + "".join(cards) + "</VBox>", "modal.close", "Lukk")
+            cards.append(v.button(f"View take {seed}", f"take.preview.{index}") + v.label(recipe, 12, True) + v.button("Use this take", f"take.adopt.{index}"))
+        self.show_modal("Take history", "<VBox Spacing=\"14\">" + "".join(cards) + "</VBox>", "modal.close", "Close")
 
     def preview_seed_take(self, index: int):
         takes = getattr(self, "_seed_takes", [])
@@ -78,13 +78,13 @@ class TakePanelMixin:
         take = takes[index]
         ref = take.get("clipUrl") or take.get("thumbUrl")
         if not ref:
-            self.toast("Dette opptaket har ingen forhåndsvisning.", True)
+            self.toast("This take has no preview.", True)
             return False
         local = self.workspace.local_media(ref) if hasattr(self, "workspace") else None
         if local and hasattr(self, "preview"):
             self.preview(Path(local), f"Seed {take.get('seed', '?')}")
         elif hasattr(self, "toast"):
-            self.toast("Forhåndsvisningen mangler lokalt.", True)
+            self.toast("The preview is missing locally.", True)
         return True
 
     def adopt_seed_take(self, index: int):
@@ -92,12 +92,12 @@ class TakePanelMixin:
         if not 0 <= index < len(takes):
             return False
         if getattr(self, "_busy", lambda: False)():
-            self.toast("Vent til aktiv produksjon er ferdig før du velger et opptak.", True)
+            self.toast("Wait for active production to finish before choosing a take.", True)
             return False
         slug, shot_id = str(getattr(self, "slug", "")), self._take_shot_id()
         seed = takes[index].get("seed")
         if not slug or not shot_id or not isinstance(seed, int):
-            self.toast("Opptaket kan ikke velges lenger.", True)
+            self.toast("This take can no longer be selected.", True)
             return False
         context = (slug, shot_id, getattr(self, "epoch", 0))
 
@@ -113,7 +113,7 @@ class TakePanelMixin:
                 self.modal_close()
                 self.refresh_view()
                 self.poll_deadline = 0
-                self.toast(f"Seed {seed} er valgt som opptak.")
+                self.toast(f"Seed {seed} selected as the take.")
 
             self.submit("take.adopt", operation, done)
 

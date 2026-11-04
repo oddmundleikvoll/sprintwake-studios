@@ -59,6 +59,15 @@ class ConversationStoreTests(unittest.TestCase):
         self.assertEqual(self.store.load(second["id"])["messages"], [])
         self.assertEqual(len(self.store.list()), 2)
 
+    def test_english_and_legacy_defaults_adopt_the_untranslated_first_message(self):
+        for title in ("New conversation", "Ny samtale"):
+            with self.subTest(title=title):
+                session = self.store.create("film", title)
+                session["messages"] = [{"role": "user", "content": "Planlegg en åpningsscene"}]
+                saved = self.store.save(session)
+                self.assertEqual(saved["title"], "Planlegg en åpningsscene")
+                self.assertEqual(saved["messages"], session["messages"])
+
     def test_legacy_import_is_idempotent_and_preserves_original(self):
         legacy = self.workspace.ensure_project("legacy-film") / "System" / "conversation.json"
         original = [{"role": "user", "content": "Lag en åpningsscene"}, {"role": "assistant", "content": "Klart."}]

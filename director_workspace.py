@@ -21,21 +21,21 @@ import views as v
 
 
 LABELS = {
-    "create_project":"Opprett prosjekt", "open_project":"Åpne prosjekt", "rename_project":"Endre prosjektnavn",
-    "archive_project":"Arkiver prosjekt", "edit_project":"Oppdater filmidé og innstillinger", "edit_bible":"Oppdater filmbibel",
-    "add_character":"Legg til karakter", "update_character":"Oppdater karakter", "add_shot":"Legg til klipp",
-    "edit_shot":"Oppdater klipp", "write_manuscript":"Lag og lagre manus", "list_library":"Se biblioteket",
-    "adopt_library_image":"Hent bilde til prosjektet", "generate_image":"Lag bilde", "stop_image":"Stopp bildejobben",
-    "assign_image":"Bruk bildet", "publish_image":"Publiser bildet", "list_seed_takes":"Se opptakshistorikk",
-    "adopt_seed_take":"Velg opptak", "render_seed_takes":"Lag opptaksvarianter", "refine_shot":"Forbedre opptaket",
-    "prepare_dialogue":"Forbered dialog", "dub_dialogue":"Lag dialogopptak", "generate_soundtrack":"Lag musikk",
-    "prepare_film":"Lag bildeplan", "resume_film":"Fortsett produksjonen", "stop_film":"Stopp filmjobben",
-    "set_film_anchor":"Endre videreføringsanker", "set_shot_anchors":"Oppdater bildeankre", "assemble":"Sett sammen filmen",
-    "export_project":"Eksporter prosjekt", "review_clip":"Se opptaket", "rewrite_text":"Oppdater tekst",
-    "reveal":"Vis i Finder", "open_panel":"Åpne arbeidsflate", "status":"Les produksjonsstatus",
-    "review_production":"Gjennomgå produksjonen",
-    "inspect_cut":"Les klippelaget", "inspect_coverage":"Les romkartet",
-    "inspect_structure":"Les sekvenser og spilletid", "inspect_sound":"Les lydsporene",
+    "create_project":"Create project", "open_project":"Open project", "rename_project":"Rename project",
+    "archive_project":"Archive project", "edit_project":"Update film idea and settings", "edit_bible":"Update film bible",
+    "add_character":"Add character", "update_character":"Update character", "add_shot":"Add shot",
+    "edit_shot":"Update shot", "write_manuscript":"Create and save script", "list_library":"Browse library",
+    "adopt_library_image":"Copy image into project", "generate_image":"Create image", "stop_image":"Stop image job",
+    "assign_image":"Use image", "publish_image":"Publish image", "list_seed_takes":"View take history",
+    "adopt_seed_take":"Choose take", "render_seed_takes":"Create take variants", "refine_shot":"Refine take",
+    "prepare_dialogue":"Prepare dialogue", "dub_dialogue":"Create dialogue take", "generate_soundtrack":"Create music",
+    "prepare_film":"Prepare storyboard", "resume_film":"Resume production", "stop_film":"Stop film job",
+    "set_film_anchor":"Change continuation anchor", "set_shot_anchors":"Update image anchors", "assemble":"Assemble film",
+    "export_project":"Export project", "review_clip":"Review take", "rewrite_text":"Update text",
+    "reveal":"Show in Finder", "open_panel":"Open workspace", "status":"Read production status",
+    "review_production":"Review production",
+    "inspect_cut":"Inspect cut", "inspect_coverage":"Inspect room plan",
+    "inspect_structure":"Inspect structure and runtime", "inspect_sound":"Inspect sound tracks",
 }
 
 
@@ -124,25 +124,25 @@ class DirectorWorkspaceMixin:
         self.restore_composer()
         self._remember_conversation()
         self.render_conversation()
-        self.set_label("director.status","Klar når du er.")
+        self.set_label("director.status","Ready when you are.")
 
     def _free_project(self):
         self.epoch += 1
         self.player.close(); self.active_video=""; self.playing=False
         self.slug=""; self.board=None; self.images=[]; self.image_refs=[]; self.catalogue=[]
         self.selected_image=None; self.film_context={}; self.image_state={}; self.gate_key=None
-        self.project=Project("empty","Raven Studio","Begynn med regissøren",[])
+        self.project=Project("empty","Raven Studio","Begin with the director",[])
         self.projects=[self.project]; self.index=0; self.dirty=False
         self.populate_project()
 
     def activate_conversation(self, identifier):
         if self.director_starting or "director.execute" in self.pending or "director.author" in self.pending:
-            self.toast("La den aktive handlingen fullføre før du bytter samtale."); return
+            self.toast("Let the active action finish before switching conversations."); return
         if self.dirty:
             self.save(after=lambda:self.activate_conversation(identifier)); return
         self.capture_session_draft()
         session=self.conversations.load(identifier)
-        if session.get("archived"): raise ValueError("Samtalen er arkivert.")
+        if session.get("archived"): raise ValueError("Conversation is archived.")
         if session.get("unread"):
             session["unread"]=False
             self.conversations.save(session)
@@ -159,7 +159,7 @@ class DirectorWorkspaceMixin:
         else:
             if not target and self.slug: self._free_project()
             self.mode_set("director")
-        self.set_label("director.status","Regissøren arbeider i en annen samtale." if "chat" in self.pending and self.chat_origin != identifier else "Klar når du er.")
+        self.set_label("director.status","The director is working in another conversation." if "chat" in self.pending and self.chat_origin != identifier else "Ready when you are.")
 
     def new_conversation(self, general=False):
         self.capture_session_draft()
@@ -179,16 +179,16 @@ class DirectorWorkspaceMixin:
     def rename_conversation(self, apply=False):
         if apply:
             title=self.text("conversation.title").strip()
-            if not title: raise ValueError("Samtalen trenger et navn.")
+            if not title: raise ValueError("Conversation needs a name.")
             self.current_conversation["title"]=title[:80]
             self.persist_conversation(); self.modal_close(); self.render_conversation()
         else:
-            self.show_modal("Gi samtalen et navn",v.field("conversation.title","Navn",self.current_conversation.get("title",""),36,multiline=False),"conversation.rename.save","Lagre navn")
+            self.show_modal("Name conversation",v.field("conversation.title","Name",self.current_conversation.get("title",""),36,multiline=False),"conversation.rename.save","Save name")
 
     def archive_conversation(self):
         identifier=self.current_conversation["id"]
         if self.chat_origin==identifier and ("chat" in self.pending or self.chat_starting):
-            raise ValueError("Vent til regissøren har svart før du arkiverer samtalen.")
+            raise ValueError("Wait for the director to respond before archiving the conversation.")
         self.capture_session_draft()
         self.conversations.archive(identifier)
         remaining=self.conversations.list()
@@ -199,7 +199,7 @@ class DirectorWorkspaceMixin:
         self.conversation_updating=True
         box=self.find("conversation.project")
         r.Rcombo_box_clear_items(box)
-        r.Rcombo_box_add_item(box,"Fri idé / nytt prosjekt")
+        r.Rcombo_box_add_item(box,"Free idea / new project")
         target=self.current_conversation.get("projectSlug")
         selected=0
         for i,item in enumerate(self.summaries,1):
@@ -213,11 +213,11 @@ class DirectorWorkspaceMixin:
             active=item["id"] == self.current_conversation["id"]
             title=item["title"]
             if item.get("unread") or (self.chat_origin == item["id"] and "chat" in self.pending): title="• "+title
-            detail=names.get(item.get("projectSlug"),"Fri idé")
+            detail=names.get(item.get("projectSlug"),"Free idea")
             cards.append(f'<Button Class="nav{" nav-active" if active else ""}" OnClicked="conversation.open.{item["id"]}" Metric.PaddingX="10" Metric.PaddingY="12"><VBox HitTestable="false" Spacing="7">{v.label(title,13)}{v.label(detail,10,True)}</VBox></Button>')
         self.replace_host("conversation.list",''.join(cards))
-        self.set_label("director.title",self.current_conversation.get("title","Ny samtale"))
-        self.set_label("director.context",names.get(target,"En idé er nok. Regissøren kan opprette prosjektet."))
+        self.set_label("director.title",self.current_conversation.get("title","New conversation"))
+        self.set_label("director.context",names.get(target,"An idea is enough. The director can create the project."))
         self.set_attr("director.author.button","Enabled",bool(self.board))
         self.set_attr("director.read.button","Enabled",bool(self.board))
         self.set_attr("director.author.button","Visibility","Visible" if self.board else "Collapsed")
@@ -231,8 +231,8 @@ class DirectorWorkspaceMixin:
         fields=action.get("fields") or {}
         for key,value in fields.items():
             if isinstance(value,str): parts.append(f"{key}: {value}")
-        if action.get("count"): parts.append(f"{action['count']} klipp / varianter")
-        if action.get("target"): parts.append("Brukes som: "+str(action["target"]))
+        if action.get("count"): parts.append(f"{action['count']} shots / variants")
+        if action.get("target"): parts.append("Use as: "+str(action["target"]))
         return "\n".join(parts)[:1400]
 
     def render_conversation(self):
@@ -241,49 +241,49 @@ class DirectorWorkspaceMixin:
         parts=[]
         for i,turn in enumerate(self.history):
             if not isinstance(turn,dict): continue
-            role="DU" if turn.get("role")=="user" else "REGISSØREN"
+            role="YOU" if turn.get("role")=="user" else "DIRECTOR"
             content=turn.get("content", "")
             detail=""
             execution=turn.get("execution") or {}
             actions=turn.get("actions") or []
             if actions:
                 for action in actions:
-                    heading=LABELS.get(action.get("tool"),action.get("tool","Forslag"))
+                    heading=LABELS.get(action.get("tool"),action.get("tool","Proposal"))
                     detail += '<Separator/>'+v.label(heading,16)+v.label(self._action_description(action),12,True)
                 status=execution.get("status")
                 if turn.get("applied") or status in {"done","queued","review_required"}:
-                    detail += v.label(execution.get("message") or "Lagret i prosjektet",12,True)
+                    detail += v.label(execution.get("message") or "Saved in project",12,True)
                     if execution.get("result"):
-                        detail += v.button("Se resultatet",f"director.result.{i}")
+                        detail += v.button("View result",f"director.result.{i}")
                         if any(x.get("tool")=="write_manuscript" for x in execution["result"].get("results",[])):
-                            detail += v.button("Les manuset","director.open_script",True)
+                            detail += v.button("Read script","director.open_script",True)
                 elif turn.get("stale") or turn.get("sourceSlug") != (self.slug or None):
-                    detail += v.label(execution.get("message") or "Prosjektkonteksten er endret. Be om et oppdatert forslag.",12,True)+v.button("Be om oppdatert forslag",f"director.retry.{i}")
+                    detail += v.label(execution.get("message") or "Project context changed. Request an updated proposal.",12,True)+v.button("Request updated proposal",f"director.retry.{i}")
                 elif status in {"failed","interrupted","cancelled"}:
-                    detail += v.label(execution.get("message","Handlingen kunne ikke bekreftes."),12,True)+v.button("Be om oppdatert forslag",f"director.retry.{i}")
+                    detail += v.label(execution.get("message","The action could not be verified."),12,True)+v.button("Request updated proposal",f"director.retry.{i}")
                     if any(x.get("tool")=="write_manuscript" and x.get("brief") for x in (execution.get("result") or {}).get("results",[])):
-                        detail += v.button("Fortsett manusarbeidet",f"director.resume.{i}",True)
+                        detail += v.button("Resume script authoring",f"director.resume.{i}",True)
                 elif status == "running":
-                    detail += v.label("Utfører handlingen…",12,True)
+                    detail += v.label("Executing action…",12,True)
                 else:
-                    label="Opprett prosjekt og skriv manus" if [a.get("tool") for a in actions]==["create_project","write_manuscript"] else "Utfør handlingen" if len(actions)==1 else "Bruk endringene"
+                    label="Create project and write script" if [a.get("tool") for a in actions]==["create_project","write_manuscript"] else "Execute action" if len(actions)==1 else "Apply changes"
                     detail += v.button(label,f"director.apply.{i}",True)
             elif turn.get("applied"):
-                detail += v.label("Lagret i prosjektet",12,True)+v.button("Les manuset","director.open_script")
+                detail += v.label("Saved in project",12,True)+v.button("Read script","director.open_script")
             elif turn.get("proposalStatus") in {"incomplete","rejected"}:
-                detail += v.label("Ingen handling ble utført.",12,True)+v.button("Prøv igjen",f"director.retry.{i}")
+                detail += v.label("No action was executed.",12,True)+v.button("Try again",f"director.retry.{i}")
                 if turn.get("errors") or turn.get("traceId"):
-                    detail += v.button("Vis feildetaljer",f"director.diagnostics.{i}")
+                    detail += v.button("Show error details",f"director.diagnostics.{i}")
             if turn.get("traceWriteError") and turn.get("proposalStatus") not in {"rejected","incomplete"}:
-                detail += v.button("Detaljloggen trenger oppfølging",f"director.diagnostics.{i}")
-            color="#2B2D28" if role=="DU" else "#1B2529"
+                detail += v.button("Review diagnostic log",f"director.diagnostics.{i}")
+            color="#2B2D28" if role=="YOU" else "#1B2529"
             parts.append(f'<Border Background="{color}" CornerRadius="11" Padding="20"><VBox Spacing="12"><Label Text="{role}" Class="eyebrow"/>{v.label(content,14)}{detail}</VBox></Border>')
         if not parts:
-            parts=[v.title("Regissøren din","Hva vil du skape?","Beskriv filmen, motivet eller uttrykket. Jeg hjelper deg fra idé til ferdig produksjon.")+'<WrapBox Spacing="10">'+v.button("Begynn med en filmidé","director.starter.idea")+v.button("Finn bilder i biblioteket","director.starter.library")+v.button("Planlegg en scene","director.starter.scene")+'</WrapBox>']
+            parts=[v.title("Your director","What do you want to create?","Describe the film, subject, or style. I will help from idea to finished production.")+'<WrapBox Spacing="10">'+v.button("Start with a film idea","director.starter.idea")+v.button("Find images in the library","director.starter.library")+v.button("Plan a scene","director.starter.scene")+'</WrapBox>']
         self.replace_host("director.history",''.join(parts))
 
     def starter_message(self,kind):
-        messages={"idea":"Jeg vil lage en film om ","library":"Vis meg bildene som finnes i biblioteket.","scene":"Hjelp meg å forme en scene med tydelig handling og et godt visuelt uttrykk. "}
+        messages={"idea":"I want to make a film about ","library":"Show me the images in the library.","scene":"Help me shape a scene with clear action and a strong visual style. "}
         self.set_text("director.message",messages.get(kind,""))
         r.Rwidget_focus(self.find("director.message"))
 
@@ -292,13 +292,13 @@ class DirectorWorkspaceMixin:
         if widget != r.R_INVALID_ID: r.Rscroll_box_scroll_to_end(widget)
 
     def send_chat(self):
-        if not self.ready: raise ValueError("Regissørmotoren starter fortsatt.")
-        if self.chat_starting or "chat" in self.pending: raise ValueError("Regissøren arbeider fortsatt med forrige melding.")
+        if not self.ready: raise ValueError("Director engine is still starting.")
+        if self.chat_starting or "chat" in self.pending: raise ValueError("The director is still working on the previous message.")
         message=self.text("director.message").strip()
-        if not message: raise ValueError("Skriv en melding først.")
+        if not message: raise ValueError("Write a message first.")
         session_id=self.current_conversation["id"]
         slug=self.current_conversation.get("projectSlug")
-        if slug != (self.slug or None): raise ValueError("Vent til prosjektet er åpnet.")
+        if slug != (self.slug or None): raise ValueError("Wait for the project to open.")
         history=[]
         for row in self.history[-40:]:
             if row.get("role") not in {"user","assistant"}: continue
@@ -315,14 +315,14 @@ class DirectorWorkspaceMixin:
         self.composer_checkpoint=("",self.selected("director.thinking"))
         self.persist_conversation(); self.render_conversation(); self._scroll_director()
         self.chat_origin=session_id
-        self.set_label("director.status","Regissøren leser prosjektet…" if slug else "Regissøren former ideen sammen med deg…")
+        self.set_label("director.status","The director is reading the project…" if slug else "The director is shaping the idea with you…")
         payload={"slug":slug,"message":message,"history":history,"thinking":thinking,"conversationId":session_id}
         if self.raw_shot: payload["selectedShotId"]=self.raw_shot["id"]
         def progress(event):
             def show(data):
                 if self.current_conversation["id"] != session_id: return
-                label=data.get("text") if data.get("type") == "progress" else "Regissøren skriver…"
-                self.set_label("director.status",label or "Regissøren arbeider…")
+                label=data.get("text") if data.get("type") == "progress" else "The director is writing…"
+                self.set_label("director.status",label or "The director is working…")
             self.completions.put(("chat.progress",None,show,event,None))
         def operation():
             try:
@@ -337,10 +337,10 @@ class DirectorWorkspaceMixin:
         def done(result):
             session=self.conversations.load(session_id)
             if result.get("error"):
-                turn={"role":"assistant","content":"Regissøren kunne ikke fullføre svaret: "+result["error"],"actions":[],"proposalStatus":"error"}
+                turn={"role":"assistant","content":"The director could not complete the response: "+result["error"],"actions":[],"proposalStatus":"error"}
             else:
                 response=result["response"]
-                turn=normalize_turn({"role":"assistant","content":response.get("message") or "Ingen nye endringer foreslått.","actions":response.get("actions",[]),"proposalStatus":response.get("proposalStatus"),"sourceSlug":slug,"source":result.get("digest"),"catalogVersion":response.get("catalogVersion"),"contextVersion":response.get("contextVersion"),"errors":response.get("errors",[]),"traceId":response.get("traceId"),"attempts":response.get("attempts"),"repaired":response.get("repaired",False),"traceWriteError":response.get("traceWriteError")})
+                turn=normalize_turn({"role":"assistant","content":response.get("message") or "No new changes proposed.","actions":response.get("actions",[]),"proposalStatus":response.get("proposalStatus"),"sourceSlug":slug,"source":result.get("digest"),"catalogVersion":response.get("catalogVersion"),"contextVersion":response.get("contextVersion"),"errors":response.get("errors",[]),"traceId":response.get("traceId"),"attempts":response.get("attempts"),"repaired":response.get("repaired",False),"traceWriteError":response.get("traceWriteError")})
             session["messages"].append(turn)
             session["unread"]=self.current_conversation["id"] != session_id
             self.conversations.save(session)
@@ -349,7 +349,7 @@ class DirectorWorkspaceMixin:
             if self.current_conversation["id"] == session_id:
                 self.current_conversation=session; self.history=session["messages"]
                 self.render_conversation(); self._scroll_director()
-                self.set_label("director.status","Svaret er klart. Handlinger vises før de utføres.")
+                self.set_label("director.status","Response ready. Actions are shown before execution.")
                 if turn.get("actions") and all(a.get("tool") in READ_ONLY_TOOLS for a in turn["actions"]):
                     self.execute_turn(len(self.history)-1)
             else: self.render_conversation_sidebar()
@@ -369,7 +369,7 @@ class DirectorWorkspaceMixin:
         turn=self.history[index]
         if turn.get("applied") or (turn.get("execution") or {}).get("status"): return
         if turn.get("stale") or turn.get("sourceSlug") != (self.slug or None):
-            raise ValueError("Forslaget tilhører en annen prosjektkontekst. Be om et nytt forslag.")
+            raise ValueError("Proposal belongs to another project context. Request a new proposal.")
         actions=copy.deepcopy(turn.get("actions") or [])
         if not actions: return
         session_id=self.current_conversation["id"]
@@ -384,9 +384,9 @@ class DirectorWorkspaceMixin:
                 return
             turn["execution"]={"status":"running","at":time.time()}
             self.persist_conversation(); self.render_conversation()
-            self.show_modal("Regissøren utfører handlingen",'<Label Name="director.execution.progress" Text="Kontrollerer prosjekt og ressurser…" Wrap="true"/>',"director.cancel","Stopp etter gjeldende steg",allow_close=False)
+            self.show_modal("Director is executing the action",'<Label Name="director.execution.progress" Text="Checking project and resources…" Wrap="true"/>',"director.cancel","Stop after the current step",allow_close=False)
             def progress(data):
-                def show(event): self.set_label("director.execution.progress",event.get("detail") or f"{event.get('completed',0)} / {event.get('total',1)} · arbeider")
+                def show(event): self.set_label("director.execution.progress",event.get("detail") or f"{event.get('completed',0)} / {event.get('total',1)} · working")
                 self.completions.put(("director.execution.progress",None,show,data,None))
             def operation():
                 try:
@@ -405,7 +405,7 @@ class DirectorWorkspaceMixin:
                     self.modal_close(); self.render_conversation()
                     self.toast(result["error"],True); return
                 status=result.get("operationStatus","done")
-                record["execution"]={"status":status,"message":result.get("message","Handlingen er bekreftet."),"result":result}
+                record["execution"]={"status":status,"message":result.get("message","Action confirmed."),"result":result}
                 record["applied"]=status not in {"failed","not_started","cancelled"}
                 self.conversations.save(session)
                 if self.closing:
@@ -430,7 +430,7 @@ class DirectorWorkspaceMixin:
                     self.board=result["board"]; self.dirty=False; self.refresh_view(); self.fill_brief()
                 self.render_conversation()
                 self.poll_deadline=0
-                self.toast(result.get("message","Handlingen er bekreftet."))
+                self.toast(result.get("message","Action confirmed."))
                 if not self.opening:
                     self.route_director_result(result)
             self.submit("director.execute",operation,done,scoped=False)
@@ -441,7 +441,7 @@ class DirectorWorkspaceMixin:
     def cancel_director(self):
         if self.director_cancel:
             self.director_cancel.set()
-            self.set_label("director.execution.progress","Stopper etter gjeldende steg. Lagrede resultater beholdes.")
+            self.set_label("director.execution.progress","Stopping after the current step. Saved results are preserved.")
 
     def route_director_result(self,result):
         result_shown = False
@@ -467,20 +467,20 @@ class DirectorWorkspaceMixin:
         if not 0 <= index < len(self.history): return
         result=(self.history[index].get("execution") or {}).get("result") or {}
         self.director_result=result
-        body=v.label(result.get("message","Resultat"),15)
+        body=v.label(result.get("message","Result"),15)
         for i,item in enumerate(result.get("results",[])):
-            body += v.label(LABELS.get(item.get("tool"),"Resultat"),18)
+            body += v.label(LABELS.get(item.get("tool"),"Result"),18)
             values=item.get("items") or item.get("takes") or []
             if isinstance(values,dict): values=values.get("takes",[])
             for value in values[:25]:
                 if isinstance(value,dict): body += v.label(value.get("name") or value.get("label") or ("Seed "+str(value["seed"]) if "seed" in value else str(value.get("id",""))),12,True)
-            if item.get("artifact"): body += v.button("Åpne resultatet",f"director.artifact.{i}")
+            if item.get("artifact"): body += v.button("Open result",f"director.artifact.{i}")
             if item.get("statusText"): body += v.label(item["statusText"],13,True)
             if item.get("tool") in EDITORIAL_TOOLS:
                 panel, title = EDITORIAL_TOOLS[item["tool"]]
-                body += v.button("Åpne " + title, "page." + panel)
-            if item.get("jobId"): body += v.label("Jobben er registrert. Følg fremdriften i produksjonsoversikten.",12,True)
-        self.show_modal("Regissørens resultat",body)
+                body += v.button("Open " + title, "page." + panel)
+            if item.get("jobId"): body += v.label("Job registered. Follow progress in the production overview.",12,True)
+        self.show_modal("Director result",body)
 
     def open_director_artifact(self,index):
         result=getattr(self,"director_result",{})
@@ -488,31 +488,31 @@ class DirectorWorkspaceMixin:
         if not 0 <= index < len(items): return
         path=Path(items[index].get("artifact","")).resolve()
         if not path.exists() or not path.is_relative_to(self.workspace.root.resolve()):
-            raise ValueError("Resultatet finnes ikke i produksjonsmappen.")
+            raise ValueError("The result is missing from the production folder.")
         if path.suffix.lower() in {".png",".jpg",".jpeg",".webp",".mp4",".mov",".m4v",".wav",".mp3"}: self.preview(path,path.name)
         else: self.player.reveal(str(path).encode())
 
     def show_director_diagnostics(self,index):
         if not 0 <= index < len(self.history): return
         turn=self.history[index]
-        body=v.label("Forslaget ble kontrollert før noen handling kunne utføres.",14)
+        body=v.label("The proposal was checked before any action could be executed.",14)
         for error in turn.get("errors",[]): body+=v.label(str(error),12,True)
-        if turn.get("traceWriteError"): body+=v.label("Detaljloggen kunne ikke lagres: "+str(turn["traceWriteError"]),12,True)
-        if turn.get("traceId"): body+=v.label("Hendelses-ID: "+turn["traceId"],11,True)
-        self.show_modal("Regissørens feildetaljer",body)
+        if turn.get("traceWriteError"): body+=v.label("The diagnostic log could not be saved: "+str(turn["traceWriteError"]),12,True)
+        if turn.get("traceId"): body+=v.label("Trace ID: "+turn["traceId"],11,True)
+        self.show_modal("Director error details",body)
 
     def resume_director_manuscript(self,index):
         if not 0 <= index < len(self.history) or not self.board: return
         result=(self.history[index].get("execution") or {}).get("result") or {}
-        if result.get("slug")!=self.slug: raise ValueError("Åpne det opprinnelige prosjektet før du fortsetter.")
+        if result.get("slug")!=self.slug: raise ValueError("Open the original project before continuing.")
         item=next((x for x in result.get("results",[]) if x.get("tool")=="write_manuscript" and x.get("brief")),None)
         if not item: return
         self.sync_fields()
-        turn={"role":"assistant","content":"Fortsetter manusarbeidet fra sist lagrede del.","sourceSlug":self.slug,"source":authoring_digest(self.board),"actions":[{"tool":"write_manuscript","brief":item["brief"],"count":item["count"]}],"internalIntent":"resume_manuscript"}
+        turn={"role":"assistant","content":"Resuming script authoring from the last saved batch.","sourceSlug":self.slug,"source":authoring_digest(self.board),"actions":[{"tool":"write_manuscript","brief":item["brief"],"count":item["count"]}],"internalIntent":"resume_manuscript"}
         self.history.append(normalize_turn(turn)); self.persist_conversation()
         self.execute_turn(len(self.history)-1, resume_only=True)
 
     def retry_director(self,index):
         message=next((turn.get("content","") for turn in reversed(self.history[:index]) if turn.get("role")=="user"),"")
-        self.set_text("director.message",message+"\nSvar med et avgrenset, gyldig forslag. Ingen endring er utført fra forrige svar.")
+        self.set_text("director.message",message+"\nReply with a bounded, valid proposal. No change was executed from the previous response.")
         self.mode_set("director"); r.Rwidget_focus(self.find("director.message"))

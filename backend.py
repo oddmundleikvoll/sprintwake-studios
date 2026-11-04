@@ -370,7 +370,7 @@ class Backend:
             elif tool == "add_shot":
                 actions.append({"tool":tool, "shot":{k:v for k,v in action.items() if k != "tool"}})
             else:
-                raise BackendError("Regissøren foreslo en handling utenfor manusoppdraget")
+                raise BackendError("Director proposed an action outside the script assignment")
         return dict(response, actions=actions)
 
     def _log_tail(self) -> str:

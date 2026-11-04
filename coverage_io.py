@@ -13,7 +13,7 @@ def apply_coverage(workspace, backend, slug, expected, plan):
     path = f"/api/boards/{quote(slug)}"
     board = backend.get(path)["board"]
     if authoring_digest(board) != expected:
-        raise ValueError("Manuset er endret. Åpne prosjektet på nytt før du bruker coverageforslaget.")
+        raise ValueError("Script changed. Reopen the project before using the coverage proposal.")
     shots = storyboard_shots(board, plan)
     if not shots:
         return board, 0

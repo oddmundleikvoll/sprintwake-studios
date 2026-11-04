@@ -22,7 +22,7 @@ def digest(value):
 
 def number(value, low, high):
     if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or not low <= value <= high:
-        raise ValueError(f"Verdien må være mellom {low} og {high}.")
+        raise ValueError(f"Value must be between {low} and {high}.")
     return value
 
 
@@ -32,53 +32,53 @@ def actors_by_id(plan):
 
 def validate(plan):
     if not isinstance(plan, dict) or set(plan) != {"title", "locationId", "width", "depth", "height", "aspect", "axis", "side", "actors", "cameras"}:
-        raise ValueError("Ugyldig romkart.")
+        raise ValueError("Invalid coverage plan.")
     for key in ("title", "locationId"):
         if not isinstance(plan[key], str) or len(plan[key]) > 300:
-            raise ValueError("Ugyldig romnavn eller sted.")
+            raise ValueError("Invalid room name or location.")
     number(plan["width"], 2, 40); number(plan["depth"], 2, 40)
     number(plan["height"], 2, 8); number(plan["aspect"], .5, 2)
     if type(plan["side"]) is not int or plan["side"] not in (-1, 1):
-        raise ValueError("Velg en side av handlingsaksen.")
+        raise ValueError("Choose a side of the action axis.")
     if not isinstance(plan["actors"], list) or len(plan["actors"]) > 8:
-        raise ValueError("Romkartet støtter opptil åtte figurer.")
+        raise ValueError("Coverage supports up to eight actors.")
     for actor in plan["actors"]:
         if not isinstance(actor, dict) or set(actor) != {"id", "characterId", "name", "x", "y", "height", "lookAt"}:
-            raise ValueError("Ugyldig figurplassering.")
+            raise ValueError("Invalid actor placement.")
         for key in ("id", "characterId", "name", "lookAt"):
             if not isinstance(actor[key], str) or len(actor[key]) > 300:
-                raise ValueError("Ugyldig figurreferanse.")
+                raise ValueError("Invalid actor reference.")
         if not actor["id"]:
-            raise ValueError("Figuren mangler ID.")
+            raise ValueError("Actor is missing an ID.")
         number(actor["x"], .1, plan["width"] - .1); number(actor["y"], .1, plan["depth"] - .1)
         number(actor["height"], .5, min(2.5, plan["height"]))
     actors = actors_by_id(plan)
     if len(actors) != len(plan["actors"]):
-        raise ValueError("Duplisert figur-ID.")
+        raise ValueError("Duplicate actor ID.")
     if any(a["lookAt"] and (a["lookAt"] not in actors or a["lookAt"] == a["id"]) for a in actors.values()):
-        raise ValueError("Figurens blikk peker på en ukjent figur.")
+        raise ValueError("Actor's eyeline points to an unknown actor.")
     axis = plan["axis"]
     if not isinstance(axis, list) or (len(actors) >= 2 and (len(axis) != 2 or len(set(axis)) != 2)) or any(i not in actors for i in axis):
-        raise ValueError("Velg to forskjellige figurer som handlingsakse.")
+        raise ValueError("Choose two different actors for the action axis.")
     if not isinstance(plan["cameras"], list) or len(plan["cameras"]) > 12:
-        raise ValueError("Romkartet støtter opptil tolv kameraer.")
+        raise ValueError("Coverage supports up to twelve cameras.")
     camera_ids = set()
     for camera in plan["cameras"]:
         if not isinstance(camera, dict) or set(camera) != {"id", "name", "kind", "x", "y", "z", "lens", "aimIds", "aim", "selected"}:
-            raise ValueError("Ugyldig kamera.")
+            raise ValueError("Invalid camera.")
         if not all(isinstance(camera[k], str) and 0 < len(camera[k]) <= 300 for k in ("id", "name", "kind")) or camera["id"] in camera_ids:
-            raise ValueError("Ugyldig kamera-ID eller navn.")
+            raise ValueError("Invalid camera ID or name.")
         camera_ids.add(camera["id"])
         number(camera["x"], .1, plan["width"] - .1); number(camera["y"], .1, plan["depth"] - .1)
         number(camera["z"], .3, plan["height"] - .1); number(camera["lens"], 18, 135)
         if not isinstance(camera["aimIds"], list) or len(set(camera["aimIds"])) != len(camera["aimIds"]) or any(i not in actors for i in camera["aimIds"]):
-            raise ValueError("Kameraet sikter mot en ukjent figur.")
+            raise ValueError("Camera points at an unknown actor.")
         if not isinstance(camera["aim"], list) or len(camera["aim"]) != 3:
-            raise ValueError("Ugyldig kamerasikte.")
+            raise ValueError("Invalid camera target.")
         for value, high in zip(camera["aim"], (plan["width"], plan["depth"], plan["height"])):
             number(value, 0, high)
         if type(camera["selected"]) is not bool:
-            raise ValueError("Ugyldig kameravalg.")
+            raise ValueError("Invalid camera selection.")
     return plan
 
 
@@ -86,14 +86,14 @@ def new_plan(board, location_id=""):
     location = next((x for x in (board.get("filmBible") or {}).get("locations", []) if x.get("id") == location_id), {})
     cast = board.get("characters", [])[:8]
     actors = []
-    for i, character in enumerate(cast or [{"id": "", "name": "Figur A"}, {"id": "", "name": "Figur B"}]):
-        actors.append({"id": f"actor-{i+1}", "characterId": character["id"], "name": character.get("name") or f"Figur {i+1}",
+    for i, character in enumerate(cast or [{"id": "", "name": "Actor A"}, {"id": "", "name": "Actor B"}]):
+        actors.append({"id": f"actor-{i+1}", "characterId": character["id"], "name": character.get("name") or f"Actor {i+1}",
                        "x": 3 + 2 * i if i < 2 else 1 + (i-2) % 6, "y": 3 if i < 2 else 4.6,
                        "height": 1.7, "lookAt": ""})
     axis = [a["id"] for a in actors[:2]] if len(actors) > 1 else []
     if axis:
         actors[0]["lookAt"], actors[1]["lookAt"] = axis[1], axis[0]
-    return {"title": location.get("title") or location.get("name") or "Nytt rom", "locationId": location_id,
+    return {"title": location.get("title") or location.get("name") or "New room", "locationId": location_id,
             "width": 8, "depth": 6, "height": 2.8, "aspect": 16/9, "axis": axis,
             "side": 1, "actors": actors, "cameras": []}
 
@@ -106,7 +106,7 @@ def axis_basis(plan):
     dx, dy = b["x"] - a["x"], b["y"] - a["y"]
     length = math.hypot(dx, dy)
     if length < .4:
-        raise ValueError("Flytt de to aksefigurene minst 40 cm fra hverandre.")
+        raise ValueError("Move the two axis actors at least 40 cm apart.")
     return (dx / length, dy / length), (-dy / length * plan["side"], dx / length * plan["side"])
 
 
@@ -133,7 +133,7 @@ def camera_basis(plan, camera):
     length = math.sqrt(sum(v*v for v in direction))
     horizontal = math.hypot(direction[0], direction[1])
     if length < .1 or horizontal < .05:
-        raise ValueError("Kameraets sikte må ligge foran kameraet.")
+        raise ValueError("Camera target must be in front of the camera.")
     forward = [v/length for v in direction]
     right = [direction[1]/horizontal, -direction[0]/horizontal, 0]
     up = [right[1]*forward[2], -right[0]*forward[2], right[0]*forward[1]-right[1]*forward[0]]
@@ -165,11 +165,11 @@ def warnings(plan, camera):
     issues = []
     try:
         if side_distance(plan,camera["x"],camera["y"]) < .08:
-            issues.append("Kameraet krysser eller ligger på handlingsaksen.")
+            issues.append("Camera crosses or sits on the action axis.")
         camera_basis(plan,camera)
         for actor in plan["actors"]:
             if math.hypot(actor["x"]-camera["x"],actor["y"]-camera["y"]) < .35:
-                issues.append("Kameraet står for nær " + actor["name"] + ".")
+                issues.append("Camera is too close to " + actor["name"] + ".")
         for aid in camera["aimIds"]:
             a = actors_by_id(plan)[aid]
             point = project_point(plan,camera,(a["x"],a["y"],a["height"]*.91))
@@ -179,7 +179,7 @@ def warnings(plan, camera):
                 foot = project_point(plan,camera,(a["x"],a["y"],0))
                 head = project_point(plan,camera,(a["x"],a["y"],a["height"]))
                 if any(not p or not .02 < p[0] < .98 or not .02 < p[1] < .98 for p in (foot,head)):
-                    issues.append("Totalbildet kutter " + a["name"] + ". Flytt kameraet bakover eller bruk videre brennvidde.")
+                    issues.append("The wide shot cuts off " + a["name"] + ". Move the camera back or use a wider lens.")
     except ValueError as error:
         issues.append(str(error))
     return issues
@@ -188,19 +188,19 @@ def warnings(plan, camera):
 def propose(plan):
     validate(plan)
     if not plan["actors"]:
-        raise ValueError("Plasser minst én figur først.")
+        raise ValueError("Place at least one actor first.")
     along, normal = axis_basis(plan)
     actors = actors_by_id(plan)
     pair = [actors[i] for i in plan["axis"]] if plan["axis"] else plan["actors"][:1]
     mid = [sum(a[k] for a in pair)/len(pair) for k in ("x","y")]
     span = math.hypot(pair[-1]["x"]-pair[0]["x"],pair[-1]["y"]-pair[0]["y"])
-    specs = [("master", "Totalbilde", mid, 0, max(2.5, span*1.4), 28, [a["id"] for a in plan["actors"]])]
+    specs = [("master", "Wide master", mid, 0, max(2.5, span*1.4), 28, [a["id"] for a in plan["actors"]])]
     if len(pair) == 2:
         a,b = pair
-        specs += [("ots-a", "Motskudd mot " + b["name"], [a["x"],a["y"]], -.8, .5, 35, [b["id"]]),
-                  ("ots-b", "Motskudd mot " + a["name"], [b["x"],b["y"]], .8, .5, 35, [a["id"]])]
+        specs += [("ots-a", "Reverse angle toward " + b["name"], [a["x"],a["y"]], -.8, .5, 35, [b["id"]]),
+                  ("ots-b", "Reverse angle toward " + a["name"], [b["x"],b["y"]], .8, .5, 35, [a["id"]])]
     for i,a in enumerate(pair):
-        specs.append(("close-"+a["id"], "Nærbilde · "+a["name"], [a["x"],a["y"]], .65 if i==0 else -.65, 1.5, 65, [a["id"]]))
+        specs.append(("close-"+a["id"], "Close-up · "+a["name"], [a["x"],a["y"]], .65 if i==0 else -.65, 1.5, 65, [a["id"]]))
     result = []
     for cid,name,base,dx,dy,lens,aim_ids in specs:
         desired = (base[0]+along[0]*dx+normal[0]*dy, base[1]+along[1]*dx+normal[1]*dy)
@@ -208,7 +208,7 @@ def propose(plan):
         possible = [p for p in candidates if .15<=p[0]<=plan["width"]-.15 and .15<=p[1]<=plan["depth"]-.15
                     and side_distance(plan,*p) >= .15 and all(math.hypot(p[0]-a["x"],p[1]-a["y"])>.4 for a in plan["actors"])]
         if not possible:
-            raise ValueError("Det er ikke plass til kameraer på valgt side. Flytt figurene eller bytt side.")
+            raise ValueError("There is no room for cameras on the selected side. Move the actors or change sides.")
         positions=sorted(possible,key=lambda p:(p[0]-desired[0])**2+(p[1]-desired[1])**2)
         camera={"id":cid,"name":name,"kind":"master" if cid=="master" else "ots" if cid.startswith("ots") else "close",
                 "x":positions[0][0],"y":positions[0][1],"z":min(1.55,plan["height"]-.2),"lens":lens,
@@ -253,12 +253,12 @@ def storyboard_shots(board, plan):
     cast={c["id"]:c for c in board.get("characters",[])}
     locations={l["id"] for l in (board.get("filmBible") or {}).get("locations",[])}
     if plan["locationId"] not in locations:
-        raise ValueError("Velg et sted fra filmbibelen før du lager storyboardklipp.")
+        raise ValueError("Select a location from the film bible before creating storyboard shots.")
     if any(not a["characterId"] or a["characterId"] not in cast for a in plan["actors"]):
-        raise ValueError("Knytt alle figurene til karakterer i filmbibelen først.")
+        raise ValueError("Link all actors to characters in the film bible first.")
     chosen=[c for c in plan["cameras"] if c["selected"]]
     if not chosen:
-        raise ValueError("Velg minst én kameravinkel.")
+        raise ValueError("Select at least one camera angle.")
     existing={s["id"] for s in board.get("shots",[])}
     scene=max((int(s.get("directorScene",1)) for s in board.get("shots",[])),default=0)
     shots=[]
@@ -275,7 +275,7 @@ def storyboard_shots(board, plan):
                     action="The characters hold their positions and exchange a look.",end="The characters remain in the same positions.", dialogueSource="native")
         descriptions=" ".join(f"{cast[a['characterId']].get('name',a['name'])}: {cast[a['characterId']].get('description','')}" for a in visible)
         shot["prompt"]=f"In {plan['title']}, a room {plan['width']:g} m wide and {plan['depth']:g} m deep. {descriptions} {shot['camera']} The characters hold their positions. Quiet room ambience, no speech."
-        shot["ravenNotes"]="Coverageforslag. Tilpass handling og dialog før produksjon."
+        shot["ravenNotes"]="Coverage proposal. Adapt action and dialogue before production."
         shots.append(shot)
     return shots
 
@@ -291,16 +291,16 @@ class CoverageStore:
         self.workspace._assert_managed_path(self.path)
         if not self.path.exists():
             return {"format":"raven-coverage","version":1,"revision":0,"plans":{},"undo":[],"redo":[]}
-        if self.path.stat().st_size>8_000_000: raise ValueError("Romkartfilen er for stor.")
+        if self.path.stat().st_size>8_000_000: raise ValueError("Room plan file is too large.")
         doc=json.loads(self.path.read_text())
         if not isinstance(doc,dict) or doc.get("format")!="raven-coverage" or doc.get("version")!=1 or type(doc.get("revision")) is not int or doc["revision"]<0:
-            raise ValueError("Ukjent romkartformat.")
+            raise ValueError("Unknown room plan format.")
         for key in ("undo","redo"):
-            if not isinstance(doc.get(key),list) or len(doc[key])>30: raise ValueError("Ugyldig romkarthistorikk.")
+            if not isinstance(doc.get(key),list) or len(doc[key])>30: raise ValueError("Invalid room-plan history.")
         for plans in [doc.get("plans")]+[p for key in ("undo","redo") for p in doc[key]]:
-            if not isinstance(plans,dict) or len(plans)>30: raise ValueError("Ugyldige romkart.")
+            if not isinstance(plans,dict) or len(plans)>30: raise ValueError("Invalid room plans.")
             for key,plan in plans.items():
-                if not isinstance(key,str) or not key or len(key)>100: raise ValueError("Ugyldig rom-ID.")
+                if not isinstance(key,str) or not key or len(key)>100: raise ValueError("Invalid room ID.")
                 validate(plan)
         return doc
 
@@ -312,15 +312,15 @@ class CoverageStore:
             yield
 
     def commit(self,doc,plans,*,history=None):
-        if not isinstance(plans,dict) or len(plans)>30: raise ValueError("For mange romkart.")
+        if not isinstance(plans,dict) or len(plans)>30: raise ValueError("Too many room plans.")
         for key,plan in plans.items():
-            if not isinstance(key,str) or not key or len(key)>100: raise ValueError("Ugyldig rom-ID.")
+            if not isinstance(key,str) or not key or len(key)>100: raise ValueError("Invalid room ID.")
             validate(plan)
-        if history not in (None,"undo","redo"): raise ValueError("Ukjent historikkhandling.")
+        if history not in (None,"undo","redo"): raise ValueError("Unknown history action.")
         with self.locked():
             current=self.load()
             if current["revision"]!=doc["revision"]:
-                raise ValueError("Romkartet er endret i et annet vindu. Åpne romkartet på nytt.")
+                raise ValueError("Coverage changed in another window. Reopen Coverage.")
             if history:
                 source,dest=("redo","undo") if history=="redo" else ("undo","redo")
                 if not current[source]: return current

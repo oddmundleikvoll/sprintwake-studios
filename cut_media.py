@@ -25,26 +25,26 @@ def probe(path):
     data = json.loads(result.stdout)
     video = next((s for s in data.get("streams", []) if s.get("codec_type") == "video"), None)
     if not video:
-        raise ValueError("Opptaket har ingen videostrøm.")
+        raise ValueError("Take has no video stream.")
     duration = float(video.get("duration") or data.get("format", {}).get("duration") or 0)
     if str(video.get("nb_frames", "")).isdigit() and int(video["nb_frames"]) > 0:
         rate = Fraction(video.get("avg_frame_rate") or video.get("r_frame_rate") or "24")
         if rate > 0:
             duration = float(int(video["nb_frames"]) / rate)
     if not math.isfinite(duration) or duration < 1 / FPS:
-        raise ValueError("Opptakets faktiske varighet kunne ikke måles.")
+        raise ValueError("The take's actual duration could not be measured.")
     return {"frames": max(1, math.floor(duration * FPS + 1e-4)), "duration": duration,
             "width": int(video["width"]), "height": int(video["height"]),
             "audio": any(s.get("codec_type") == "audio" for s in data.get("streams", []))}
 
 
-def preserve_take(store, video, image="", *, take_id="production", label="Produksjonsopptak"):
+def preserve_take(store, video, image="", *, take_id="production", label="Production take"):
     """A content-addressed Input copy survives canonical render/adopt changes."""
     video = Path(video)
     digest = _digest(video)
     frozen = store.workspace.import_input(store.slug, video)
     if _digest(frozen) != digest:
-        raise ValueError("Opptaket endret seg mens det ble bevart. Prøv igjen.")
+        raise ValueError("Take changed while it was being preserved. Try again.")
     measured = probe(frozen)
     still = ""
     if not image:
@@ -78,7 +78,7 @@ def export_cut(store, doc, production, *, sound_store=None, sound_doc=None, prev
     """
     clips = visible_clips(validate_clips(doc["clips"]))
     if not clips:
-        raise ValueError("Klippen er tom.")
+        raise ValueError("The cut is empty.")
     view = store.view(doc, production)
     sources = []
     for clip, shot in zip(clips, view.shots):
@@ -87,10 +87,10 @@ def export_cut(store, doc, production, *, sound_store=None, sound_doc=None, prev
             path = store.project / source["video"]
             store.workspace._assert_managed_path(path)
             if not path.is_file():
-                raise ValueError(f"Opptaket mangler: {shot.title}")
+                raise ValueError(f"The take is missing: {shot.title}")
             info = probe(path)
             if info["frames"] < clip["outFrame"]:
-                raise ValueError(f"Opptaket er kortere enn klippingen: {shot.title}")
+                raise ValueError(f"The take is shorter than the cut: {shot.title}")
             sources.append((path, info, clip, shot, False))
         else:
             image = Path(shot.take.image) if shot.take and shot.take.image else None
@@ -151,7 +151,7 @@ def export_cut(store, doc, production, *, sound_store=None, sound_doc=None, prev
                 args += ["-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo"]
                 vf = f"fps={FPS},trim=end_frame={count},setpts=PTS-STARTPTS"
                 # Fixed label; user text never becomes filter syntax.
-                vf += ",drawbox=x=0:y=0:w=iw:h=48:color=black@0.7:t=fill,drawtext=text='BILDEPLAN':x=16:y=14:fontsize=20:fontcolor=white"
+                vf += ",drawbox=x=0:y=0:w=iw:h=48:color=black@0.7:t=fill,drawtext=text='STORYBOARD':x=16:y=14:fontsize=20:fontcolor=white"
                 af = f"[1:a]atrim=duration={seconds:.9f},asetpts=PTS-STARTPTS[a]"
             else:
                 args += ["-i", str(path)]
@@ -178,7 +178,7 @@ def export_cut(store, doc, production, *, sound_store=None, sound_doc=None, prev
                        capture_output=True, check=True, timeout=300)
         expected = sum(c["outFrame"] - c["inFrame"] for c in clips)
         if abs(probe(temporary)["frames"] - expected) > 1:
-            raise ValueError("Eksportens varighet stemmer ikke med klippelaget.")
+            raise ValueError("The export duration does not match the cut.")
         _publish_cut(store,temporary,output)
     record = {"recipe": recipe, "sha256": _digest(output)} if preview else recipe
     _atomic_text(receipt, json.dumps(record, ensure_ascii=False, indent=2) + "\n")

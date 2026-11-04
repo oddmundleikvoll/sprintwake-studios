@@ -17,8 +17,8 @@ import views as v
 
 def coverage_page():
     return '''<VBox Name="page.coverage" Visibility="Collapsed" Spacing="14" Slot.Padding="26,20">
-      <HBox Spacing="12"><VBox Slot.Fill="1" Spacing="5"><Label Text="Romkart og coverage" TextSize="27" Font="/System/Library/Fonts/NewYork.ttf"/><Label Text="Dra figurer, kameraer og kamerasiktet. Rutenettet er én meter." Class="muted"/></VBox><Button Text="Tilbake til Scener" OnClicked="page.scenes"/></HBox>
-      <HBox Spacing="10"><ComboBox Name="coverage.room" Width="230" OnChanged="coverage.room"/><Button Text="Rom og akse…" OnClicked="coverage.room.edit"/><Button Text="+ Figur" OnClicked="coverage.actor.add"/><Button Text="+ Kamera" OnClicked="coverage.camera.add"/><Spacer Slot.Fill="1"/><Button Name="coverage.undo" Text="Angre" OnClicked="coverage.undo"/><Button Name="coverage.redo" Text="Gjør om" OnClicked="coverage.redo"/></HBox>
+      <HBox Spacing="12"><VBox Slot.Fill="1" Spacing="5"><Label Text="Room map and coverage" TextSize="27" Font="/System/Library/Fonts/NewYork.ttf"/><Label Text="Drag actors, cameras, and the camera aim. The grid is one metre." Class="muted"/></VBox><Button Text="Back to Scenes" OnClicked="page.scenes"/></HBox>
+      <HBox Spacing="10"><ComboBox Name="coverage.room" Width="230" OnChanged="coverage.room"/><Button Text="Room and axis…" OnClicked="coverage.room.edit"/><Button Text="+ Actor" OnClicked="coverage.actor.add"/><Button Text="+ Camera" OnClicked="coverage.camera.add"/><Spacer Slot.Fill="1"/><Button Name="coverage.undo" Text="Undo" OnClicked="coverage.undo"/><Button Name="coverage.redo" Text="Redo" OnClicked="coverage.redo"/></HBox>
       <HBox Spacing="18" Slot.Fill="1"><VBox Slot.Fill="1" Spacing="12"><Custom Name="coverage.plan" Slot.Fill="1" MinHeight="220" Focusable="true"/><Custom Name="coverage.preview" Height="230"/><Label Name="coverage.status" Text="" Class="muted" Wrap="true"/></VBox>
       <Border Width="310" Background="#1C2427" CornerRadius="11" Padding="17"><ScrollBox><VBox Name="coverage.inspector" Spacing="14"/></ScrollBox></Border></HBox>
     </VBox>'''
@@ -73,9 +73,9 @@ class CoverageMixin:
         self.coverage_doc = self.coverage_store.load()
         locations = (self.board.get("filmBible") or {}).get("locations", [])
         self.coverage_rooms = [(x["id"], x.get("title") or x.get("name") or x["id"]) for x in locations]
-        self.coverage_rooms += [(key, plan["title"] + " · sted mangler") for key, plan in self.coverage_doc["plans"].items()
+        self.coverage_rooms += [(key, plan["title"] + " · location missing") for key, plan in self.coverage_doc["plans"].items()
                                 if key and key not in {x[0] for x in self.coverage_rooms} and key != "draft"]
-        self.coverage_rooms.append(("draft", "Fritt rom · velg sted før storyboard"))
+        self.coverage_rooms.append(("draft", "Empty room · choose a location before storyboarding"))
         if self.coverage_key not in {x[0] for x in self.coverage_rooms}:
             self.coverage_key = self.coverage_rooms[0][0]
         self.coverage_loading = True
@@ -141,40 +141,40 @@ class CoverageMixin:
         if not plan:
             return
         selected = self.coverage_selected
-        body = v.button("Foreslå kameravinkler", "coverage.propose", True)
-        body += v.label("Totalbilde, motskudd og nærbilder på samme side av handlingsaksen.", 12, True)
-        body += v.label("FIGURER", 10, True)
+        body = v.button("Suggest camera angles", "coverage.propose", True)
+        body += v.label("Wide shot, reverse shot, and close-ups on the same side of the action axis.", 12, True)
+        body += v.label("ACTORS", 10, True)
         for a in plan["actors"]:
             mark = "● " if selected == ("actor", a["id"]) else ""
             body += v.button(mark + a["name"], "coverage.select.actor." + a["id"])
-        body += '<Separator/>' + v.label("KAMERAER", 10, True)
+        body += '<Separator/>' + v.label("CAMERAS", 10, True)
         for i, c in enumerate(plan["cameras"]):
             body += f'<HBox Spacing="6"><Checkbox Name="coverage.use.{i}" Checked="{str(c["selected"]).lower()}" OnChanged="coverage.use.{i}"/>'
             prefix="⚠ " if warnings(plan,c) else ""
             body += v.button(f"{prefix}{i+1} · {c['name']}", "coverage.select.camera." + c["id"], **{"Slot.Fill": "1"}) + '</HBox>'
         if any(warnings(plan,c) for c in plan["cameras"]):
-            body += v.label("Vinkler med varsel må justeres før de brukes. Forslag uten trygt utsnitt er fravalgt.",12,True)
+            body += v.label("Angles with warnings must be adjusted before use. Suggestions without a safe frame are omitted.",12,True)
         if selected:
             group = plan["actors"] if selected[0] == "actor" else plan["cameras"]
             item = next((x for x in group if x["id"] == selected[1]), None)
             if item:
                 body += '<Separator/>' + v.label(item["name"], 18)
                 body += v.label(f"X {item['x']:.2f} m · Y {item['y']:.2f} m", 12, True)
-                body += v.button("Rediger plasseringen…", "coverage.item.edit")
-                body += v.button("Fjern fra romkartet", "coverage.item.remove")
+                body += v.button("Edit placement…", "coverage.item.edit")
+                body += v.button("Remove from room map", "coverage.item.remove")
         camera = self.coverage_camera
         problems = warnings(plan, camera) if camera else []
         if camera:
-            body += '<Separator/>' + v.label(f"{camera['lens']:g} mm · høyde {camera['z']:.2f} m", 13)
-            body += v.label(" ".join(problems) if problems else "Valgt kamera holder handlingsaksen og målet i bildet.", 12, Color="#EFA1A1" if problems else "#B7C6AA")
-            body += v.button("Bruk utsnitt i Bilder", "coverage.image")
-        body += '<Separator/>' + v.button("Legg valgte vinkler i storyboard", "coverage.apply", True)
-        body += v.label("Nye kameraoppsett legges til som utkast. Gjennomgå handling, dialog og scenebilder før produksjon.", 12, True)
+            body += '<Separator/>' + v.label(f"{camera['lens']:g} mm · height {camera['z']:.2f} m", 13)
+            body += v.label(" ".join(problems) if problems else "The selected camera keeps the action axis and target in frame.", 12, Color="#EFA1A1" if problems else "#B7C6AA")
+            body += v.button("Use framing in Images", "coverage.image")
+        body += '<Separator/>' + v.button("Add selected angles to storyboard", "coverage.apply", True)
+        body += v.label("New camera setups are added as drafts. Review action, dialogue, and scene images before production.", 12, True)
         self.replace_host("coverage.inspector", body)
         self.set_attr("coverage.undo", "Enabled", bool(self.coverage_doc["undo"]))
         self.set_attr("coverage.redo", "Enabled", bool(self.coverage_doc["redo"]))
-        self.set_label("coverage.status", f"{plan['title']} · lagret revisjon {self.coverage_doc['revision']} · plassering og utsnitt, ikke ferdig scenografi")
-        self.toast("Romkartet er lagret.")
+        self.set_label("coverage.status", f"{plan['title']} · saved revision {self.coverage_doc['revision']} · blocking and framing, not finished set design")
+        self.toast("Room map saved.")
         self.invalidate_coverage()
 
     def coverage_event(self, widget, event, _):
@@ -239,13 +239,13 @@ class CoverageMixin:
 
     def edit_coverage_room(self):
         plan = self.coverage_plan
-        body = v.field("room.title","Romnavn",plan["title"],34,multiline=False)
-        for key, heading in (("width","Bredde · m"),("depth","Dybde · m"),("height","Takhøyde · m")):
+        body = v.field("room.title","Room name",plan["title"],34,multiline=False)
+        for key, heading in (("width","Width · m"),("depth","Depth · m"),("height","Ceiling height · m")):
             body += v.field("room."+key,heading,plan[key],34,multiline=False)
-        names = v.esc("|".join(a["name"].replace("|"," ") for a in plan["actors"]) or "Ingen figurer")
-        body += f'<Label Text="HANDLINGSAKSE · FRA / TIL" Class="eyebrow"/><ComboBox Name="room.axis.a" Items="{names}"/><ComboBox Name="room.axis.b" Items="{names}"/>'
-        body += '<Label Text="KAMERASIDE OG FORMAT" Class="eyebrow"/><ComboBox Name="room.side" Items="Venstre side av A → B|Høyre side av A → B"/><ComboBox Name="room.aspect" Items="Film · 16:9|Landskap · 3:2|Kvadrat · 1:1|Portrett · 2:3"/>'
-        self.show_modal("Rom og handlingsakse",body,"coverage.room.save")
+        names = v.esc("|".join(a["name"].replace("|"," ") for a in plan["actors"]) or "No actors")
+        body += f'<Label Text="ACTION AXIS · FROM / TO" Class="eyebrow"/><ComboBox Name="room.axis.a" Items="{names}"/><ComboBox Name="room.axis.b" Items="{names}"/>'
+        body += '<Label Text="CAMERA SIDE AND FORMAT" Class="eyebrow"/><ComboBox Name="room.side" Items="Left side of A → B|Right side of A → B"/><ComboBox Name="room.aspect" Items="Film · 16:9|Landscape · 3:2|Square · 1:1|Portrait · 2:3"/>'
+        self.show_modal("Room and action axis",body,"coverage.room.save")
         for i,key in enumerate(("a","b")):
             r.Rcombo_box_set_selected(self.find("room.axis."+key),next((j for j,a in enumerate(plan["actors"]) if len(plan["axis"])>i and a["id"]==plan["axis"][i]),0))
         r.Rcombo_box_set_selected(self.find("room.side"),0 if plan["side"]==1 else 1)
@@ -269,23 +269,23 @@ class CoverageMixin:
         plan = self.coverage_plan
         item = next(a for a in plan["actors"] if a["id"]==ident) if kind=="actor" else next(c for c in plan["cameras"] if c["id"]==ident)
         self.coverage_edit_target = (kind,ident)
-        body = v.field("placement.name","Navn",item["name"],34,multiline=False)
-        fields = (("x","X · øst"),("y","Y · nord"),("height","Figurhøyde · m")) if kind=="actor" else (("x","X · øst"),("y","Y · nord"),("z","Kamerahøyde · m"),("lens","Brennvidde · mm"))
+        body = v.field("placement.name","Name",item["name"],34,multiline=False)
+        fields = (("x","X · east"),("y","Y · north"),("height","Actor height · m")) if kind=="actor" else (("x","X · east"),("y","Y · north"),("z","Camera height · m"),("lens","Focal length · mm"))
         for key, label in fields:
             body += v.field("placement."+key,label,item[key],34,multiline=False)
         if kind=="actor":
             cast = self.board.get("characters",[])
-            body += '<Label Text="KARAKTER I FILMBIBELEN" Class="eyebrow"/><ComboBox Name="placement.character" Items="' + v.esc("|".join(["Plassholder"]+[c.get("name") or c["id"] for c in cast])) + '"/>'
+            body += '<Label Text="CHARACTER IN FILM BIBLE" Class="eyebrow"/><ComboBox Name="placement.character" Items="' + v.esc("|".join(["Placeholder"]+[c.get("name") or c["id"] for c in cast])) + '"/>'
             choices=[a for a in plan["actors"] if a["id"]!=ident]
             chosen=[item["lookAt"]] if item["lookAt"] else []
         else:
             choices=plan["actors"]
             chosen=item["aimIds"]
         self.coverage_aim_choices = choices
-        body += '<Label Text="BLIKK / KAMERASIKTE" Class="eyebrow"/>'
+        body += '<Label Text="LOOK / CAMERA AIM" Class="eyebrow"/>'
         for i,a in enumerate(choices):
             body += f'<Checkbox Name="placement.aim.{i}" Text="{v.esc(a["name"])}" Checked="{str(a["id"] in chosen).lower()}"/>'
-        self.show_modal("Figurplassering" if kind=="actor" else "Kameraplassering",body,"coverage.item.save")
+        self.show_modal("Actor placement" if kind=="actor" else "Camera placement",body,"coverage.item.save")
         if kind=="actor":
             r.Rcombo_box_set_selected(self.find("placement.character"),next((i+1 for i,c in enumerate(cast) if c["id"]==item["characterId"]),0))
 
@@ -298,11 +298,11 @@ class CoverageMixin:
             item[key] = float(self.text("placement."+key))
         chosen = [a["id"] for i,a in enumerate(self.coverage_aim_choices) if self.checked("placement.aim."+str(i))]
         if kind=="actor":
-            if len(chosen)>1: raise ValueError("Velg høyst én figur å se mot.")
+            if len(chosen)>1: raise ValueError("Choose at most one actor to look at.")
             index=self.selected("placement.character")-1
             item["characterId"] = self.board["characters"][index]["id"] if index>=0 else ""
             if item["characterId"] and any(a["id"]!=ident and a["characterId"]==item["characterId"] for a in plan["actors"]):
-                raise ValueError("Karakteren står allerede i romkartet.")
+                raise ValueError("The character is already in the room map.")
             item["lookAt"] = chosen[0] if chosen else ""
         else:
             item["aim"] = list(target(plan,item))
@@ -333,17 +333,17 @@ class CoverageMixin:
         if kind=="actor":
             used={a["characterId"] for a in plan["actors"]}
             c=next((c for c in self.board.get("characters",[]) if c["id"] not in used),{})
-            plan["actors"].append({"id":ident,"characterId":c.get("id",""),"name":c.get("name") or "Ny figur","x":plan["width"]*.4,"y":plan["depth"]*.4,"height":1.7,"lookAt":""})
+            plan["actors"].append({"id":ident,"characterId":c.get("id",""),"name":c.get("name") or "New actor","x":plan["width"]*.4,"y":plan["depth"]*.4,"height":1.7,"lookAt":""})
             if len(plan["actors"])==2: plan["axis"]=[a["id"] for a in plan["actors"]]
         else:
             c=copy.deepcopy(self.coverage_camera) if self.coverage_camera else propose(plan)[0]
-            c.update(id=ident,name="Eget kamera")
+            c.update(id=ident,name="Custom camera")
             plan["cameras"].append(c)
         self.coverage_selected=(kind,ident)
         self.commit_coverage(plan)
 
     def apply_coverage_shots(self):
-        if self._busy(): raise ValueError("Vent til produksjonsjobben er ferdig før du legger til klipp.")
+        if self._busy(): raise ValueError("Wait for the production job to finish before adding shots.")
         plan,slug=copy.deepcopy(self.coverage_plan),self.slug
         expected=authoring_digest(self.board)
         def done(result):
@@ -352,15 +352,15 @@ class CoverageMixin:
             self.set_dirty(False)
             self.refresh_view()
             self.fill_brief()
-            self.toast(f"{count} nye kameraoppsett lagret i storyboardet." if count else "Disse kameravinklene finnes allerede i storyboardet.")
+            self.toast(f"{count} new camera setups saved to the storyboard." if count else "These camera angles are already in the storyboard.")
         self.submit("coverage.apply",lambda:apply_coverage(self.workspace,self.backend,slug,expected,plan),done)
 
     def coverage_to_image(self):
         camera=self.coverage_camera
-        if not camera: raise ValueError("Velg et kamera først.")
+        if not camera: raise ValueError("Choose a camera first.")
         sid="scov"+camera_key(self.coverage_plan,camera)[:16]
         index=next((i for i,s in enumerate(self.board.get("shots",[])) if s["id"]==sid),None)
-        if index is None: raise ValueError("Legg vinkelen i storyboardet først. Da knyttes scenebildet til riktig klipp.")
+        if index is None: raise ValueError("Add the angle to the storyboard first so the scene image can be linked to the right shot.")
         slug,plan,camera=self.slug,copy.deepcopy(self.coverage_plan),copy.deepcopy(camera)
         cast={c["id"]:c for c in self.board.get("characters",[])}
         refs=[]
@@ -368,7 +368,7 @@ class CoverageMixin:
         colors=["orange","blue","green","purple","yellow","turquoise","lavender","red"]
         for i,a in enumerate(plan["actors"]):
             if a["characterId"] not in cast:
-                raise ValueError("Knytt figurene til eksisterende karakterer i filmbibelen først.")
+                raise ValueError("Link the actors to existing characters in the film bible first.")
             c=cast[a["characterId"]]
             if c.get("image"):
                 refs.append(copy.deepcopy(c["image"]))
@@ -387,7 +387,7 @@ class CoverageMixin:
             r.Rcombo_box_set_selected(self.find("image.aspect"),aspect)
             self.render_images()
             self.capture_drafts()
-            self.toast("Utsnittet og karakterreferansene er klare i Bilder. Velg Lag bilde når beskrivelsen er klar.")
+            self.toast("The framing and character references are ready in Images. Choose Create image when the description is ready.")
         self.submit("coverage.image",lambda:layout_reference(self.workspace,self.backend,slug,plan,camera),done)
 
     def coverage_action(self, action):

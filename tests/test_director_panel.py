@@ -44,11 +44,11 @@ class DirectorPanelTests(unittest.TestCase):
         turn=authoring_turn({"status":"cancelled","completed":0,"total":12,"setupDone":True,"error":"Stoppet"})
         self.assertTrue(turn["applied"])
         self.assertEqual(turn["proposalStatus"],"applied")
-        self.assertIn("filmbibelen er lagret",turn["content"])
+        self.assertIn("film bible are saved",turn["content"])
         self.assertEqual(normalize_turn(turn),turn)
 
     def test_success_without_actions_is_a_saved_authoring_turn(self):
         turn=authoring_turn({"status":"done","completed":12,"total":12,"setupDone":True})
         self.assertTrue(turn["applied"])
         self.assertEqual(turn["proposalStatus"],"applied")
-        self.assertIn("12 nye klipp",turn["content"])
+        self.assertIn("12 new shots",turn["content"])

@@ -26,6 +26,22 @@ For source-setup and publication-exclusion changes, the focused check is:
 uv run --frozen python -B -m unittest tests.test_source_setup tests.test_bundle -v
 ```
 
+The native interface and default director language are English. Preserve user-authored
+project text and dialogue in their original language, along with legacy stored IDs,
+status values and folder paths. Translate display labels without changing protocols.
+
+To refresh the README screenshots in an unlocked graphical macOS session:
+
+```sh
+./scripts/capture-showcase.sh --output "$PWD/qa/showcase-fresh"
+```
+
+Choose a fresh output directory. The helper opens the real native UI with an isolated
+fictional project and the public `assets/probe-preview.png`; it uses a scripted director
+reply, starts no models and leaves existing productions/settings untouched. Inspect
+all captures before copying the PNGs to `assets/screenshots/`. Keep the demo disclosure
+in the README and leave capture logs/metadata under ignored `qa/`.
+
 Keep changes focused and describe the behavior, verification and limitations in
 the pull request. Read [AGENTS.md](AGENTS.md) and the engine's instructions before
 changing production contracts. Refresh matching pure contracts only through the

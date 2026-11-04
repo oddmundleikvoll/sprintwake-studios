@@ -30,7 +30,7 @@ class UpdateTests(unittest.TestCase):
         def post(*_):events.append('lease');return {'ready':True,'quiesced':True,'pid':12,'leaseToken':'test-lease'}
         def close():events.append('close');alive[0]=False
         backend=SimpleNamespace(get=get,post=post,process=process,close=close)
-        panel.__dict__.update(updater=updater,backend=backend,ready=True,dirty=False,pending={'director.author':object()},update_deadline=0,update_waiting=True,update_phase='waiting',modal_kind='Oppdater Sprintwake Studios')
+        panel.__dict__.update(updater=updater,backend=backend,ready=True,dirty=False,pending={'director.author':object()},update_deadline=0,update_waiting=True,update_phase='waiting',modal_kind='Update Sprintwake Studios',update_message='')
         panel.set_attr=lambda *_:None;panel.set_label=lambda *_:None
         panel.submit=lambda _k,op,done,**_kw:done(op())
         panel.tick_updates();self.assertEqual(events,[])
@@ -39,10 +39,10 @@ class UpdateTests(unittest.TestCase):
 
     def test_unknown_backend_never_approves_installation(self):
         panel=UpdatesMixin();approved=[]
-        panel.__dict__.update(updater=SimpleNamespace(status=lambda:{'stage':'waiting','requestId':3},approve=lambda _:approved.append(1)),backend=SimpleNamespace(get=lambda _:None),ready=True,dirty=False,pending={},update_deadline=0,update_waiting=True,update_phase='waiting',modal_kind='Oppdater Sprintwake Studios')
+        panel.__dict__.update(updater=SimpleNamespace(status=lambda:{'stage':'waiting','requestId':3},approve=lambda _:approved.append(1)),backend=SimpleNamespace(get=lambda _:None),ready=True,dirty=False,pending={},update_deadline=0,update_waiting=True,update_phase='waiting',modal_kind='Update Sprintwake Studios',update_message='')
         panel.set_attr=lambda *_:None;panel.set_label=lambda *_:None
         panel.submit=lambda _k,op,done,**_kw:done(op())
-        with self.assertRaisesRegex(ValueError,'ukjent'):panel.tick_updates()
+        with self.assertRaisesRegex(ValueError,'unknown'):panel.tick_updates()
         self.assertEqual(approved,[])
 
     def test_close_failure_resumes_live_backend_and_cancels_global_guard(self):
@@ -60,7 +60,7 @@ class UpdateTests(unittest.TestCase):
             updater=SimpleNamespace(status=lambda:{'stage':'waiting','requestId':3,'build':14}),
             backend=SimpleNamespace(get=lambda _: {'ready':True,'quiesced':False},post=post,process=process,close=close),
             update_guard=Guard(),ready=True,dirty=False,pending={},update_deadline=0,
-            update_waiting=True,update_phase='waiting',modal_kind='Oppdater Sprintwake Studios')
+            update_waiting=True,update_phase='waiting',modal_kind='Update Sprintwake Studios',update_message='')
         panel.set_attr=lambda *_:None;panel.set_label=lambda *_:None
         panel.submit=lambda _k,op,done,**_kw:done(op())
         with self.assertRaises(OSError):panel.tick_updates()
@@ -86,7 +86,7 @@ class UpdateTests(unittest.TestCase):
             events.append(path)
             if path.endswith('quiesce'):return {'quiesced':True,'ready':True,'pid':9,'leaseToken':'keep'}
             raise AssertionError('must not resume a closed owner pipe')
-        panel.__dict__.update(updater=SimpleNamespace(status=lambda:{'stage':'waiting','requestId':4,'build':15},approve=lambda rid:events.append(('approve',rid)) or True),backend=SimpleNamespace(get=lambda _: {'ready':True,'quiesced':False},post=post,process=process,close=lambda:(_ for _ in ()).throw(OSError('closed'))),update_guard=Guard(),ready=True,dirty=False,pending={},update_deadline=0,update_waiting=True,update_phase='waiting',modal_kind='Oppdater Sprintwake Studios')
+        panel.__dict__.update(updater=SimpleNamespace(status=lambda:{'stage':'waiting','requestId':4,'build':15},approve=lambda rid:events.append(('approve',rid)) or True),backend=SimpleNamespace(get=lambda _: {'ready':True,'quiesced':False},post=post,process=process,close=lambda:(_ for _ in ()).throw(OSError('closed'))),update_guard=Guard(),ready=True,dirty=False,pending={},update_deadline=0,update_waiting=True,update_phase='waiting',modal_kind='Update Sprintwake Studios',update_message='')
         panel.set_attr=lambda *_:None;panel.set_label=lambda *_:None;panel.submit=lambda _k,op,done,**_kw:done(op())
         with self.assertRaises(OSError) as failed:panel.tick_updates()
         panel.update_failed(failed.exception)
@@ -108,7 +108,7 @@ class UpdateTests(unittest.TestCase):
             updater=SimpleNamespace(status=lambda:{'stage':'waiting','requestId':3,'build':14},approve=lambda rid:events.append('approve') or True),
             backend=SimpleNamespace(get=lambda _: {'ready':True,'quiesced':False},post=lambda *_:{'quiesced':True,'pid':12,'leaseToken':'held'},process=process,close=close),
             update_guard=SimpleNamespace(reserve=lambda _:events.append('reserve'),writer_ready=lambda:allowed[0]),
-            ready=True,dirty=False,pending={},update_deadline=0,update_waiting=True,update_phase='waiting',modal_kind='Oppdater Sprintwake Studios',
+            ready=True,dirty=False,pending={},update_deadline=0,update_waiting=True,update_phase='waiting',modal_kind='Update Sprintwake Studios',update_message='',
             set_attr=lambda *_:None,set_label=lambda *_:None,submit=submit)
         panel.tick_updates()
         self.assertEqual(events,['reserve','close']);self.assertTrue(panel.update_waiting);self.assertTrue(panel.update_had_lease)
@@ -118,7 +118,7 @@ class UpdateTests(unittest.TestCase):
 
     def test_abandoned_sdk_update_restarts_only_after_child_exit(self):
         events=[];alive=[True];panel=UpdatesMixin()
-        panel.__dict__.update(update_request_id=3,update_had_lease=True,update_lease_token='held',update_waiting=True,update_phase='waiting',update_deadline=0,modal_kind='Oppdater Sprintwake Studios',
+        panel.__dict__.update(update_request_id=3,update_had_lease=True,update_lease_token='held',update_waiting=True,update_phase='waiting',update_deadline=0,modal_kind='Update Sprintwake Studios',update_message='',
             updater=SimpleNamespace(status=lambda:{'stage':'error'},approve=lambda _:events.append('unsafe-approve')),
             backend=SimpleNamespace(process=SimpleNamespace(poll=lambda:None if alive[0] else 0)),
             update_guard=SimpleNamespace(cancel_update=lambda:events.append('unlock')),

@@ -22,8 +22,8 @@ def outline(project, board, state=None):
     remaining = [shot for shot in project.shots if shot.id not in assigned]
     if sequences:
         if remaining:
-            sequences.append({'id': 'unassigned', 'title': 'Ufordelte klipp', 'narrative': False,
-                              'scenes': [scene('unassigned', 'Uten scene', [s.id for s in remaining], False)]})
+            sequences.append({'id': 'unassigned', 'title': 'Unassigned shots', 'narrative': False,
+                              'scenes': [scene('unassigned', 'No scene', [s.id for s in remaining], False)]})
     else:
         raw = {s['id']: s for s in board.get('shots', [])}
         groups, last = [], None
@@ -31,11 +31,11 @@ def outline(project, board, state=None):
             row = raw.get(shot.id, {})
             key = (row.get('directorScene', 1), row.get('locationId', ''))
             if key != last:
-                groups.append(scene('camera-' + str(len(groups)), 'Kameraoppsett ' + str(key[0]), [], False))
+                groups.append(scene('camera-' + str(len(groups)), 'Camera setup ' + str(key[0]), [], False))
                 last = key
             groups[-1]['shotIds'].append(shot.id)
             groups[-1]['frames'] += round(shot.duration * 24)
-        sequences = [{'id': 'camera-groups', 'title': 'Kameraoppsett', 'scenes': groups, 'narrative': False}]
+        sequences = [{'id': 'camera-groups', 'title': 'Camera setups', 'scenes': groups, 'narrative': False}]
     return sequences
 
 

@@ -31,11 +31,11 @@ def creation_kind(workspace, slug):
 def prepare_creation(board, kind, prompt, model):
     """Keep the backend's canonical defaults and add just one independent shot."""
     if kind not in {'image', 'clip'}:
-        raise ValueError('Velg bilde eller klipp.')
+        raise ValueError('Choose an image or clip.')
     result = copy.deepcopy(board)
     result.update(sceneDescription=prompt, renderStyle='', soundscape='')
     if kind == 'clip':
-        shot = new_shot('Klipp 01')
+        shot = new_shot('Shot 01')
         shot.update(prompt=prompt, dialogueSource='native')
         result['shots'] = [shot]
         result.setdefault('defaults', {})['model'] = model
@@ -93,29 +93,29 @@ class CreationMixin:
             self.save(after=lambda: self.show_creation(kind))
             return
         self.creation_mode = kind
-        heading = 'Gi et bilde din signatur.' if kind == 'image' else 'Et øyeblikk er en god begynnelse.'
-        detail = 'Åpne bildestudioet og finn motiv, referanser, format og uttrykk.' if kind == 'image' else 'Åpne klippstudioet og velg handling, lengde og format.'
-        body = v.title('Generer et bilde' if kind == 'image' else 'Lag et klipp', heading, detail)
-        fields = v.field('creation.title', 'Navn · valgfritt', height=38, multiline=False, placeholder='Nytt bilde' if kind == 'image' else 'Nytt klipp')
-        fields += v.field('creation.prompt', 'Beskriv bildet · valgfritt' if kind == 'image' else 'Beskriv handlingen · valgfritt', height=185, placeholder='Motiv, komposisjon, farger og lys…' if kind == 'image' else 'Hvem eller hva ser vi? Hva beveger seg, og hvordan følger kameraet med?')
-        fields += v.button('Åpne bildestudioet' if kind == 'image' else 'Åpne klippstudioet', 'creation.open', True, Name='creation.open')
-        fields += v.label('Du kan fylle ut beskrivelsen inne i studioet.',12,True,Name='creation.status')
-        features = [('Referanser som gir retning', 'Bruk opptil ti bilder for å forme motiv, figurer og stil.'), ('Finn riktig utsnitt', 'Velg landskap, filmformat, portrett eller kvadrat.'), ('Ta vare på uttrykket', 'Sammenlign resultater og lagre favoritten til Output.')] if kind == 'image' else [('Begynn med tekst eller bilde', 'Skriv en videobeskrivelse, eller lag og velg et åpningsbilde.'), ('Ett opptak om gangen', 'Velg lengde og format. Tidligere takes blir beholdt.'), ('Bygg videre når du vil', 'Se opptaket med lyd eller ta det videre til Filmstudio.')]
+        heading = 'Give an image your signature.' if kind == 'image' else 'A moment is a good beginning.'
+        detail = 'Open the image studio to find subject, references, format, and style.' if kind == 'image' else 'Open the clip studio to choose action, length, and format.'
+        body = v.title('Create an image' if kind == 'image' else 'Create a clip', heading, detail)
+        fields = v.field('creation.title', 'Name · optional', height=38, multiline=False, placeholder='New image' if kind == 'image' else 'New clip')
+        fields += v.field('creation.prompt', 'Describe the image · optional' if kind == 'image' else 'Describe the action · optional', height=185, placeholder='Subject, composition, colors, and light…' if kind == 'image' else 'Who or what do we see? What moves, and how does the camera follow?')
+        fields += v.button('Open image studio' if kind == 'image' else 'Open clip studio', 'creation.open', True, Name='creation.open')
+        fields += v.label('You can fill in the description inside the studio.',12,True,Name='creation.status')
+        features = [('References that set direction', 'Use up to ten images to shape subject, characters, and style.'), ('Find the right framing', 'Choose landscape, film, portrait, or square.'), ('Keep the look', 'Compare results and save your favorite to Output.')] if kind == 'image' else [('Start with text or an image', 'Write a video description, or create and choose an opening image.'), ('One take at a time', 'Choose length and format. Earlier takes are kept.'), ('Continue whenever you like', 'Watch the take with audio or continue it in Film Studio.')]
         hints = ''.join('<VBox Spacing="9">'+v.label(title,20,Font='/System/Library/Fonts/NewYork.ttf')+v.label(text,13,True)+'</VBox>' for title,text in features)
-        body += f'<HBox Spacing="30"><Border Slot.Fill="1" Background="#1D2426" Padding="24" CornerRadius="12"><VBox Spacing="20">{fields}</VBox></Border><Border Width="330" Padding="24" Background="#252523" CornerRadius="12"><VBox Spacing="26">{hints}<Separator/>{v.label("Arbeidet lagres for seg og kan åpnes igjen fra Prosjekter.",12,True)}</VBox></Border></HBox>'
-        body += v.button('← Tilbake til start', 'page.home')
+        body += f'<HBox Spacing="30"><Border Slot.Fill="1" Background="#1D2426" Padding="24" CornerRadius="12"><VBox Spacing="20">{fields}</VBox></Border><Border Width="330" Padding="24" Background="#252523" CornerRadius="12"><VBox Spacing="26">{hints}<Separator/>{v.label("Work is saved separately and can be reopened from Projects.",12,True)}</VBox></Border></HBox>'
+        body += v.button('← Back to start', 'page.home')
         self.replace_host('create.content', body)
         self.mode_set('create')
         r.Rwidget_focus(self.find('creation.title'))
 
     def create_work(self):
         if not self.ready:
-            raise ValueError('Studioet starter fortsatt. Prøv igjen om et øyeblikk.')
+            raise ValueError('The studio is still starting. Try again in a moment.')
         if self.opening or 'creation' in self.pending:
             return
         name, prompt = self.text('creation.title').strip(), self.text('creation.prompt').strip()
         kind = self.creation_mode
-        name = name or (prompt.splitlines()[0][:60] if prompt else 'Nytt bilde' if kind == 'image' else 'Nytt klipp')
+        name = name or (prompt.splitlines()[0][:60] if prompt else 'New image' if kind == 'image' else 'New clip')
         model = self.connection_settings['selected']['video']
         def operation():
             created = self.backend.post('/api/boards', {'name': name})
@@ -135,30 +135,30 @@ class CreationMixin:
             self.open_project(slug)
         self.submit('creation', operation, done, scoped=False)
         self.set_attr('creation.open','Enabled',False)
-        self.toast('Åpner bildestudioet…' if kind == 'image' else 'Åpner klippstudioet…')
+        self.toast('Opening image studio…' if kind == 'image' else 'Opening clip studio…')
 
     def render_clip(self):
         shot = self.raw_shot
         if not shot:
             return
-        fields = v.field('quickclip.prompt', 'Videobeskrivelse', shot.get('prompt',''), height=170, placeholder='Beskriv motiv, bevegelse, kamera og lyd…')
+        fields = v.field('quickclip.prompt', 'Video description', shot.get('prompt',''), height=170, placeholder='Describe subject, movement, camera, and sound…')
         external = self.clip_profile()
         if external:
-            fields += v.label(external['label'],16)+v.label('Lengde og format velges før hvert nye workflow-opptak.',12,True)
+            fields += v.label(external['label'],16)+v.label('Length and format are chosen before each new workflow take.',12,True)
         else:
-            fields += '<Label Text="LENGDE · 24 FPS" Class="eyebrow"/><ComboBox Name="quickclip.duration" Items="4 sekunder|5 sekunder|6 sekunder"/>'
+            fields += '<Label Text="LENGTH · 24 FPS" Class="eyebrow"/><ComboBox Name="quickclip.duration" Items="4 seconds|5 seconds|6 seconds"/>'
             fields += '<Label Text="FORMAT" Class="eyebrow"/><ComboBox Name="quickclip.size" Items="384 × 256|512 × 320|640 × 384|768 × 512"/>'
-        fields += v.button('Lag nytt take', 'clip.generate', True, Name='quickclip.generate')
-        fields += v.button('Stopp eget opptak', 'clip.stop', Name='quickclip.stop', Enabled='false')
-        fields += v.button('Lagre beskrivelsen', 'clip.save')
-        fields += v.label('Nye takes beholdes i opptakshistorikken. Velg selv hvilket du vil bruke.',12,True)
+        fields += v.button('Create new take', 'clip.generate', True, Name='quickclip.generate')
+        fields += v.button('Stop my take', 'clip.stop', Name='quickclip.stop', Enabled='false')
+        fields += v.button('Save description', 'clip.save')
+        fields += v.label('New takes are kept in take history. Choose which one to use.',12,True)
         take = self.shot.take if self.shot else None
         poster = take.image if take else ''
-        preview = f'<Border Background="#0C1113" CornerRadius="10" Height="320"><Overlay>{v.image(poster,height=320,fit=True) if poster else v.label("Et øyeblikk venter på å bli levende.",24,Font="/System/Library/Fonts/NewYork.ttf",**{"Slot.HAlign":"Center","Slot.VAlign":"Center","MaxWidth":"330"})}</Overlay></Border>'
-        actions = v.button('Se valgt opptak', 'clip.preview', Name='quickclip.preview', Enabled='true' if take and take.video else 'false')+v.button('Opptakshistorikk', 'take.history')
-        actions += v.button('Lag / velg åpningsbilde', 'clip.images')
-        body = v.title('Klippstudio / '+self.board.get('name',self.slug), 'Gi øyeblikket liv.', 'Lag ett selvstendig opptak, vurder resultatet og prøv et nytt take når du vil.')
-        body += f'<HBox Spacing="22"><Border Width="330" Background="#1D2426" Padding="22" CornerRadius="11"><VBox Spacing="15">{fields}</VBox></Border><VBox Slot.Fill="1" Spacing="16">{preview}<WrapBox Spacing="8">{actions}</WrapBox><Label Name="quickclip.status" Text="Klar til et nytt opptak." Class="muted" Wrap="true"/>{v.button("Fortsett i Filmstudio →","clip.studio")}</VBox></HBox>'
+        preview = f'<Border Background="#0C1113" CornerRadius="10" Height="320"><Overlay>{v.image(poster,height=320,fit=True) if poster else v.label("A moment is waiting to come alive.",24,Font="/System/Library/Fonts/NewYork.ttf",**{"Slot.HAlign":"Center","Slot.VAlign":"Center","MaxWidth":"330"})}</Overlay></Border>'
+        actions = v.button('View selected take', 'clip.preview', Name='quickclip.preview', Enabled='true' if take and take.video else 'false')+v.button('Take history', 'take.history')
+        actions += v.button('Create / choose opening image', 'clip.images')
+        body = v.title('Clip Studio / '+self.board.get('name',self.slug), 'Bring the moment to life.', 'Create one self-contained take, review it, and try a new take whenever you like.')
+        body += f'<HBox Spacing="22"><Border Width="330" Background="#1D2426" Padding="22" CornerRadius="11"><VBox Spacing="15">{fields}</VBox></Border><VBox Slot.Fill="1" Spacing="16">{preview}<WrapBox Spacing="8">{actions}</WrapBox><Label Name="quickclip.status" Text="Ready for a new take." Class="muted" Wrap="true"/>{v.button("Continue in Film Studio →","clip.studio")}</VBox></HBox>'
         self.replace_host('clip.content',body)
         if not external:
             frames, size = shot.get('frames',121),shot.get('resolution','384x256')
@@ -168,7 +168,7 @@ class CreationMixin:
             self.clip_frames, self.clip_sizes = frames_items, sizes
             r.Rcombo_box_clear_items(self.find('quickclip.duration'))
             for value in frames_items:
-                r.Rcombo_box_add_item(self.find('quickclip.duration'),f'{value/24:.2f} sekunder')
+                r.Rcombo_box_add_item(self.find('quickclip.duration'),f'{value/24:.2f} seconds')
             r.Rcombo_box_clear_items(self.find('quickclip.size'))
             for value in sizes: r.Rcombo_box_add_item(self.find('quickclip.size'),value.replace('x',' × '))
             r.Rcombo_box_set_selected(self.find('quickclip.duration'),frames_items.index(frames))
@@ -193,16 +193,16 @@ class CreationMixin:
     def generate_clip(self):
         self.sync_clip()
         if not self.ready or not self.raw_shot or not self.raw_shot.get('prompt','').strip():
-            raise ValueError('Beskriv klippet først, og vent til studioet er klart.')
+            raise ValueError('Describe the clip first, and wait until the studio is ready.')
         if self._busy() or any(k in self.pending for k in ('clip.generate','video.generate')):
-            raise ValueError('Vent til den aktive jobben er ferdig.')
+            raise ValueError('Wait until the active job is finished.')
         if self.clip_profile():
             self.workflow_action('video.generate')
             return
         if self.raw_shot.get('modelProvider') == 'comfy-workflow':
-            raise ValueError('Klippet bruker en workflowmodell. Velg den samme videoprofilen under Modeller før et nytt take.')
+            raise ValueError('The clip uses a workflow model. Choose the same video profile under Models before a new take.')
         slug, sid = self.slug,self.raw_shot['id']
         def launch():
-            self.submit('clip.generate',lambda:self.backend.post('/api/render-seeds',{'slug':slug,'shotId':sid,'count':1}),lambda _:self.toast('Ett nytt take er i kø. Åpne opptakshistorikken når det er ferdig.'))
+            self.submit('clip.generate',lambda:self.backend.post('/api/render-seeds',{'slug':slug,'shotId':sid,'count':1}),lambda _:self.toast('A new take is queued. Open take history when it is finished.'))
             self.poll_deadline=0
         self.save(after=launch)

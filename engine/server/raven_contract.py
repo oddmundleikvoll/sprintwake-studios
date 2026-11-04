@@ -363,10 +363,10 @@ def parse_model_reply(raw: Any) -> tuple[dict[str, Any], list[str]]:
     try: obj = json.loads(cleaned)
     except (ValueError, TypeError):
         match = re.search(r"\{.*\}", cleaned, re.S)
-        if not match: return {"message": "Jeg klarte ikke å lese et komplett regissørforslag. Prøv igjen.", "actions": [], "proposalStatus": "incomplete"}, ["model did not return JSON"]
+        if not match: return {"message": "I could not read a complete director proposal. Try again.", "actions": [], "proposalStatus": "incomplete"}, ["model did not return JSON"]
         try: obj = json.loads(match.group(0))
-        except ValueError: return {"message": "Regissørforslaget var ufullstendig og ble ikke sendt videre.", "actions": [], "proposalStatus": "incomplete"}, ["model returned malformed JSON"]
-    if not isinstance(obj, dict): return {"message": "Regissørsvaret hadde feil format. Ingen endringer er utført.", "actions": [], "proposalStatus": "incomplete"}, ["model reply must be an object"]
+        except ValueError: return {"message": "Director proposal was incomplete and was not forwarded.", "actions": [], "proposalStatus": "incomplete"}, ["model returned malformed JSON"]
+    if not isinstance(obj, dict): return {"message": "Director response had the wrong format. No changes were executed.", "actions": [], "proposalStatus": "incomplete"}, ["model reply must be an object"]
     return {"message": str(obj.get("message") or ""), "actions": obj.get("actions", [])}, []
 
 

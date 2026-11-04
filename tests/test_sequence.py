@@ -65,7 +65,7 @@ class SequenceTests(unittest.TestCase):
         self.assertIn("new", updated["state"]["sequences"][0]["scenes"][-1]["shotIds"])
         self.assertEqual(self.store.load(), updated)
         undone = self.store.history(updated)
-        self.assertEqual(undone["state"]["sequences"][-1]["title"], "Filmen" if len(undone["state"]["sequences"]) == 1 else "Ekstra")
+        self.assertEqual(undone["state"]["sequences"][-1]["title"], "The film" if len(undone["state"]["sequences"]) == 1 else "Extra")
 
     def test_order_cut_is_explicit_and_preserves_clip_dict(self):
         state = self.doc["state"]

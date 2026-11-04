@@ -91,7 +91,7 @@ class ConnectionPanelTests(unittest.TestCase):
 
     def test_background_probe_preserves_edits_made_while_waiting(self):
         with tempfile.TemporaryDirectory() as tmp:
-            panel=Panel(Path(tmp)/'connections.json');panel.connection_test_token=0
+            panel=Panel(Path(tmp)/'connections.json');panel.modal_kind='Models and connections';panel.connection_test_token=0
             panel.fields['connections.root']='/tmp/latest-edited-root'
             panel._connection_test_done([])
             self.assertEqual(panel.connection_draft['paths']['root'],'/tmp/latest-edited-root')

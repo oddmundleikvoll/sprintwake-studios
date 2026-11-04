@@ -182,7 +182,7 @@ class WorkspaceTests(unittest.TestCase):
 
     def test_shot_shape_and_timing(self):
         shot = new_shot()
-        self.assertEqual(shot["title"], "Nytt klipp")
+        self.assertEqual(shot["title"], "New shot")
         self.assertEqual(shot["frames"], 121)
         self.assertEqual(shot["dialogueSource"], "recording")
         self.assertTrue(validate_timing(97))

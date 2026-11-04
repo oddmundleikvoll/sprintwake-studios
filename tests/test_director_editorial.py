@@ -142,4 +142,4 @@ class DirectorEditorialTests(unittest.TestCase):
             rendered = []
             module.DirectorWorkspaceMixin.show_director_result(fixture, 0)
             self.assertIn('page.' + panel, rendered[0])
-            self.assertIn('ingen lagrede valg', rendered[0])
+            self.assertIn('no saved choices', rendered[0])

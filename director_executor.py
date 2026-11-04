@@ -34,12 +34,12 @@ class DirectorExecutor:
 
     def _board(self, slug: str) -> dict[str, Any]:
         if not isinstance(slug, str) or not _SLUG.fullmatch(slug):
-            raise ValueError("Ugyldig prosjekt-ID")
+            raise ValueError("Invalid project ID")
         board = self.backend.get(f"/api/boards/{quote(slug, safe='-_.~')}")
         if isinstance(board, dict) and isinstance(board.get("board"), dict):
             board = board["board"]
         if not isinstance(board, dict):
-            raise ValueError("Backend returnerte ikke et storyboard")
+            raise ValueError("The backend did not return a storyboard")
         return copy.deepcopy(board)
 
     def _projects(self) -> list[dict[str, Any]]:
@@ -88,9 +88,9 @@ class DirectorExecutor:
             return
         actual = authoring_digest(board)
         if not expected:
-            raise ValueError("Denne manusendringen krever expected_digest")
+            raise ValueError("This script change requires expected_digest")
         if expected != actual:
-            raise ValueError("Prosjektet er endret siden regissøren foreslo handlingen")
+            raise ValueError("Project changed after the director proposed this action")
 
     def _save_board(self, slug: str, old: dict[str, Any], candidate: dict[str, Any]) -> Any:
         self.workspace.snapshots(slug, old)
@@ -112,16 +112,16 @@ class DirectorExecutor:
                 transformed.append({"tool": "add_shot", "reviewed": True, "fields": fields})
             elif tool == "edit_shot":
                 shot = next((s for s in board.get("shots", []) if s.get("id") == action["shotId"]), None)
-                if not shot: raise ValueError("Ukjent klipp")
-                if shot.get("locked"): raise ValueError("Klippet er låst")
+                if not shot: raise ValueError("Unknown shot")
+                if shot.get("locked"): raise ValueError("Shot is locked")
                 transformed.append({"tool": "update_shot", "reviewed": True, "shotId": action["shotId"], "fields": {k: v for k, v in action.items() if k not in {"tool", "shotId"}}})
             elif tool == "assign_image":
                 image_ref = self._materialize_ref(slug, action["imageId"])
                 target = action["target"]
                 if target in {"opening", "closing"}:
                     shot = next((s for s in board.get("shots", []) if s.get("id") == action.get("shotId")), None)
-                    if not shot: raise ValueError("Ukjent klipp")
-                    if shot.get("locked"): raise ValueError("Klippet er låst")
+                    if not shot: raise ValueError("Unknown shot")
+                    if shot.get("locked"): raise ValueError("Shot is locked")
                     field = {"opening": "startRef", "closing": "endRef"}[target]
                     transformed.append({"tool": "update_shot", "reviewed": True, "shotId": action["shotId"], "fields": {field: image_ref}})
                 else:
@@ -130,7 +130,7 @@ class DirectorExecutor:
                     bible = board.get("filmBible") if isinstance(board.get("filmBible"), dict) else {}
                     items = board.get(collection, []) or bible.get(collection, [])
                     item = next((x for x in items if x.get("id") == entity), None)
-                    if not item: raise ValueError("Ukjent bilde-entitet")
+                    if not item: raise ValueError("Unknown image entity")
                     item["image" if target == "character" else "referenceImage"] = image_ref
                     direct_changed = True
             elif tool == "edit_project":
@@ -142,7 +142,7 @@ class DirectorExecutor:
                 if action.get("imageId"):
                     fields["image"]=self._materialize_ref(slug,action["imageId"])
                 if action.get("voiceId"):
-                    raise ValueError("Velg et faktisk stemmeopptak i filmbibelen før dubbing.")
+                    raise ValueError("Select an actual voice recording in the media library before dubbing.")
                 transformed.append({"tool":tool,"reviewed":True,
                                     **({"character":fields} if tool == "add_character" else {"characterId":action["characterId"],"fields":fields})})
             elif tool == "rewrite_text":
@@ -174,7 +174,7 @@ class DirectorExecutor:
             if isinstance(ref, dict):
                 ref = ref.get("path") or ref.get("url") or ref.get("ref")
             path = self.workspace.local_media(ref) if hasattr(self.workspace, "local_media") else None
-        if path is None or not Path(path).is_file(): raise ValueError("Bilde-ID peker ikke på et faktisk bilde")
+        if path is None or not Path(path).is_file(): raise ValueError("Image ID does not point to an actual image")
         return record_id, Path(path)
 
     def _image_record(self, image_id: str) -> dict[str, Any]:
@@ -188,14 +188,14 @@ class DirectorExecutor:
             record=next((x for x in values if str(x.get("id")) == image_id[10:] and x.get("status") in {"done","complete","completed"}),None)
         else:
             record=None
-        if not record: raise ValueError("Ukjent eller uferdig bilde-ID")
+        if not record: raise ValueError("Unknown or unfinished image ID")
         return record
 
     def _image_ref(self, image_id: str) -> Any:
         record = self._image_record(image_id)
         ref=record.get("ref") or {"path":record.get("path"),"url":record.get("url")}
         if not isinstance(ref,dict) or not self.workspace.local_media(ref.get("path") or ref.get("url")):
-            raise ValueError("Bildereferansen mangler i prosjektet")
+            raise ValueError("The image reference is missing from the project")
         return copy.deepcopy(ref)
 
     def _materialize_ref(self, slug: str, image_id: str) -> Any:
@@ -211,35 +211,35 @@ class DirectorExecutor:
     def execute(self, actions: list[dict[str, Any]], slug: str | None = None, expected_digest: str | None = None,
                 on_progress: Callable[[dict[str, Any]], None] | None = None, cancel: Any = None,
                 *, resume_only: bool = False) -> dict[str, Any]:
-        if not isinstance(actions, list) or not actions: raise ValueError("actions må være en ikke-tom liste")
-        if slug is not None and not _SLUG.fullmatch(slug): raise ValueError("Ugyldig prosjekt-ID")
+        if not isinstance(actions, list) or not actions: raise ValueError("actions must be a non-empty list")
+        if slug is not None and not _SLUG.fullmatch(slug): raise ValueError("Invalid project ID")
         if any(a.get("tool") == "create_project" for a in actions) and slug and not any(a.get("newProject") for a in actions):
-            raise ValueError("create_project må eksplisitt være newProject")
+            raise ValueError("create_project must explicitly be newProject")
         create_and_write=[a.get("tool") for a in actions]==["create_project","write_manuscript"]
         if len(actions)>1 and not create_and_write and not all(a.get("tool") in _BOARD_MUTATING for a in actions) and not all(a.get("tool") in READ_ONLY_TOOLS for a in actions):
-            raise ValueError("Produksjons- og prosjekthandlinger må utføres hver for seg")
+            raise ValueError("Production and project actions must be executed separately")
         clean, context = self._fresh_validate(actions, slug)
         self._active_slug = slug
         if cancel is not None and (cancel.is_set() if hasattr(cancel, "is_set") else cancel()):
-            return self._result("Avbrutt", operationStatus="cancelled")
+            return self._result("Cancelled", operationStatus="cancelled")
         board = context.get("project")
         self._check_digest(board, expected_digest, clean) if board else None
         if board and any(item.get("tool") in _DIGEST_MUTATING for item in clean) and not expected_digest:
-            raise ValueError("Denne produksjonsendringen krever expected_digest")
+            raise ValueError("This production change requires expected_digest")
         expected_token = expected_digest
         results: list[dict[str, Any]] = []
         editorial_state = None
         current_slug = slug
         if current_slug and board is not None and clean and all(item.get("tool") in _BOARD_MUTATING for item in clean):
             board = self._apply_board_actions(current_slug, board, clean, expected_token)
-            return self._result("Manusendringene er lagret.", results=[{"tool": item["tool"], "slug": current_slug} for item in clean], slug=current_slug, board=board)
+            return self._result("Script changes saved.", results=[{"tool": item["tool"], "slug": current_slug} for item in clean], slug=current_slug, board=board)
         for index, action in enumerate(clean, 1):
             if on_progress: on_progress({"completed": index - 1, "total": len(clean), "tool": action["tool"]})
             tool = action["tool"]
             if tool == "create_project":
                 response = self.backend.post("/api/boards", {"name": action["name"]})
                 current_slug = response.get("slug") if isinstance(response, dict) else None
-                if not current_slug: raise ValueError("Backend opprettet ikke prosjektet")
+                if not current_slug: raise ValueError("The backend did not create the project")
                 board = response.get("board", {}) if isinstance(response, dict) else {}
                 original=copy.deepcopy(board)
                 if action.get("brief"):
@@ -254,18 +254,18 @@ class DirectorExecutor:
                     self.workspace.sync_script(current_slug, board)
                 results.append({"tool": tool, "slug": current_slug, "board": board})
             elif tool == "rename_project":
-                if not current_slug: raise ValueError("Prosjekt kreves")
+                if not current_slug: raise ValueError("A project is required")
                 response = self.backend.post(f"/api/boards/{quote(current_slug, safe='-_.~')}/rename", {"name": action["name"]})
                 current_slug = response.get("slug", current_slug) if isinstance(response, dict) else current_slug
                 board = response.get("board", board) if isinstance(response, dict) else board
                 results.append({"tool": tool, **(response if isinstance(response, dict) else {})})
             elif tool in {"set_film_anchor", "set_shot_anchors"}:
-                if not current_slug: raise ValueError("Prosjekt kreves")
+                if not current_slug: raise ValueError("A project is required")
                 state = self._film_state(current_slug)
                 key="anchorRevision" if tool == "set_shot_anchors" else "revision"
                 revision=action[key]
                 actual=state.get("anchorRevision") if tool == "set_shot_anchors" else (state.get("project") or {}).get("revision")
-                if revision != actual: raise ValueError("Filmrevisjonen er foreldet")
+                if revision != actual: raise ValueError("Film revision is stale")
                 inner={k:v for k,v in action.items() if k != "anchorRevision"}
                 inner.update(slug=current_slug,revision=revision)
                 if tool == "set_shot_anchors":
@@ -273,7 +273,7 @@ class DirectorExecutor:
                 response = self.backend.post("/api/film/action", {"slug": current_slug, "action": inner})
                 results.append({"tool": tool, "response": response, "operationStatus": "done"})
             elif tool == "write_manuscript":
-                if not current_slug or board is None: raise ValueError("Prosjekt kreves for manusforfatting")
+                if not current_slug or board is None: raise ValueError("A project is required for script writing")
                 self._check_digest(board, expected_token, [action])
                 from director_authoring import author_project
                 # resume_only is an internal UI intent, deliberately not read
@@ -283,9 +283,9 @@ class DirectorExecutor:
                 expected_token = authoring_digest(board)
                 results.append({"tool": tool, "board": board, "authoring": authored,"brief":action["brief"],"count":action.get("count",1)})
                 if authored.get("status") not in {None, "done"}:
-                    return self._result(f"Prosjektet er lagret. {authored.get('completed',0)} av {authored.get('total',0)} nye klipp er lagret. Manusarbeidet stoppet: {authored.get('error','avbrutt')}", results=results, slug=current_slug, board=board, operationStatus=authored.get("status"))
+                    return self._result(f"Project saved. {authored.get('completed',0)} of {authored.get('total',0)} new shots saved. Script writing stopped: {authored.get('error','cancelled')}", results=results, slug=current_slug, board=board, operationStatus=authored.get("status"))
             elif tool in _BOARD_MUTATING:
-                if not current_slug or board is None: raise ValueError("Prosjekt kreves")
+                if not current_slug or board is None: raise ValueError("A project is required")
                 board = self._apply_board_actions(current_slug, board, [action], expected_token)
                 expected_token = authoring_digest(board)
                 results.append({"tool": tool, "slug": current_slug, "board": board})
@@ -295,7 +295,7 @@ class DirectorExecutor:
                 state = self._film_state(current_slug) if current_slug else {}
                 image_state = self.backend.get(f"/api/images?slug={quote(current_slug, safe='-_.~')}") if current_slug else {}
                 if state.get("active") or (state.get("project") or {}).get("busy") or ((image_state.get("job") or {}).get("busy") if isinstance(image_state, dict) else False):
-                    raise ValueError("Prosjektet er opptatt av en aktiv jobb")
+                    raise ValueError("The project has an active job")
                 archived = self.workspace.archive(current_slug)
                 current_slug, board = None, None
                 results.append({"tool": tool, "artifact": str(archived), "slug": None})
@@ -333,37 +333,37 @@ class DirectorExecutor:
                        "library":self.workspace.root/"Library"}
                 if current_slug:
                     roots.update({key:self.workspace.projects_dir/current_slug/value for key,value in {"script":"Script","input":"Input","output":"Output"}.items()})
-                if target not in roots: raise ValueError("Velg en kjent produksjonsmappe")
+                if target not in roots: raise ValueError("Choose a known production folder")
                 results.append({"tool":tool,"artifact":str(roots[target])})
             elif tool == "status":
                 state=self._film_state(current_slug) if current_slug else {}
                 project=state.get("project") or {}
                 images=self.backend.get("/api/images?slug="+current_slug) if current_slug else {}
                 job=images.get("job") or {}
-                text="Ingen prosjekt valgt. Biblioteket er tilgjengelig." if not current_slug else f"Film: {project.get('phase') or project.get('status') or 'klar'}. Bildejobb: {job.get('phase') or ('arbeider' if job.get('busy') else 'ingen aktiv jobb')}."
+                text="No project selected. The library is available." if not current_slug else f"Film: {project.get('phase') or project.get('status') or 'ready'}. Image job: {job.get('phase') or ('working' if job.get('busy') else 'no active job')}."
                 results.append({"tool":tool,"status":state,"images":images,"statusText":text})
             elif tool == "open_panel":
                 results.append({"tool":tool,"navigate":action["panel"]})
             else:
                 endpoint = {"prepare_dialogue": "/api/prepare-dialogue", "dub_dialogue": f"/api/boards/{current_slug}/shots/{action.get('shotId')}/dub", "generate_soundtrack": f"/api/boards/{current_slug}/soundtrack", "prepare_film": "/api/film", "resume_film": "/api/film", "stop_film": "/api/film/stop", "stop_image": "/api/images/stop", "render_seed_takes": "/api/render-seeds", "refine_shot": "/api/refine", "assemble": "/api/assemble"}.get(tool)
-                if not endpoint: raise ValueError("Verktøyet mangler en produksjonskobling")
+                if not endpoint: raise ValueError("Tool is missing a production connection")
                 payload = {**action, "slug": current_slug}
                 if tool == "assemble":
                     project=self._film_state(current_slug).get("project") or {}
                     if project.get("busy") or project.get("imageApprovalRequired") or project.get("reviewRequired"):
-                        raise ValueError("Fullfør gjennomgangen i Produksjon før filmen settes sammen")
+                        raise ValueError("Complete the review in Production before assembling the film")
                 if tool in {"prepare_film","resume_film"}:
                     state=self._film_state(current_slug)
                     project=state.get("project") or {}
                     inner=film_action(state,"prepare" if tool == "prepare_film" else "produce")
-                    if action["revision"] != inner["revision"]: raise ValueError("Filmrevisjonen er foreldet")
+                    if action["revision"] != inner["revision"]: raise ValueError("Film revision is stale")
                     if tool == "resume_film" and (project.get("imageApprovalRequired") or project.get("reviewRequired")):
                         results.append({"tool":tool,"navigate":"production","needsReview":True,"operationStatus":"review_required"})
                         continue
                     response=self.backend.post("/api/film/action",{"slug":current_slug,"action":inner},timeout=1200)
                 elif tool == "stop_film":
                     active=self._film_state(current_slug).get("active") or {}
-                    if active.get("jobId") != action["jobId"] or active.get("slug") != current_slug: raise ValueError("Filmjobben er ikke lenger aktiv")
+                    if active.get("jobId") != action["jobId"] or active.get("slug") != current_slug: raise ValueError("The film job is no longer active")
                     response=self.backend.post("/api/film/stop",{"slug":current_slug,"jobId":action["jobId"]})
                 else:
                     payload.pop("tool",None)
@@ -377,22 +377,22 @@ class DirectorExecutor:
                     item["operationStatus"]="queued"
                 if tool == "assemble":
                     source=self.workspace.projects_dir/current_slug/"final.mp4"
-                    if not source.is_file(): raise ValueError("Sammenstillingen bekreftet ikke en faktisk film")
+                    if not source.is_file(): raise ValueError("Assembly did not confirm an actual movie")
                     item["artifact"]=str(self.workspace.publish_video(current_slug,source))
                 results.append(item)
         if on_progress: on_progress({"completed": len(clean), "total": len(clean), "detail": "ferdig"})
         status="review_required" if any(x.get("needsReview") for x in results) else "queued" if any(x.get("operationStatus")=="queued" or (x.get("response") or {}).get("accepted") for x in results) else "done"
-        message="Gjennomgå produksjonen før neste steg." if status=="review_required" else "Jobben er startet. Følg fremdriften i produksjonsoversikten." if status=="queued" else "Handlingene er utført."
+        message="Review production before the next step." if status=="review_required" else "Job started. Follow progress in the production overview." if status=="queued" else "Actions completed."
         written=next((x for x in results if x.get("tool")=="write_manuscript"),None)
         if written:
             authored=written["authoring"]
             scenes=len((board.get("filmBible") or {}).get("acts",[]))
-            message=f"Manuset er lagret: {authored.get('completed',0)} nye klipp og {scenes} scener/akter i «{board.get('name',current_slug)}»."
+            message=f"Script saved: {authored.get('completed',0)} new shots and {scenes} scenes/acts in «{board.get('name',current_slug)}»."
         if any(x.get("tool") in {"stop_image","stop_film"} for x in results):
-            message="Stopp er bedt om. Følg status til jobben har frigitt ressursene."
+            message="Stop requested. Follow the status until the job releases its resources."
         read_only = all(item["tool"] in READ_ONLY_TOOLS for item in clean)
         if read_only:
-            message = "\n".join(item["statusText"] for item in results if item.get("statusText")) or "Opplysningene er lest."
+            message = "\n".join(item["statusText"] for item in results if item.get("statusText")) or "Information retrieved."
         if current_slug:
             board=self._board(current_slug)
             if not read_only:

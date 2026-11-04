@@ -41,13 +41,13 @@ class StoryWorkspaceMixin(StructurePanelMixin, SoundPanelMixin):
             return
         slug, board = self.slug, copy.deepcopy(self.board)
         production = view_project(slug, board, self.workspace)
-        self.toast("Åpner sekvenser og lydspor…")
+        self.toast("Opening sequences and soundtracks…")
         def operation():
             cut = CutStore(self.workspace, slug)
             first = not cut.path.exists()
             doc = cut.initialize(production)
             if first:
-                doc = cut.commit(doc, bind_production(cut, doc, production), "Første klipp", remember=False)
+                doc = cut.commit(doc, bind_production(cut, doc, production), "First cut", remember=False)
             structure, sound = SequenceStore(self.workspace, slug), SoundStore(self.workspace, slug)
             return cut, doc, structure, structure.initialize(board, doc["clips"]), sound, sound.load()
         def done(result):

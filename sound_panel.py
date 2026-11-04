@@ -30,33 +30,33 @@ class SoundPanelMixin:
         self.stop_workspace_preview(restore=True)
         self.sound_doc=self.sound_store.commit(self.sound_doc,state,label)
         self.render_sound()
-        self.toast(label+" · lydlaget er lagret")
+        self.toast(label+" · sound layer saved")
 
     def render_sound(self):
         if not self.sound_doc or not self.cut_doc: return
         self.sound_loading=True
         state=self.sound_doc["state"]
-        body=v.label("MIKSER · NIVÅ I dB",11,True)
+        body=v.label("MIXER · LEVEL IN dB",11,True)
         for i,t in enumerate(state["tracks"]):
             body+='<VBox Spacing="6"><HBox Spacing="8">'+v.label(t["name"],14,**{"Slot.Fill":"1"})
             body+=f'<TextInput Name="sound.bus.{i}.gain" Text="{t["gainDb"]:g}" Width="64"/><Label Text="dB" Class="muted"/></HBox>'
             body+=f'<HBox Spacing="10"><Checkbox Name="sound.bus.{i}.mute" Text="Av" Checked="{str(t["muted"]).lower()}"/><Checkbox Name="sound.bus.{i}.solo" Text="Solo" Checked="{str(t["solo"]).lower()}"/></HBox></VBox><Separator/>'
-        body+= '<Checkbox Name="sound.original" Text="Behold opptakslyden" Checked="'+str(state["original"]["enabled"]).lower()+'"/>'
-        body+=v.field("sound.original.gain","Opptakslyd · dB",state["original"]["gainDb"],32,multiline=False)
-        body+=v.label("Opptakslyden er én samlet kilde og følger bildets trim og Dialog-sporets nivå. 0 dB beholder nivået. Negative verdier demper.",11,True)
+        body+= '<Checkbox Name="sound.original" Text="Keep take audio" Checked="'+str(state["original"]["enabled"]).lower()+'"/>'
+        body+=v.field("sound.original.gain","Take audio · dB",state["original"]["gainDb"],32,multiline=False)
+        body+=v.label("Take audio is one combined source and follows the picture trim and Dialogue track level. 0 dB preserves the level; negative values attenuate.",11,True)
         self.replace_host("sound.mixer",body)
         self.render_sound_inspector()
         timeline=self.find("sound.timeline")
         old_view=r.Rtimeline_get_view(timeline) if self.sound_items else None
         r.Rtimeline_clear(timeline)
-        picture=r.Rtimeline_add_track(timeline,"BILDE")
+        picture=r.Rtimeline_add_track(timeline,"PICTURE")
         r.Rtimeline_set_track_locked(timeline,picture,True)
         r.Rtimeline_set_track_height(timeline,picture,28)
-        names={s["id"]:s.get("title") or "Klipp" for s in self.board.get("shots",[])}
+        names={s["id"]:s.get("title") or "Shot" for s in self.board.get("shots",[])}
         cursor=0
         for clip in visible_clips(self.cut_doc["clips"]):
             count=clip["outFrame"]-clip["inFrame"]
-            item=r.Rtimeline_add_clip(timeline,picture,cursor/24,count/24,names.get(clip["shotId"],"Bevart klipp"))
+            item=r.Rtimeline_add_clip(timeline,picture,cursor/24,count/24,names.get(clip["shotId"],"Preserved shot"))
             r.Rtimeline_set_item_color(timeline,item,.45,.34,.25)
             cursor+=count
         self.sound_items={};self.sound_tracks={}
@@ -78,7 +78,7 @@ class SoundPanelMixin:
         if old_view: r.Rtimeline_set_view(timeline,*old_view)
         else: r.Rtimeline_set_view(timeline,0,max(10,min(180,end/24+2)))
         r.Rtimeline_set_time(timeline,self.sound_cursor/24)
-        self.set_label("sound.status",f"Film {time_text(cursor)} · peker {time_text(self.sound_cursor)} · {len(state['clips'])} lydklipp · dra kanter for trim · Delete fjerner reversibelt")
+        self.set_label("sound.status",f"Film {time_text(cursor)} · cursor {time_text(self.sound_cursor)} · {len(state['clips'])} audio clips · drag edges to trim · Delete removes reversibly")
         self.set_attr("sound.undo","Enabled",bool(self.sound_doc["undo"]))
         self.set_attr("sound.redo","Enabled",bool(self.sound_doc["redo"]))
         self.sound_loading=False
@@ -86,20 +86,20 @@ class SoundPanelMixin:
     def render_sound_inspector(self):
         state=self.sound_doc["state"]
         clip=next((c for c in state["clips"] if c["id"]==self.sound_selection),None)
-        body=v.label("VALGT LYDKLIPP",11,True)
+        body=v.label("VALGT SOUNDKLIPP",11,True)
         if clip:
-            body+=v.field("sound.label","Navn",clip["label"],32,multiline=False)
-            body+='<ComboBox Name="sound.track" Items="Dialog|Musikk|Miljølyd|Effekter"/>'
-            for key,title in (("atFrame","Plassering i filmen"),("inFrame","Kilde inn"),("outFrame","Kilde ut"),("fadeIn","Innblending"),("fadeOut","Uttoning")):
+            body+=v.field("sound.label","Name",clip["label"],32,multiline=False)
+            body+='<ComboBox Name="sound.track" Items="Dialogue|Music|Ambience|Effects"/>'
+            for key,title in (("atFrame","Position in film"),("inFrame","Source in"),("outFrame","Source out"),("fadeIn","Fade in"),("fadeOut","Fade out")):
                 body+=v.field("sound."+key,title+" · mm:ss",time_text(clip[key]),32,multiline=False)
-            body+=v.field("sound.gain","Klippnivå · dB",clip["gainDb"],32,multiline=False)
-            body+=f'<Checkbox Name="sound.clip.mute" Text="Slå av dette klippet" Checked="{str(clip["muted"]).lower()}"/>'
-            body+='<HBox Spacing="7">'+v.button("Dupliser","sound.duplicate")+v.button("Del ved pekeren","sound.split")+'</HBox>'
-            body+=v.button("Fjern lydklipp","sound.remove")
-            body+=v.label(f"Tilgjengelig kilde: {time_text(clip['sourceFrames'])}. Ut er første ramme som ikke brukes.",11,True)
+            body+=v.field("sound.gain","Clip level · dB",clip["gainDb"],32,multiline=False)
+            body+=f'<Checkbox Name="sound.clip.mute" Text="Mute this clip" Checked="{str(clip["muted"]).lower()}"/>'
+            body+='<HBox Spacing="7">'+v.button("Duplicate","sound.duplicate")+v.button("Split at cursor","sound.split")+'</HBox>'
+            body+=v.button("Remove audio clip","sound.remove")
+            body+=v.label(f"Available source: {time_text(clip['sourceFrames'])}. Out is the first unused frame.",11,True)
         else:
-            body+=v.label("Velg et lydklipp på tidslinjen, eller importer en lydfil til valgt spor.",13,True)
-            body+=v.label("Dialog, musikk, miljølyd og effekter er uavhengige av bildets klippgrenser. Flere lydklipp kan overlappe.",12,True)
+            body+=v.label("Choose an audio clip on the timeline, or import an audio file to the selected track.",13,True)
+            body+=v.label("Dialogue, music, ambience, and effects are independent of picture cut boundaries. Multiple audio clips may overlap.",12,True)
         self.replace_host("sound.inspector",body)
         self.set_attr("sound.apply","Enabled",bool(clip))
         if clip: r.Rcombo_box_set_selected(self.find("sound.track"),next(i for i,t in enumerate(TRACKS) if t[0]==clip["track"]))
@@ -122,7 +122,7 @@ class SoundPanelMixin:
         if not self.sound_loading:
             self.sound_cursor=max(0,frames(seconds))
             self.seek(seconds)
-            self.set_label("sound.status",f"Peker {time_text(self.sound_cursor)} · plasseringen måles fra filmens start")
+            self.set_label("sound.status",f"Cursor {time_text(self.sound_cursor)} · position measured from the start of the film")
 
     def flush_sound_gesture(self):
         if self.mode!="sound" or not self.sound_doc or self.sound_loading or self.editorial_io_busy() or r.Rwindow_is_mouse_button_down(self.window,r.R_MOUSE_LEFT): return
@@ -131,7 +131,7 @@ class SoundPanelMixin:
             self.sound_gesture_pending=False
             changes={ident:(frames(r.Rtimeline_get_item_start(timeline,item)),frames(r.Rtimeline_get_item_length(timeline,item)),self.sound_tracks.get(r.Rtimeline_get_item_track(timeline,item),next(c["track"] for c in self.sound_doc["state"]["clips"] if c["id"]==ident))) for item,ident in self.sound_items.items() if ident not in self.sound_removed}
             try:
-                self.sound_commit(sound_gesture(self.sound_doc["state"],changes,self.sound_removed),"Flytt eller trim lyd")
+                self.sound_commit(sound_gesture(self.sound_doc["state"],changes,self.sound_removed),"Move or trim audio")
             except (ValueError,OSError) as error:
                 self.render_sound();self.toast(error,True)
             self.sound_removed.clear()
@@ -140,7 +140,7 @@ class SoundPanelMixin:
             muted={ident:bool(r.Rtimeline_is_track_muted(timeline,track)) for track,ident in self.sound_tracks.items()}
             for t in state["tracks"]: t["muted"]=muted.get(t["id"],t["muted"])
             if state!=self.sound_doc["state"]:
-                try: self.sound_commit(state,"Slå lydspor av eller på")
+                try: self.sound_commit(state,"Toggle sound track")
                 except (ValueError,OSError) as error: self.render_sound();self.toast(error,True)
 
     def import_sound(self, source=None):
@@ -156,25 +156,25 @@ class SoundPanelMixin:
             clip.update(track=track,atFrame=at)
             state=copy.deepcopy(self.sound_doc["state"]);state["clips"].append(clip)
             self.sound_selection=clip["id"]
-            self.sound_commit(state,"Importer lyd")
+            self.sound_commit(state,"Import audio")
             self.modal_close()
         self.submit("sound.import",lambda:preserve_audio(store,source),done)
 
     def show_project_sound(self):
         records=[x for x in self.workspace.catalogue(self.slug) if x.get("kind")=="audio"]
         self.sound_library=records
-        body="".join(v.button(Path(x["path"]).name,"sound.library."+str(i)) for i,x in enumerate(records)) or v.label("Ingen lydfiler i prosjektet ennå. Importer en lydfil eller et opptak.",13,True)
-        self.show_modal("Velg prosjektlyd",body)
+        body="".join(v.button(Path(x["path"]).name,"sound.library."+str(i)) for i,x in enumerate(records)) or v.label("No audio files in the project yet. Import an audio file or a take.",13,True)
+        self.show_modal("Choose project audio",body)
 
     def sound_preview(self, kind):
         store,doc,cut= self.sound_store,copy.deepcopy(self.sound_doc),copy.deepcopy(self.cut_doc)
         production=view_project(self.slug,self.board,self.workspace)
-        self.toast("Forbereder lydmiksen…" if kind=="listen" else "Forbereder film med lydmiks…")
+        self.toast("Preparing the sound mix…" if kind=="listen" else "Preparing film with sound mix…")
         def operation():
             if kind=="listen": return render_mix(store,doc,cut)
             return export_cut(self.cut_store,cut,production,sound_store=store,sound_doc=doc,preview=kind=="film")
         def done(path):
-            self.preview(path,"Lydmiks" if kind=="listen" else "Film med lydmiks",inline=kind in {"listen","film"})
+            self.preview(path,"Sound mix" if kind=="listen" else "Film with sound mix",inline=kind in {"listen","film"})
             duration=sum(c["outFrame"]-c["inFrame"] for c in cut["clips"] if c["included"])/24
             self.player.seek(min(self.sound_cursor/24,max(0,duration-1/24)))
             self.on_action(None,"preview.play",None)
@@ -202,13 +202,13 @@ class SoundPanelMixin:
             for i,t in enumerate(updated["tracks"]):
                 t.update(gainDb=float(self.text(f"sound.bus.{i}.gain")),muted=self.checked(f"sound.bus.{i}.mute"),solo=self.checked(f"sound.bus.{i}.solo"))
             updated["original"].update(enabled=self.checked("sound.original"),gainDb=float(self.text("sound.original.gain")))
-            self.sound_commit(updated,"Endre lydmikser")
+            self.sound_commit(updated,"Change sound mixer")
         elif action=="sound.clip.apply" and self.sound_selection:
             values={key:time_frames(self.text("sound."+key)) for key in ("atFrame","inFrame","outFrame","fadeIn","fadeOut")}
             values.update(label=self.text("sound.label").strip(),track=TRACKS[self.selected("sound.track")][0],gainDb=float(self.text("sound.gain")),muted=self.checked("sound.clip.mute"))
-            self.sound_commit(update_clip(state,self.sound_selection,**values),"Rediger lydklipp")
+            self.sound_commit(update_clip(state,self.sound_selection,**values),"Edit audio clip")
         elif action=="sound.remove" and self.sound_selection:
-            self.sound_commit(remove_clip(state,self.sound_selection),"Fjern lydklipp")
+            self.sound_commit(remove_clip(state,self.sound_selection),"Remove audio clip")
         elif action in {"sound.duplicate","sound.split"} and self.sound_selection:
             updated=copy.deepcopy(state)
             clip=next(c for c in updated["clips"] if c["id"]==self.sound_selection)
@@ -216,11 +216,11 @@ class SoundPanelMixin:
             length=clip["outFrame"]-clip["inFrame"]
             if action=="sound.split":
                 offset=self.sound_cursor-clip["atFrame"]
-                if not 0<offset<length: raise ValueError("Plasser pekeren inne i lydklippet først.")
+                if not 0<offset<length: raise ValueError("Place the cursor inside the audio clip first.")
                 clip["outFrame"]=clip["inFrame"]+offset;clip["fadeOut"]=0;clip["fadeIn"]=min(clip["fadeIn"],offset)
                 new.update(atFrame=self.sound_cursor,inFrame=clip["outFrame"],fadeIn=0,fadeOut=min(new["fadeOut"],length-offset))
             else: new["atFrame"]+=length
             updated["clips"].append(new);self.sound_selection=new["id"]
-            self.sound_commit(updated,"Del lydklipp" if action=="sound.split" else "Dupliser lydklipp")
+            self.sound_commit(updated,"Split audio clip" if action=="sound.split" else "Duplicate audio clip")
         elif action in {"sound.listen","sound.film","sound.export"}: self.sound_preview(action.split(".")[1])
         return True

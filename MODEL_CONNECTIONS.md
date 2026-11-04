@@ -11,7 +11,7 @@ Passive checks do not start models or download weights.
 
 The installed Sprintwake Studios app includes its production engine, Python CPU
 runtime and FFmpeg/ffprobe. It does not require a developer checkout or personal
-installation folders. Use **Modeller** to select production/workspace locations,
+installation folders. Use **Models** to select production/workspace locations,
 model services and explicit workflow profiles. Models and service installations
 remain external; opening the app or testing a connection starts no inference.
 See [PROJECT.md](PROJECT.md) for current scope and release status.
@@ -19,7 +19,7 @@ See [PROJECT.md](PROJECT.md) for current scope and release status.
 ### Source development or an explicit external engine
 
 The canonical engine source is `engine/` in this repository. A matching external
-engine/runtime can still be selected deliberately under **Modeller**. The optional
+engine/runtime can still be selected deliberately under **Models**. The optional
 `scripts/setup-engine.sh /path/to/engine /path/to/dedicated-venv` creates a Python
 3.12 CPU environment from the engine's pinned `requirements-ci.txt`, without models.
 The normal source setup provides owned media tools; if a custom setup has none,
@@ -83,15 +83,15 @@ For video use `--kind video --output NODE:videos --capabilities /path/to/caps.js
 and declare the actual graph's frame rule, 24 fps, maximum frames and alignment.
 Bind `frames=NODE:INPUT`/`width=NODE:INPUT` etc. only where the graph accepts them.
 The helper validates the profile, writes it privately, and refuses to replace an
-existing file. Import it in **Modeller → Importer Comfy-profil**, select it for
+existing file. Import it in **Models → Import Comfy profile**, select it for
 images/video and save. Settings apply at the next ordinary restart. Current work
 is not moved, and active connections remain in effect until then.
 
-For external video, **Regi → Lag workflow-opptak** confirms and saves the desired
+For external video, **Direction → Create workflow take** confirms and saves the desired
 model, frame count and resolution on the clip card, then creates one separate
 take. A failed attempt leaves those desired parameters available for retry; an
 older take can show as stale but its media and independent Cut selection survive.
-Choose a completed take explicitly in Opptakshistorikk and edit in Klipp/Lydspor.
+Choose a completed take explicitly in Take history and edit in Cut/Sound.
 
 ## Recovery and qualification
 
@@ -133,7 +133,7 @@ Only the exported graph and declared bindings drive external workflows. Separate
 shot camera/action/dialogue/sound fields are not translated into model-specific
 conditioning automatically: include the required content in the shot prompt or
 workflow. Use native-compatible MP4 encoding (normally H.264/AAC). With own images
-and local LTX, manual variants remain under Regi → Avanserte opptak; the automatic
+and local LTX, manual variants remain under Direction → Advanced takes; the automatic
 image-plan/film flow requires local Qwen/LTX.
 
 The setup helper marks the dedicated environments it creates. It refuses to sync

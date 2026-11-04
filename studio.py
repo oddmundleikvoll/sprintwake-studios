@@ -123,7 +123,7 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
                 self.drafts = json.loads(self.drafts_path.read_text())
             except (OSError, ValueError):
                 pass
-        empty = Project("empty", "Sprintwake Studios", "Velg eller opprett et prosjekt", [])
+        empty = Project("empty", "Sprintwake Studios", "Choose or create a project", [])
         super().__init__([empty])
         self.credentials=CredentialStore(self.player)
         self.initialize_connections()
@@ -138,7 +138,7 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
         self.bind_sound()
         self.live = True
         r.Rtimeline_set_removed_callback(self.w("timeline"), self.on_timeline_removed)
-        self.projects = [Project("empty", "Sprintwake Studios", "Velg eller opprett et prosjekt", [])]
+        self.projects = [Project("empty", "Sprintwake Studios", "Choose or create a project", [])]
         self.project = self.projects[0]
         self.index = 0
         self.populate_project()
@@ -148,8 +148,8 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
         r.Rwindow_register_shortcut(self.window, r.R_KEY_ESCAPE, 0, "modal.close")
         r.Rwindow_set_close_callback(self.window, lambda *_: self._window_close())
         self.render_home()
-        self.replace_host("bible.host", v.title("Filmbibel", "Gi historien faste holdepunkter."))
-        self.replace_host("library.host", v.title("Bibliotek", "Alt materialet i prosjektet."))
+        self.replace_host("bible.host", v.title("Film Bible", "Give the story a firm foundation."))
+        self.replace_host("library.host", v.title("Library", "All the material in your project."))
         if self.connection_error:
             self.connection_status=self.connection_error;self.show_connections()
         elif start_backend:
@@ -228,10 +228,10 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
         self.info, payload = result
         self.ready = True
         self.summaries = payload.get("boards", [])
-        self.set_label("home.connection", "Produksjonskjernen er klar · "+self.info.get("backend",{}).get("label","valgte modeller"))
+        self.set_label("home.connection", "Production core ready · "+self.info.get("backend",{}).get("label","selected models"))
         image_id=self.info.get("connections",{}).get("imageModel","qwen-image-2.1-turbo")
         image=next((m for m in self.info.get("models",[]) if m["id"]==image_id),{})
-        self.set_label("image.engine",image.get("label") or "Ingen bildemodell valgt")
+        self.set_label("image.engine",image.get("label") or "No image model selected")
         self.set_attr("image.generate","Enabled",bool(image))
         self.render_home()
         self.render_conversation_sidebar()
@@ -243,7 +243,7 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
         self.render_conversation_sidebar()
         if self.mode == 'director':
             self.activate_conversation(self.current_conversation['id'])
-        self.toast("Studioet er klart. Velg bilde, klipp eller Filmstudio.")
+        self.toast("The studio is ready. Choose an image, clip, or Film Studio.")
         if getattr(self, "startup_project", None):
             source, self.startup_project = self.startup_project, None
             self.import_project(source)
@@ -269,17 +269,17 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
                 if key == "chat":
                     self.set_label("director.status", str(error))
                 if key == "director.author":
-                    self.show_modal("Manusarbeidet stoppet",v.label(str(error),13,True))
+                    self.show_modal("Script work stopped",v.label(str(error),13,True))
                 if key == "save":
                     self.save_deadline = 0
                     self.save_waiters.clear()
-                    self.label("save.state", "Kunne ikke lagre")
+                    self.label("save.state", "Could not save")
                     self.author_starting = False
                     self.director_starting = False
                     self.chat_starting = False
                 if key == "close":
                     self.closing = False
-                    self.show_modal("Avslutningen venter", v.label(str(error), 13, True), "app.quit", "Prøv avslutning igjen")
+                    self.show_modal("Shutdown is waiting", v.label(str(error), 13, True), "app.quit", "Try shutdown again")
                 continue
             if done and (not self.closing or key in {"close","chat","director.execute","director.author"}):
                 try:
@@ -292,11 +292,11 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
         if getattr(self, "live", False) and value and not self.form_loading:
             self.edit_version += 1
             self.save_deadline = time.monotonic() + 1.0
-            self.label("save.state", "Ulagrede endringer")
+            self.label("save.state", "Unsaved changes")
         elif value is False:
             self.save_deadline = 0
             if getattr(self, "live", False):
-                self.label("save.state", "Lagret lokalt" if self.slug else "Sprintwake Studios")
+                self.label("save.state", "Saved locally" if self.slug else "Sprintwake Studios")
 
     def sync_fields(self):
         if not getattr(self, "live", False):
@@ -327,7 +327,7 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
         if not self.board or not self.slug:
             return
         if not self.ready:
-            self.toast("Produksjonskjernen starter fortsatt.")
+            self.toast("The production core is still starting.")
             return
         if "save" in self.pending:
             return
@@ -337,7 +337,7 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
                 callback()
             return
         board, slug, version = copy.deepcopy(self.board), self.slug, self.edit_version
-        self.label("save.state", "Lagrer…")
+        self.label("save.state", "Saving…")
         def operation():
             result = self.backend.put(f"/api/boards/{quote(slug)}", board)
             actual = result.get("board", result)
@@ -363,7 +363,7 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
         self.updating = True
         r.Rcombo_box_clear_items(self.w("projects"))
         for item in self.summaries:
-            r.Rcombo_box_add_item(self.w("projects"), item.get("name", item.get("slug", "Prosjekt")))
+            r.Rcombo_box_add_item(self.w("projects"), item.get("name", item.get("slug", "Project")))
         selected = next((i for i, item in enumerate(self.summaries) if item.get("slug") == self.slug), -1)
         r.Rcombo_box_set_selected(self.w("projects"), selected)
         self.updating = False
@@ -372,7 +372,7 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
         super().populate_project()
         if getattr(self, "live", False):
             self.set_projects()
-            self.set_label("viewer.source", "Velg et bilde eller et produsert opptak" if not self.shot else self.shot.take.provenance if self.shot.take else "Klippet venter på et åpningsbilde")
+            self.set_label("viewer.source", "Choose an image or a produced take" if not self.shot else self.shot.take.provenance if self.shot.take else "The clip is waiting for an opening image")
             editing = self.mode == "cut"
             self.set_attr("inspector", "Visibility", "Collapsed" if editing else "Visible")
             self.set_attr("cut.inspector", "Visibility", "Visible" if editing else "Collapsed")
@@ -401,7 +401,7 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
             self.form_loading = False
             self.dirty = dirty
             if dirty:
-                self.label("save.state", "Ulagrede endringer")
+                self.label("save.state", "Unsaved changes")
             if self.mode == 'clip': self.render_clip()
 
     def open_project(self, slug):
@@ -415,12 +415,12 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
             self.save(after=lambda: self.open_project(slug))
             return
         if not self.ready:
-            self.toast("Vent et øyeblikk mens produksjonskjernen starter.")
+            self.toast("Wait a moment while the production core starts.")
             return
         self.capture_drafts()
         self.epoch += 1
         self.opening = True
-        self.show_modal("Åpner prosjektet", v.label("Henter manus, referanser og produksjonshistorikk…",13,True))
+        self.show_modal("Opening project", v.label("Loading script, references, and production history…",13,True))
         self.player.close()
         self.active_video = ""
         self.playing = False
@@ -436,7 +436,7 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
         self.replace_host('clip.content','')
         self.review_played = set()
         self.film_context = {}
-        self.toast("Åpner prosjekt…")
+        self.toast("Opening project…")
         def loaded(payload):
             self.slug = slug
             self.board = payload["board"]
@@ -464,8 +464,8 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
             self.mode_set(destination)
             self.poll_deadline = 0
             self.modal_close()
-            self.toast("Prosjektet er klart.")
-            if payload.get("ravenSequenceError"): self.toast("Sekvenslisten kunne ikke leses. Åpne Struktur for å kontrollere den.",True)
+            self.toast("The project is ready.")
+            if payload.get("ravenSequenceError"): self.toast("The sequence list could not be read. Open Structure to check it.",True)
         def operation():
             from sequence import SequenceStore
             payload = self.backend.get(f"/api/boards/{quote(slug)}")
@@ -477,15 +477,15 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
 
     def render_home(self):
         recent = ''.join(v.button(item.get('name',item['slug'])+'  →','project.open.'+item['slug']) for item in self.summaries[:3])
-        self.replace_host('home.recent','<HBox Spacing="10">'+recent+'</HBox>' if recent else v.label('Her finner du arbeidene dine når du har begynt.',13,True))
+        self.replace_host('home.recent','<HBox Spacing="10">'+recent+'</HBox>' if recent else v.label('Your work will appear here once you begin.',13,True))
         cards = []
         for item in self.summaries:
             slug = item["slug"]
             cover = self.covers.get(slug, "")
             if cover and not Path(cover).is_file(): cover=""
-            cards.append(f'<Border Width="340" Padding="12" Background="#1C2427" CornerRadius="11"><VBox Spacing="12"><Button OnClicked="project.open.{v.esc(slug)}" Metric.PaddingX="0" Metric.PaddingY="0"><VBox Spacing="13" HitTestable="false">{v.image(cover, height=170)}{v.label(item.get("name",slug),22,**{"Font":"/System/Library/Fonts/NewYork.ttf"})}{v.label(f"{item.get('shots',item.get('shotCount',0))} klipp · {item.get('rendered',item.get('renderedCount',0))} opptak",12,True)}</VBox></Button><HBox Spacing="8">{v.button("Åpne prosjekt","project.open."+slug,True)}<Spacer Slot.Fill="1"/>{v.button("Slett…","project.delete."+slug)}</HBox></VBox></Border>')
+            cards.append(f'<Border Width="340" Padding="12" Background="#1C2427" CornerRadius="11"><VBox Spacing="12"><Button OnClicked="project.open.{v.esc(slug)}" Metric.PaddingX="0" Metric.PaddingY="0"><VBox Spacing="13" HitTestable="false">{v.image(cover, height=170)}{v.label(item.get("name",slug),22,**{"Font":"/System/Library/Fonts/NewYork.ttf"})}{v.label(f"{item.get('shots',item.get('shotCount',0))} clips · {item.get('rendered',item.get('renderedCount',0))} takes",12,True)}</VBox></Button><HBox Spacing="8">{v.button("Open project","project.open."+slug,True)}<Spacer Slot.Fill="1"/>{v.button("Delete…","project.delete."+slug)}</HBox></VBox></Border>')
         if not cards:
-            cards = [f'<Border Padding="28" Background="#171F22" CornerRadius="10"><VBox Spacing="12">{v.label("Her får ditt første prosjekt plass.",24,**{"Font":"/System/Library/Fonts/NewYork.ttf"})}{v.label("Begynn med en tittel og en idé. Referanser, bilder og opptak følger prosjektet videre.",13,True)}<HBox>{v.button("Opprett ditt første prosjekt", "project.new", True)}</HBox></VBox></Border>']
+            cards = [f'<Border Padding="28" Background="#171F22" CornerRadius="10"><VBox Spacing="12">{v.label("Your first project starts here.",24,**{"Font":"/System/Library/Fonts/NewYork.ttf"})}{v.label("Start with a title and an idea. References, images, and takes follow the project.",13,True)}<HBox>{v.button("Create your first project", "project.new", True)}</HBox></VBox></Border>']
         self.replace_host("home.cards", '<WrapBox Spacing="18">' + "".join(cards) + '</WrapBox>')
         signature = tuple((item["slug"], item.get("updatedAt")) for item in self.summaries)
         if signature != self.cover_signature and "covers" not in self.pending:
@@ -510,21 +510,21 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
         shots = (self.board or {}).get("shots", [])
         self.set_attr("brief.form", "Visibility", "Visible" if self.brief_view == "idea" else "Collapsed")
         self.set_attr("brief.manuscript", "Visibility", "Visible" if self.brief_view == "script" else "Collapsed")
-        parts = [v.label((self.board or {}).get("sceneDescription") or "Skriv filmideen eller legg til klipp for å forme manuset.",14)]
+        parts = [v.label((self.board or {}).get("sceneDescription") or "Write the film idea or add clips to shape the script.",14)]
         bible = (self.board or {}).get("filmBible") or {}
         if bible.get("storyArc"):
-            parts.append(v.label("Historiebue",20) + v.label(bible["storyArc"],14))
+            parts.append(v.label("Story arc",20) + v.label(bible["storyArc"],14))
         if bible.get("theme"):
-            parts.append(v.label("Tema: " + bible["theme"],13,True))
+            parts.append(v.label("Theme: " + bible["theme"],13,True))
         for act in bible.get("acts", []):
-            parts.append(v.label(act.get("title") or act.get("name") or "Akt",20) + v.label(act.get("description") or act.get("summary") or "",13,True))
+            parts.append(v.label(act.get("title") or act.get("name") or "Act",20) + v.label(act.get("description") or act.get("summary") or "",13,True))
         duration = sum(float(s.get("frames",121))/24 for s in shots)
-        self.set_label("brief.script.summary", f"{len(shots)} klipp · {duration:.1f} sekunder planlagt · lagres i Script/manus.md")
+        self.set_label("brief.script.summary", f"{len(shots)} clips · {duration:.1f} seconds planned · saved in Script/manus.md")
         for i, shot in enumerate(shots):
-            text = "\n".join(f"{heading}: {shot.get(key, '')}" for heading,key in (("Start","start"),("Handling","action"),("Slutt","end"),("Kamera","camera"),("Dialog","dialogue"),("Lyd","soundNote"),("Videobeskrivelse","prompt")) if shot.get(key))
-            parts.append(f'<Border Background="#1C2528" Padding="20" CornerRadius="10"><VBox Spacing="12"><HBox><VBox Slot.Fill="1">{v.label(f"{i + 1:02}  {shot.get('title', 'Klipp')}",20)}{v.label(f"Kameraoppsett {shot.get('directorScene', 1)}",11,True)}</VBox>{v.button("Rediger klippet", f"manuscript.shot.{i}")}</HBox>{v.label(text,13)}</VBox></Border>')
+            text = "\n".join(f"{heading}: {shot.get(key, '')}" for heading,key in (("Start","start"),("Action","action"),("End","end"),("Camera","camera"),("Dialogue","dialogue"),("Sound","soundNote"),("Video description","prompt")) if shot.get(key))
+            parts.append(f'<Border Background="#1C2528" Padding="20" CornerRadius="10"><VBox Spacing="12"><HBox><VBox Slot.Fill="1">{v.label(f"{i + 1:02}  {shot.get('title', 'Shot')}",20)}{v.label(f"Camera setup {shot.get('directorScene', 1)}",11,True)}</VBox>{v.button("Edit shot", f"manuscript.shot.{i}")}</HBox>{v.label(text,13)}</VBox></Border>')
         if not shots:
-            parts.append(v.label("Ingen klipp er lagt i prosjektet ennå. Et regissørforslag må brukes før det blir en del av manuset.",14,True))
+            parts.append(v.label("No clips have been added to the project yet. A director suggestion must be used before it becomes part of the script.",14,True))
         self.replace_host("brief.script.cards", ''.join(parts))
 
     def render_overview(self):
@@ -532,16 +532,16 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
             return
         step = next_step(self.board, self.film_context)
         self.next_page = {"storyboard": "film"}.get(step["page"], step["page"])
-        content = f'<Border Background="#293029" BorderColor="#626750" BorderWidth="1" CornerRadius="12" Padding="26"><HBox Spacing="24"><VBox Slot.Fill="1" Spacing="10">{v.label("NESTE NATURLIGE STEG",10,True)}{v.label(step["label"],27,**{"Font":"/System/Library/Fonts/NewYork.ttf"})}{v.label(step["detail"],13,True)}</VBox>{v.button("Fortsett →", "overview.next", True, **{"Slot.VAlign":"Center"})}</HBox></Border>'
+        content = f'<Border Background="#293029" BorderColor="#626750" BorderWidth="1" CornerRadius="12" Padding="26"><HBox Spacing="24"><VBox Slot.Fill="1" Spacing="10">{v.label("NEXT STEP",10,True)}{v.label(step["label"],27,**{"Font":"/System/Library/Fonts/NewYork.ttf"})}{v.label(step["detail"],13,True)}</VBox>{v.button("Continue →", "overview.next", True, **{"Slot.VAlign":"Center"})}</HBox></Border>'
         trail = []
-        for title, page, complete in (("01  Manus", "brief", bool(self.board.get("sceneDescription"))), ("02  Filmbibel", "bible", bool(self.board.get("filmBible", {}).get("locations"))), ("03  Bilder", "images", bool(self.images)), ("04  Storyboard", "film", bool(self.board.get("shots"))), ("05  Produksjon", "production", bool(self.board.get("finalVideo")))):
+        for title, page, complete in (("01  Script", "brief", bool(self.board.get("sceneDescription"))), ("02  Film bible", "bible", bool(self.board.get("filmBible", {}).get("locations"))), ("03  Images", "images", bool(self.images)), ("04  Storyboard", "film", bool(self.board.get("shots"))), ("05  Production", "production", bool(self.board.get("finalVideo")))):
             trail.append(v.button(("✓  " if complete else "") + title, "page." + page, **{"Slot.Fill":"1"}))
         content += '<HBox Spacing="9">' + ''.join(trail) + '</HBox>'
         count = len(self.board.get("shots", []))
         duration = sum(s.get("frames", 121) / 24 for s in self.board.get("shots", []))
-        for heading, detail in (("01  Idé og manus", self.board.get("sceneDescription") or "Beskriv historien"), ("02  Filmbibel", f"{len(self.board.get('characters', []))} karakterer · {len((self.board.get('filmBible') or {}).get('locations', []))} steder"), ("03  Bildeplan og opptak", f"{count} klipp · {duration:.1f} sekunder planlagt")):
+        for heading, detail in (("01  Idea and script", self.board.get("sceneDescription") or "Describe the story"), ("02  Film bible", f"{len(self.board.get('characters', []))} characters · {len((self.board.get('filmBible') or {}).get('locations', []))} locations"), ("03  Image plan and takes", f"{count} clips · {duration:.1f} seconds planned")):
             content += f'<Border Background="#1C2427" Padding="20" CornerRadius="9"><VBox Spacing="9">{v.label(heading,19)}{v.label(str(detail)[:650],13,True)}</VBox></Border>'
-        content += '<HBox Spacing="10">' + v.button("Prosjektinnstillinger", "project.settings") + v.button("Vis prosjektmappen", "folder.project") + v.button("Eksporter prosjekt", "project.export") + v.button("Slett prosjekt…", "project.delete") + '</HBox>'
+        content += '<HBox Spacing="10">' + v.button("Project settings", "project.settings") + v.button("Open project folder", "folder.project") + v.button("Export project", "project.export") + v.button("Delete project…", "project.delete") + '</HBox>'
         self.replace_host("overview.content", content)
 
     def mode_set(self, mode):
@@ -562,7 +562,7 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
             return
         if mode == "cut" and not getattr(self, "_entering_cut", False):
             if any(key in self.pending for key in ("rename", "archive")):
-                self.toast("Vent til prosjektet er ferdig flyttet før du åpner klippen.", True)
+                self.toast("Wait until the project has finished moving before opening the clip.", True)
                 return
             self.save(after=self.open_cut)
             return
@@ -609,7 +609,7 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
         self.layout_editor()
         self.layout_creation()
 
-    def show_modal(self, heading, body, action=None, action_label="Lagre", detail="", allow_close=True):
+    def show_modal(self, heading, body, action=None, action_label="Save", detail="", allow_close=True):
         self.stop_workspace_preview(restore=True)
         self.modal_kind = heading
         self.replace_host("modal.content", v.modal(heading, body, action, action_label, detail, allow_close=allow_close))
@@ -617,19 +617,19 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
         self.set_attr("modal.scrim", "Visibility", "Visible")
 
     def show_new_project(self):
-        body = v.field("new.title", "Prosjektnavn", height=38, multiline=False, placeholder="Gi historien et navn")
-        body += v.field("new.brief", "Hva vil du lage?", height=135, placeholder="En idé er nok til å begynne…")
-        body += '<Label Text="UTTRYKK" Class="eyebrow"/><ComboBox Name="new.style" Items="Eget uttrykk|Varm animasjonsfilm|Filmisk realisme|Illustrert eventyr"/>'
-        body += v.label("Prosjektet får egne mapper for manus, input, output og produksjonshistorikk i Movies / Raven Studio.",12,True)
-        self.show_modal("Start en ny historie", body, "project.create", "Opprett prosjekt")
+        body = v.field("new.title", "Project name", height=38, multiline=False, placeholder="Give the story a name")
+        body += v.field("new.brief", "What do you want to create?", height=135, placeholder="One idea is enough to begin…")
+        body += '<Label Text="VISUAL STYLE" Class="eyebrow"/><ComboBox Name="new.style" Items="Custom style|Warm animated film|Cinematic realism|Illustrated fairy tale"/>'
+        body += v.label("The project gets separate folders for scripts, input, output, and production history in Movies / Raven Studio.",12,True)
+        self.show_modal("Start a new story", body, "project.create", "Create project")
         r.Rwidget_focus(self.find("new.title"))
 
     def create_project(self):
         name, brief = self.text("new.title").strip(), self.text("new.brief").strip()
         if not name:
-            raise ValueError("Gi prosjektet et navn først.")
+            raise ValueError("Give the project a name first.")
         if not self.ready:
-            raise ValueError("Produksjonskjernen starter fortsatt. Prøv igjen om et øyeblikk.")
+            raise ValueError("The production core is still starting. Try again in a moment.")
         styles = ["", "Warm handcrafted animation, tactile materials, gentle cinematic lighting.", "Cinematic realism, natural light, restrained camera movement.", "Illustrated storybook, expressive shapes, painterly environments."]
         style = styles[max(0, self.selected("new.style"))]
         def operation():
@@ -646,7 +646,7 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
             self.summaries = listing["boards"]
             self.open_project(slug)
         self.submit("create", operation, created, scoped=False)
-        self.set_label("modal.error", "Oppretter prosjekt og mapper…")
+        self.set_label("modal.error", "Creating project and folders…")
 
     def capture_drafts(self):
         self.capture_session_draft()
@@ -679,7 +679,7 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
             self.sync_fields()
         super().select_shot(index, seek=seek)
         if self.live and self.raw_shot:
-            self.set_label("sidebar.scene", f"Kameraoppsett {self.raw_shot.get('directorScene', 1):02}")
+            self.set_label("sidebar.scene", f"Camera setup {self.raw_shot.get('directorScene', 1):02}")
         if getattr(self, "live", False):
             self.render_cut_inspector()
             if self.shot:
@@ -703,12 +703,12 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
         if last and not continuation:
             scene += 1
         if continuation and sum(s.get("directorScene") == scene for s in shots) >= 6:
-            raise ValueError("Et kameraoppsett kan ha opptil seks klipp. Start et nytt kameraoppsett.")
-        shot = new_shot(f"Klipp {len(shots) + 1:02}", scene)
+            raise ValueError("A camera setup can have up to six shots. Start a new camera setup.")
+        shot = new_shot(f"Shot {len(shots) + 1:02}", scene)
         shot["dialogueSource"] = "native"
         bible = self.board.setdefault("filmBible", {"acts": [], "locations": [], "props": []})
         if not bible.get("locations"):
-            bible["locations"] = [{"id": "location-main", "title": "Hovedsted", "description": self.board.get("sceneDescription", "")}]
+            bible["locations"] = [{"id": "location-main", "title": "Main location", "description": self.board.get("sceneDescription", "")}]
         shot["locationId"] = bible["locations"][0]["id"]
         shot["characterIds"] = []
         if continuation and last:
@@ -730,18 +730,18 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
             return
         locations = (self.board.get("filmBible") or {}).get("locations", [])
         self.details_locations = locations
-        body = v.field("clip.title", "Klippets tittel", shot.get("title", ""), 36, multiline=False)
-        body += v.field("clip.camera", "Kamera og utsnitt", shot.get("camera", ""), 48, placeholder="F.eks. fast totalbilde i øyehøyde")
-        body += v.field("clip.prompt", "Videoprompt · engelsk prosa", shot.get("prompt", ""), 105, placeholder="Describe this shot's visible action, camera, light and sound.")
-        body += '<HBox Spacing="14"><VBox Slot.Fill="1"><Label Text="VARIGHET" Class="eyebrow"/><ComboBox Name="clip.duration" Items="4 sekunder|5 sekunder|6 sekunder"/></VBox><VBox Slot.Fill="1"><Label Text="KAMERAOPPSETT" Class="eyebrow"/><TextInput Name="clip.scene" Text="' + str(shot.get("directorScene", 1)) + '"/></VBox><VBox Slot.Fill="1"><Label Text="SEED" Class="eyebrow"/><TextInput Name="clip.seed" Text="' + str(shot.get("seed", 0)) + '"/></VBox></HBox>'
-        body += '<Label Text="STED" Class="eyebrow"/><ComboBox Name="clip.location" Items="' + v.esc("|".join(x.get("title", x["id"]) for x in locations) or "Velg et sted i filmbibelen") + '"/>'
-        body += '<Label Text="SYNLIGE KARAKTERER" Class="eyebrow"/><WrapBox Spacing="12">' + "".join(f'<Checkbox Name="clip.cast.{i}" Text="{v.esc(c.get("name", "Karakter"))}" Checked="{str(c["id"] in shot.get("characterIds", [])).lower()}"/>' for i, c in enumerate(self.board.get("characters", []))) + '</WrapBox>'
-        body += v.field("clip.dialogue", "Dialog · skriv språket i leveringsbeskrivelsen", shot.get("dialogue", ""), 65)
-        body += v.field("clip.sound", "Klippets lyd", shot.get("soundNote", ""), 55)
-        body += '<Label Text="LYDKILDE" Class="eyebrow"/><ComboBox Name="clip.speech" Items="LTX · generert tale|Eget opptak / separat dubbing"/>'
-        body += '<HBox Spacing="9">' + v.button("Bildeankre", "shot.anchors") + v.button("Lag åpningsbilde", "shot.image") + v.button("Avanserte opptak", "shot.advanced") + '</HBox>'
-        body += '<HBox Spacing="9">' + v.button("Flytt tidligere", "shot.up") + v.button("Flytt senere", "shot.down") + v.button("Fjern klipp", "shot.remove") + '</HBox>'
-        self.show_modal("Form opptaket", body, "shot.apply", "Lagre klippet")
+        body = v.field("clip.title", "Shot title", shot.get("title", ""), 36, multiline=False)
+        body += v.field("clip.camera", "Camera and framing", shot.get("camera", ""), 48, placeholder="E.g. locked wide shot at eye level")
+        body += v.field("clip.prompt", "Video prompt · English prose", shot.get("prompt", ""), 105, placeholder="Describe this shot's visible action, camera, light and sound.")
+        body += '<HBox Spacing="14"><VBox Slot.Fill="1"><Label Text="DURATION" Class="eyebrow"/><ComboBox Name="clip.duration" Items="4 seconds|5 seconds|6 seconds"/></VBox><VBox Slot.Fill="1"><Label Text="CAMERA SETUP" Class="eyebrow"/><TextInput Name="clip.scene" Text="' + str(shot.get("directorScene", 1)) + '"/></VBox><VBox Slot.Fill="1"><Label Text="SEED" Class="eyebrow"/><TextInput Name="clip.seed" Text="' + str(shot.get("seed", 0)) + '"/></VBox></HBox>'
+        body += '<Label Text="LOCATION" Class="eyebrow"/><ComboBox Name="clip.location" Items="' + v.esc("|".join(x.get("title", x["id"]) for x in locations) or "Choose a location in the film bible") + '"/>'
+        body += '<Label Text="VISIBLE CHARACTERS" Class="eyebrow"/><WrapBox Spacing="12">' + "".join(f'<Checkbox Name="clip.cast.{i}" Text="{v.esc(c.get("name", "Character"))}" Checked="{str(c["id"] in shot.get("characterIds", [])).lower()}"/>' for i, c in enumerate(self.board.get("characters", []))) + '</WrapBox>'
+        body += v.field("clip.dialogue", "Dialogue · write the language in the delivery description", shot.get("dialogue", ""), 65)
+        body += v.field("clip.sound", "Shot sound", shot.get("soundNote", ""), 55)
+        body += '<Label Text="AUDIO SOURCE" Class="eyebrow"/><ComboBox Name="clip.speech" Items="LTX · generated speech|Own takes / separate dubbing"/>'
+        body += '<HBox Spacing="9">' + v.button("Image anchors", "shot.anchors") + v.button("Create opening image", "shot.image") + v.button("Advanced takes", "shot.advanced") + '</HBox>'
+        body += '<HBox Spacing="9">' + v.button("Move earlier", "shot.up") + v.button("Move later", "shot.down") + v.button("Remove clip", "shot.remove") + '</HBox>'
+        self.show_modal("Shape take set", body, "shot.apply", "Save clip")
         r.Rcombo_box_set_selected(self.find("clip.duration"), min(2, max(0, round(shot.get("frames", 121) / 24) - 4)))
         r.Rcombo_box_set_selected(self.find("clip.location"), next((i for i, x in enumerate(locations) if x["id"] == shot.get("locationId")), 0))
         r.Rcombo_box_set_selected(self.find("clip.speech"), 0 if shot.get("dialogueSource") == "native" else 1)
@@ -752,7 +752,7 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
             return
         scene, seed = int(self.text("clip.scene")), int(self.text("clip.seed"))
         if scene < 1 or not 0 <= seed < 2**32:
-            raise ValueError("Kameraoppsett må være positivt. Seed må være mellom 0 og 4294967295.")
+            raise ValueError("Camera setup must be positive. Seed must be between 0 and 4294967295.")
         previous = self.board["shots"][self.index - 1] if self.index else None
         continuing = bool(previous and previous.get("directorScene") == scene)
         frames = (4 + max(0, self.selected("clip.duration"))) * 24 + (0 if continuing else 1)
@@ -786,7 +786,7 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
     def remove_shot(self):
         if not self.raw_shot:
             return
-        if not self.player.confirm(b"Fjern klippet fra planen?", "Medier og en kopi av planen beholdes i prosjektet.".encode()):
+        if not self.player.confirm(b"Remove the shot from the plan?", "Media and a copy of the plan remain in the project.".encode()):
             return
         self.workspace.snapshots(self.slug, self.board)
         self.board["shots"].pop(self.index)
@@ -802,27 +802,27 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
             return
         self.anchor_choices = [x for x in self.catalogue if x["kind"] == "image"]
         existing = shot.get("imageAnchors", [])
-        lines = "".join(f'<HBox>{v.label(str(a.get("frame")) + " · styrke " + str(a.get("strength")),12)}<Spacer Slot.Fill="1"/>{v.button("Fjern",f"anchor.remove.{i}")}</HBox>' for i,a in enumerate(existing))
-        body = v.label("Manuelle bildeankre", 20) + (lines or v.label("Ingen manuelle ankere ennå.",12,True))
-        body += '<Separator/><Label Text="BILDE" Class="eyebrow"/><ComboBox Name="anchor.image" Items="' + v.esc("|".join(Path(x["path"]).name for x in self.anchor_choices) or "Importer et referansebilde først") + '"/>'
-        body += v.field("anchor.frame", "Bilderamme · 0 er første nye bilde, last er siste", "last", 36, multiline=False)
-        body += v.field("anchor.strength", "Styrke · over 0 til og med 1", "0.65", 36, multiline=False)
-        self.show_modal("Bildeankre", body, "anchor.add", "Legg til anker")
+        lines = "".join(f'<HBox>{v.label(str(a.get("frame")) + " · styrke " + str(a.get("strength")),12)}<Spacer Slot.Fill="1"/>{v.button("Remove",f"anchor.remove.{i}")}</HBox>' for i,a in enumerate(existing))
+        body = v.label("Manual image anchors", 20) + (lines or v.label("No manual anchors yet.",12,True))
+        body += '<Separator/><Label Text="PICTURE" Class="eyebrow"/><ComboBox Name="anchor.image" Items="' + v.esc("|".join(Path(x["path"]).name for x in self.anchor_choices) or "Import a reference image first") + '"/>'
+        body += v.field("anchor.frame", "Image frame · 0 is the first new image, last is the final one", "last", 36, multiline=False)
+        body += v.field("anchor.strength", "Strength · greater than 0 and up to 1", "0.65", 36, multiline=False)
+        self.show_modal("Image anchors", body, "anchor.add", "Add anchor")
 
     def add_anchor(self):
         if not self.anchor_choices:
-            raise ValueError("Importer eller lag et bilde først.")
+            raise ValueError("Import or create an image first.")
         shot = self.raw_shot
         frame = self.text("anchor.frame").strip()
         frame = "last" if frame.lower() == "last" else int(frame)
         strength = float(self.text("anchor.strength"))
         if not 0 < strength <= 1 or (frame != "last" and not 0 <= frame < shot["frames"]):
-            raise ValueError("Velg en ramme inne i klippet og en styrke mellom 0 og 1.")
+            raise ValueError("Choose a frame inside the shot and a strength between 0 and 1.")
         path = Path(self.anchor_choices[self.selected("anchor.image")]["path"])
         ref = self.ref_for(path)
         anchors = [a for a in shot.get("imageAnchors", []) if a.get("frame") != frame]
         if len(anchors) >= 32:
-            raise ValueError("Maksimalt 32 ankere per klipp.")
+            raise ValueError("Maximum 32 anchors per shot.")
         anchors.append({"frame": frame, "strength": strength, "ref": ref})
         shot["imageAnchors"] = anchors
         self.set_dirty(True)
@@ -830,15 +830,15 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
         self.show_anchors()
 
     def show_advanced(self):
-        body = v.label("Utvalgte verktøy for ett opptak. Originale medier bevares ved omtak.",13,True)
-        body += v.field("advanced.requirement", "Hva skal forbedres?", height=85, placeholder="F.eks. tydeligere håndbevegelse og roligere kamera")
-        body += '<HBox Spacing="9">' + v.button("Tre seed-varianter", "advanced.seeds") + v.button("Foreslå bedre prompt", "advanced.rewrite") + v.button("Avgrenset forbedringsrunde", "advanced.refine") + '</HBox>'
-        body += '<Separator/>' + v.button("Forbered dialogopptak", "advanced.dialogue")
-        self.show_modal("Avanserte opptak", body)
+        body = v.label("Selected tools for one take. Original media is preserved on retakes.",13,True)
+        body += v.field("advanced.requirement", "What should be improved?", height=85, placeholder="E.g. clearer hand movement and a steadier camera")
+        body += '<HBox Spacing="9">' + v.button("Three seed variants", "advanced.seeds") + v.button("Suggest a better prompt", "advanced.rewrite") + v.button("Focused improvement pass", "advanced.refine") + '</HBox>'
+        body += '<Separator/>' + v.button("Prepare dialogue take", "advanced.dialogue")
+        self.show_modal("Advanced takes", body)
 
     def advanced(self, kind):
         if not self.raw_shot:
-            raise ValueError("Velg et klipp først.")
+            raise ValueError("Choose a clip first.")
         slug, shot_id = self.slug, self.raw_shot["id"]
         requirement = self.text("advanced.requirement")
         paths = {"seeds": "/api/render-seeds", "rewrite": "/api/rewrite", "refine": "/api/refine", "dialogue": "/api/prepare-dialogue"}
@@ -850,18 +850,18 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
             if kind == "rewrite":
                 text = result.get("text") or result.get("rewritten") or result.get("prompt") or ""
                 self.rewrite_text = text
-                self.show_modal("Forslag til videoprompt", v.label(text or str(result),13), "advanced.apply", "Bruk prompten")
+                self.show_modal("Video prompt suggestion", v.label(text or str(result),13), "advanced.apply", "Use prompt")
             else:
                 self.modal_close()
                 self.mode_set("production")
-                self.toast("Jobben er sendt. Følg fremdriften i produksjonsoversikten.")
+                self.toast("The job was submitted. Follow progress in the production overview.")
         self.save(after=lambda: self.submit("advanced", lambda: self.backend.post(paths[kind], payload, timeout=1200), done))
 
     def ref_for(self, path):
         path = Path(path).resolve()
         relative = str(path.relative_to(self.workspace.projects_dir.resolve()))
         if self.workspace.local_media(relative) is None:
-            raise ValueError("Bildet ligger utenfor prosjektbiblioteket.")
+            raise ValueError("The image is outside the project library.")
         return {"kind": "upload", "path": relative, "url": "/media/" + relative, "label": path.name}
 
     def import_media(self):
@@ -878,7 +878,7 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
                 return None
             return self.backend.upload(slug, original)
         def done(ref):
-            self.toast("Referansen er importert. Originalen er bevart i Input.")
+            self.toast("The reference was imported. The original is preserved in Input.")
             if ref and Path(ref.get("path", "")).suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"} and len(self.image_refs) < 10:
                 self.image_refs.append(ref)
             self.poll_deadline = 0
@@ -895,7 +895,7 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
             self.open_project(source.relative_to(self.workspace.projects_dir.resolve()).parts[0])
             return
         if not self.ready:
-            raise ValueError("Produksjonskjernen må være klar før import.")
+            raise ValueError("The production core must be ready before import.")
         def operation():
             from importing import import_project
             return import_project(source, self.backend, self.workspace)
@@ -903,38 +903,38 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
             self.summaries = result[1]["boards"]
             self.open_project(result[0])
         self.submit("import", operation, done, scoped=False)
-        self.toast("Importerer en selvstendig kopi av prosjektet…")
+        self.toast("Importing a standalone copy of the project…")
 
     def show_settings(self, project=False):
         if project and self.board:
-            body = v.field("settings.name", "Prosjektnavn", self.board.get("name", ""), 36, multiline=False)
+            body = v.field("settings.name", "Project name", self.board.get("name", ""), 36, multiline=False)
             body += '<Label Text="VIDEOFORMAT" Class="eyebrow"/><ComboBox Name="settings.size" Items="384 × 256 · verifisert|512 × 320|640 × 384|768 × 512"/>'
-            body += v.field("settings.music", "Musikkbeskrivelse", self.board.get("soundtrackPrompt", ""), 70, placeholder="Musikalsk uttrykk ved eksport")
-            body += '<Label Text="MODELLKONTROLL ETTER OPPTAK" Class="eyebrow"/><ComboBox Name="settings.review" Items="Rask · manuell gjennomgang|Balansert · utvalgte modellkontroller|Grundig · flere kontroller"/>'
-            body += '<HBox Spacing="10">' + v.button("Slett prosjekt…", "project.delete") + v.button("Arkiver prosjekt", "project.archive") + v.button("Eksporter med alle medier", "project.export") + v.button("Lag musikk", "soundtrack.generate") + '</HBox>'
-            self.show_modal("Prosjektinnstillinger", body, "settings.save", "Lagre innstillinger")
+            body += v.field("settings.music", "Music description", self.board.get("soundtrackPrompt", ""), 70, placeholder="Musical style for export")
+            body += '<Label Text="MODEL REVIEW AFTER TAKES" Class="eyebrow"/><ComboBox Name="settings.review" Items="Quick · manual review|Balanced · selected model checks|Thorough · additional checks"/>'
+            body += '<HBox Spacing="10">' + v.button("Delete project…", "project.delete") + v.button("Archive project", "project.archive") + v.button("Export with all media", "project.export") + v.button("Create music", "soundtrack.generate") + '</HBox>'
+            self.show_modal("Project settings", body, "settings.save", "Save settings")
             sizes = ["384x256", "512x320", "640x384", "768x512"]
             r.Rcombo_box_set_selected(self.find("settings.size"), sizes.index(self.board.get("defaults", {}).get("resolution", "384x256")) if self.board.get("defaults", {}).get("resolution", "384x256") in sizes else 0)
             modes = ["fast", "balanced", "thorough"]
             r.Rcombo_box_set_selected(self.find("settings.review"), modes.index(self.board.get("ravenSettings", {}).get("reviewMode", "fast")))
         else:
-            body = v.label("PRODUKSJONSOMRÅDE",10,True) + v.label(str(self.workspace.root),15)
-            body += v.label("Nye prosjekter og medier lagres her. Modellene bruker den eksisterende installasjonen.",13,True)
-            body += '<HBox Spacing="10">' + v.button("Vis produksjonsmappen", "folder.root") + v.button("Koble til igjen", "backend.retry") + '</HBox>'
-            body += '<Separator/>' + v.label("Produksjonsmotorer", 20)
-            body += v.label("Bilder bruker Qwen i Comfy Desktop. Video bruker LTX-2.5 Q8. Åpne den eksisterende Comfy Desktop-instansen før du lager medier.",13,True)
-            body += '<HBox Spacing="10">' + v.button("Åpne Comfy Desktop", "service.comfy") + v.button("Oppdater motorstatus", "service.refresh") + '</HBox>'
+            body = v.label("PRODUCTION AREA",10,True) + v.label(str(self.workspace.root),15)
+            body += v.label("New projects and media are saved here. Models use the existing installation.",13,True)
+            body += '<HBox Spacing="10">' + v.button("Show production folder", "folder.root") + v.button("Reconnect", "backend.retry") + '</HBox>'
+            body += '<Separator/>' + v.label("Productionsmotorer", 20)
+            body += v.label("Images use Qwen in Comfy Desktop. Video uses LTX-2.5 Q8. Open the existing Comfy Desktop instance before creating media.",13,True)
+            body += '<HBox Spacing="10">' + v.button("Open Comfy Desktop", "service.comfy") + v.button("Refresh engine status", "service.refresh") + '</HBox>'
             backend = (getattr(self, "info", {}) or {}).get("backend", {})
-            body += v.label(backend.get("message") or "Produksjonskjernen starter…",12,True)
+            body += v.label(backend.get("message") or "Production core starting…",12,True)
             for item in (getattr(self, "info", {}) or {}).get("llm", {}).get("services", []):
-                body += v.label(item.get("label", item.get("id", "Språkmodell")),13,True)
-            self.show_modal("Studioinnstillinger", body)
+                body += v.label(item.get("label", item.get("id", "Language model")),13,True)
+            self.show_modal("Studio settings", body)
 
     def open_comfy(self):
         app = Path("/Applications/Comfy Desktop.app")
         if not app.is_dir():
-            raise ValueError("Comfy Desktop finnes ikke i Applications.")
-        self.submit("service.comfy", lambda: subprocess.run(["/usr/bin/open", "-a", str(app)], check=True, capture_output=True), lambda _: self.toast("Comfy Desktop åpnes. Velg LTX-2.5 Q8-instansen dersom du blir bedt om det."), scoped=False)
+            raise ValueError("Comfy Desktop was not found in Applications.")
+        self.submit("service.comfy", lambda: subprocess.run(["/usr/bin/open", "-a", str(app)], check=True, capture_output=True), lambda _: self.toast("Comfy Desktop is opening. Choose the LTX-2.5 Q8 instance if prompted."), scoped=False)
 
     def apply_settings(self):
         name = self.text("settings.name").strip()
@@ -949,9 +949,9 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
 
     def rename_project(self, name):
         if self.editorial_io_busy() or any(key.startswith(("cut.", "coverage.")) for key in self.pending):
-            raise ValueError("Vent til redigeringen eller eksporten er ferdig før du endrer prosjektnavnet.")
+            raise ValueError("Wait until editing or export is finished before changing the project name.")
         slug = self.slug
-        if not name.strip(): raise ValueError("Prosjektet trenger et navn.")
+        if not name.strip(): raise ValueError("The project needs a name.")
         def done(result):
             self.conversations.rebind_project(slug,result["slug"])
             self.current_conversation=self.conversations.load(self.current_conversation["id"])
@@ -971,11 +971,11 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
         if not self.slug or not self.board:
             return
         if self.editorial_io_busy() or any(key.startswith(("cut.", "coverage.")) for key in self.pending):
-            raise ValueError("Vent til redigeringen eller eksporten er ferdig før du arkiverer prosjektet.")
+            raise ValueError("Wait until editing or export is finished before archiving the project.")
         if self._busy():
-            raise ValueError("Vent til produksjonen er ferdig før prosjektet arkiveres.")
+            raise ValueError("Wait until production is finished before archiving the project.")
         name, slug = self.board.get("name", self.slug), self.slug
-        if not self.player.confirm("Arkiver prosjektet?".encode(), f"«{name}» flyttes til Archive. Ingen medier slettes.".encode()):
+        if not self.player.confirm("Archive projectet?".encode(), f"«{name}» will move to Archive. No media will be deleted.".encode()):
             return
         def done(_):
             self.conversations.rebind_project(slug,None)
@@ -990,7 +990,7 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
         slug = self.slug
         def done(path):
             self.last_export = path
-            self.show_modal("Eksporten er klar", v.label(str(path),13), "export.reveal", "Vis eksport")
+            self.show_modal("Export is ready", v.label(str(path),13), "export.reveal", "Show export")
         self.save(after=lambda: self.submit("export", lambda: self.workspace.export(slug), done))
 
     def _busy(self):
@@ -1012,9 +1012,9 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
             self.sync_fields()
             previous_images = fingerprint(self.images)
             self.engine_state = payload["engine"]
-            self.set_label("video.status",("Opptak pågår · "+str(self.engine_state.get("currentShotId") or self.engine_state.get("currentShot") or "arbeider")) if self.engine_state.get("busy") else "Velg et ferdig take i opptakshistorikken.")
+            self.set_label("video.status",("Take in progress · "+str(self.engine_state.get("currentShotId") or self.engine_state.get("currentShot") or "working")) if self.engine_state.get("busy") else "Choose a completed take in take history.")
             clip_error = self.engine_state.get('error')
-            self.set_label('quickclip.status',str(clip_error) if clip_error else 'Opptak pågår…' if self.engine_state.get('busy') else 'Åpne opptakshistorikken for å se og velge et take.')
+            self.set_label('quickclip.status',str(clip_error) if clip_error else 'Take in progress…' if self.engine_state.get('busy') else 'Open take history to view and choose a take.')
             self.set_attr('quickclip.generate','Enabled',not self._busy() and 'clip.generate' not in self.pending and 'video.generate' not in self.pending)
             self.set_attr('quickclip.stop','Enabled',self.engine_state.get('slug')==slug and bool(self.engine_state.get('busy')))
             self.image_state = payload["images"]
@@ -1046,11 +1046,11 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
                 self.selected_image = self.images[0]
             job = payload["images"].get("job") or {}
             if job.get("busy"):
-                self.set_label("image.status", f"Lager bilde · {job.get('phase', 'arbeider')} · {float(job.get('progress') or 0):.0f}%")
+                self.set_label("image.status", f"Creating image · {job.get('phase', 'working')} · {float(job.get('progress') or 0):.0f}%")
             elif job.get("error"):
-                self.set_label("image.status", "Bildejobben stoppet: " + str(job["error"])[:400])
+                self.set_label("image.status", "Image job stopped: " + str(job["error"])[:400])
             else:
-                self.set_label("image.status", "Velg et resultat og vurder bildet før du bruker det.")
+                self.set_label("image.status", "Choose a result and review the image before using it.")
             self.set_attr("image.generate", "Enabled", "false" if self._busy() or "image.generate" in self.pending else "true")
             if previous_images != fingerprint(self.images) and self.mode == "images":
                 self.render_images()
@@ -1064,7 +1064,7 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
         path = Path(path).resolve()
         in_project = path.is_relative_to(self.workspace.projects_dir.resolve())
         if not path.is_file() or not (in_project or self.library.resolve(path)):
-            raise ValueError("Mediefilen finnes ikke i produksjonsområdet.")
+            raise ValueError("The media file does not exist in the production area.")
         return_gate = bool(self.gate_key and self.mode == "production")
         self.player.close()
         self.active_video = ""
@@ -1076,13 +1076,13 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
         if inline and self.mode in CUT_MODES:
             self.start_workspace_preview(path,title,video)
             return
-        body = v.label("Lydavspilling",26) if audio and not video else '<Border Background="#0B1113" CornerRadius="10" Height="350"><Image Name="preview.image" Stretch="Fit"/></Border>'
+        body = v.label("Audio playback",26) if audio and not video else '<Border Background="#0B1113" CornerRadius="10" Height="350"><Image Name="preview.image" Stretch="Fit"/></Border>'
         if video or audio:
             self.preview_media["time_media"] = True
             self.player.open(str(path).encode())
-            body += '<HBox Spacing="12">' + v.button("Spill av / pause", "preview.play", True) + v.button("Fra starten", "preview.restart") + v.button("Lyd på", "preview.mute", Name="preview.audio") + '<Label Name="preview.time" Text="00:00" Font="monospace" Slot.VAlign="Center"/></HBox>'
-            body += v.label("Lyd avspilles fra den faktiske filen. Vurder bevegelse, tale og overgangen til neste åpning.",12,True)
-        self.show_modal(title or path.name, body, "preview.reveal", "Vis fil")
+            body += '<HBox Spacing="12">' + v.button("Play / pause", "preview.play", True) + v.button("From the beginning", "preview.restart") + v.button("Audio on", "preview.mute", Name="preview.audio") + '<Label Name="preview.time" Text="00:00" Font="monospace" Slot.VAlign="Center"/></HBox>'
+            body += v.label("Audio plays from the actual file. Review movement, speech, and the transition to the next opening.",12,True)
+        self.show_modal(title or path.name, body, "preview.reveal", "Show file")
         if not (video or audio):
             r.Rimage_set_texture(self.find("preview.image"), self.texture(str(path)))
 
@@ -1133,25 +1133,25 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
         self.player.reveal(str(path).encode())
 
     def command_palette(self):
-        body = v.field("command.query", "Finn et prosjekt eller velg en handling", height=36, multiline=False, placeholder="Prosjektnavn eller handling…")
+        body = v.field("command.query", "Find a project or choose an action", height=36, multiline=False, placeholder="Project name or action…")
         body += '<VBox Name="command.results" Spacing="8"/>'
-        self.show_modal("Hva vil du gjøre?", body)
+        self.show_modal("What do you want to do?", body)
         self.command_query = None
         r.Rwidget_focus(self.find("command.query"))
 
     def update_commands(self):
-        if self.modal_kind != "Hva vil du gjøre?":
+        if self.modal_kind != "What do you want to do?":
             return
         query = self.text("command.query").lower()
         if query == self.command_query:
             return
         self.command_query = query
-        actions = [("Startside", "page.home"), ("Generer et bilde", "home.image"), ("Lag et klipp", "home.clip"), ("Filmstudio", "home.studio"), ("Nytt prosjekt", "project.new"), ("Importer prosjekt", "project.import"), ("Vis produksjonsmappen", "folder.root"), ("Papirkurv", "project.trash")]
+        actions = [("Home", "page.home"), ("Create an image", "home.image"), ("Create a clip", "home.clip"), ("Film Studio", "home.studio"), ("New project", "project.new"), ("Import project", "project.import"), ("Open production folder", "folder.root"), ("Trash", "project.trash")]
         if self.board:
-            actions += [("Sekvenser og spilletid", "page.structure"), ("Lydspor og miks", "page.sound")]
-            actions += [("Skriv manus", "page.brief"), ("Sceneoversikt", "page.scenes"), ("Romkart og coverage", "page.coverage"), ("Klipp filmen", "page.cut"), ("Lag bilde", "page.images"), ("Legg til klipp", "shot.add"), ("Produksjon", "page.production"), ("Regissøren", "page.director"), ("Eksporter prosjekt", "project.export"), ("Slett prosjekt…", "project.delete")]
+            actions += [("Sequences and duration", "page.structure"), ("Sound and mix", "page.sound")]
+            actions += [("Write script", "page.brief"), ("Scene overview", "page.scenes"), ("Room map and coverage", "page.coverage"), ("Cut the film", "page.cut"), ("Create image", "page.images"), ("Add clip", "shot.add"), ("Production", "page.production"), ("AI Director", "page.director"), ("Export project", "project.export"), ("Delete project…", "project.delete")]
         actions += [(item.get("name", item["slug"]), "project.open." + item["slug"]) for item in self.summaries]
-        self.replace_host("command.results", "".join(v.button(title, action) for title, action in actions if query in title.lower()) or v.label("Ingen treff.",12,True))
+        self.replace_host("command.results", "".join(v.button(title, action) for title, action in actions if query in title.lower()) or v.label("No matches.",12,True))
 
     def _window_close(self):
         self.request_quit()
@@ -1159,13 +1159,13 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
 
     def compare_images(self):
         if len(self.images) < 2:
-            raise ValueError("Lag eller importer minst to bilder for å sammenligne.")
+            raise ValueError("Create or import at least two images to compare.")
         self.compare_records = list(self.images)
         choices = v.esc("|".join(f"{i + 1:02} · seed {record.get('seed', '–')}" for i, record in enumerate(self.compare_records)))
         body = '<HBox Spacing="16">'
         for side in ("a", "b"):
-            body += f'<VBox Spacing="12" Slot.Fill="1"><Label Text="{"FØRSTE" if side == "a" else "ANDRE"} BILDE" Class="eyebrow"/><ComboBox Name="compare.{side}" Items="{choices}" OnChanged="image.compare.update"/><Border Background="#0C1113" Height="290" CornerRadius="9"><Image Name="compare.{side}.image" Stretch="Fit"/></Border><Label Name="compare.{side}.detail" Text="" Class="muted" Wrap="true"/></VBox>'
-        self.show_modal("Sammenlign uttrykk", body + '</HBox>', detail="Velg to beholdte bilder og vurder utsnitt, lys og kontinuitet side ved side.")
+            body += f'<VBox Spacing="12" Slot.Fill="1"><Label Text="{"FIRST" if side == "a" else "SECOND"} PICTURE" Class="eyebrow"/><ComboBox Name="compare.{side}" Items="{choices}" OnChanged="image.compare.update"/><Border Background="#0C1113" Height="290" CornerRadius="9"><Image Name="compare.{side}.image" Stretch="Fit"/></Border><Label Name="compare.{side}.detail" Text="" Class="muted" Wrap="true"/></VBox>'
+        self.show_modal("Compare looks", body + '</HBox>', detail="Choose two saved images and review framing, light, and continuity side by side.")
         r.Rcombo_box_set_selected(self.find("compare.a"), 0)
         r.Rcombo_box_set_selected(self.find("compare.b"), 1)
         self.update_comparison()
@@ -1176,7 +1176,7 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
             if 0 <= index < len(getattr(self, "compare_records", [])):
                 record = self.compare_records[index]
                 r.Rimage_set_texture(self.find("compare." + side + ".image"), self.texture(self._record_path(record)))
-                self.set_label("compare." + side + ".detail", str(record.get("resolvedPrompt") or record.get("prompt") or "Bevart bilde")[:350])
+                self.set_label("compare." + side + ".detail", str(record.get("resolvedPrompt") or record.get("prompt") or "Retained image")[:350])
 
     def request_quit(self):
         if hasattr(self,"updater") and (self.update_waiting or self.updater.status()["stage"] in {"waiting","staged","installing"}):
@@ -1195,7 +1195,7 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
         self.closing = True
         self.playing = False
         self.player.play(False)
-        self.show_modal("Avslutter studioet", v.label("Lagrer prosjektet og venter på at egne produksjonsjobber frigir ressursene. Ferdige opptak og kjøringshistorikk bevares.",14,True))
+        self.show_modal("Closing studio", v.label("Saving the project and waiting for local production jobs to release resources. Finished takes and run history are preserved.",14,True))
         outstanding = list(self.pending.values())
         def operation():
             for future in outstanding:
@@ -1416,7 +1416,7 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
                 job = (self.image_state or {}).get("job") or {}; slug = self.slug
                 if job.get("jobId") and job.get("busy"):
                     payload = {"slug":slug,"jobId":job["jobId"]}
-                    self.submit("image.stop", lambda: self.backend.post("/api/images/stop",payload), lambda _: self.toast("Den valgte bildejobben avsluttes."))
+                    self.submit("image.stop", lambda: self.backend.post("/api/images/stop",payload), lambda _: self.toast("The selected image job is stopping."))
             elif action.startswith("library.open."): self.open_library(int(action.rsplit(".",1)[1]))
             elif action.startswith("library.adopt."): self.adopt_library(int(action.rsplit(".",1)[1]))
             elif action in {"library.search", "library.refresh"}:
@@ -1442,7 +1442,7 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
             elif action == "director.author.start": self.start_authoring()
             elif action == "director.author.cancel": self.cancel_authoring()
             elif action == "director.plan":
-                self.mode_set("director"); self.set_text("director.message", "Foreslå en gjennomførbar sceneplan for filmideen i dette prosjektet. Bruk korte klipp med start, én handling, slutt og kamera. Bruk bare kjente karakterer og steder, og foreslå klipp i dette prosjektet uten å starte produksjon.")
+                self.mode_set("director"); self.set_text("director.message", "Suggest a feasible scene plan for the film idea in this project. Use short clips with a start, one action, ending, and camera. Use only known characters and places, and suggest clips in this project without starting production.")
             elif action.startswith("director.apply."): self.apply_chat(int(action.rsplit(".",1)[1]))
             elif action.startswith("director.retry."): self.retry_director(int(action.rsplit(".",1)[1]))
             elif action == "production.refresh": self.poll_deadline = 0
@@ -1464,7 +1464,7 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
             elif action.startswith("take.adopt."): self.adopt_seed_take(int(action.rsplit(".",1)[1]))
             elif action == "soundtrack.generate":
                 slug = self.slug
-                self.save(after=lambda:self.submit("music", lambda:self.backend.post(f"/api/boards/{quote(slug)}/soundtrack",{},timeout=1200),lambda _:self.toast("Musikkjobben er fullført.")))
+                self.save(after=lambda:self.submit("music", lambda:self.backend.post(f"/api/boards/{quote(slug)}/soundtrack",{},timeout=1200),lambda _:self.toast("Music job is complete.")))
             elif action == "preview.play":
                 if self.preview_media:
                     if self.player.duration() and self.player.time() >= self.player.duration() - 1/24: self.player.seek(0)
@@ -1473,7 +1473,7 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
             elif action == "preview.mute" and self.preview_media:
                 self.preview_media["muted"] = not self.preview_media["muted"]
                 self.player.mute(self.preview_media["muted"])
-                r.Rbutton_set_text(self.w("audio") if self.preview_media.get("inline") else self.find("preview.audio"), "Lyd av" if self.preview_media["muted"] else "Lyd på")
+                r.Rbutton_set_text(self.w("audio") if self.preview_media.get("inline") else self.find("preview.audio"), "Audio off" if self.preview_media["muted"] else "Audio on")
             elif action == "preview.reveal" and self.preview_media: self.player.reveal(self.preview_media["path"].encode())
             else:
                 super().on_action(sender, action, user)

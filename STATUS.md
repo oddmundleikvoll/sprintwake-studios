@@ -13,6 +13,29 @@ The entries below are chronological implementation history. Older descriptions
 of the installed app, source dependencies or missing features are superseded by
 the current overview and later entries; they are not a remaining-work list.
 
+# English public interface and source README — 2026-11-04
+
+- Source version 0.10.2/build 16 uses English native navigation, forms, defaults,
+  validation copy and File/Edit menus, with English bundle development locale.
+  The director guide defaults to English and honors the user's chosen language.
+  Existing project text, stored labels, IDs, profile/status enums and private
+  data paths remain compatible. The installed 0.10.1/build 15 app is unchanged.
+- The public description and README foreground long-form films, the built-in
+  director and fully local workflows. Installation/build instructions follow
+  the first screenshot. Local builds use included engine/runtime and require
+  neither Developer ID nor notarization; model weights/services remain external.
+- Three real native screenshots use a fictional project and already-public art.
+  The director conversation is scripted and explicitly disclosed, with no model
+  inference. scripts/capture-showcase.sh recreates the isolated capture session.
+- Local verification passes 269 app tests, seven native CTest suites, pure
+  contract parity, and 342 engine CPU tests with five expected optional external
+  worker skips. The source window passes all 194 native checks with zero Raven
+  errors. Additional tests cover English/legacy conversation auto-titles,
+  save-before-generation ordering and valid director-guide JSON examples.
+- Independent source/guide review is complete. Standalone relocated-bundle and
+  hosted CI verification are in progress. No app binary, appcast or model weights
+  are published; CC BY-NC-SA 4.0 and upstream notices remain unchanged.
+
 # Public source foundation — 2026-11-04
 
 - LICENSE preserves CC BY-NC-SA 4.0 and the original Storyboard attribution;

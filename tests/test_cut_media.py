@@ -86,7 +86,7 @@ class CutMediaTests(unittest.TestCase):
     def test_missing_selected_video_stops_export_without_silently_omitting_it(self):
         source = {"id": "x", "label": "Take", "video": "Input/missing.mp4", "image": ""}
         doc = self.store.commit(self.doc, choose_take(self.doc["clips"], "a", source, 48), "Take")
-        with self.assertRaisesRegex(ValueError, "mangler"):
+        with self.assertRaisesRegex(ValueError, "missing"):
             export_cut(self.store, doc, self.project)
         self.assertFalse(list((self.store.project / "Output/Video").glob("*.mp4")))
 

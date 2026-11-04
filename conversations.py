@@ -42,12 +42,12 @@ class ConversationStore:
         try:
             relative = path.relative_to(self.root)
         except ValueError as exc:
-            raise ValueError("Sti utenfor arbeidsområdet") from exc
+            raise ValueError("Path is outside the workspace") from exc
         current = self.root
         for part in ("", *relative.parts):
             current = self.root if not part else current / part
             if current.is_symlink():
-                raise ValueError(f"Symlink er ikke tillatt i arbeidsområdet: {current}")
+                raise ValueError(f"Symlinks are not allowed in the workspace: {current}")
 
     def _ensure_directory(self, path: Path) -> None:
         self._assert_safe(path)
@@ -57,7 +57,7 @@ class ConversationStore:
     @staticmethod
     def _validate_id(identifier: str) -> str:
         if not isinstance(identifier, str) or not _ID_RE.fullmatch(identifier):
-            raise ValueError("Ugyldig samtale-ID")
+            raise ValueError("Invalid conversation ID")
         return identifier
 
     @staticmethod
@@ -65,7 +65,7 @@ class ConversationStore:
         if slug is None:
             return None
         if not isinstance(slug, str) or not _SLUG_RE.fullmatch(slug):
-            raise ValueError("Ugyldig prosjekt-ID")
+            raise ValueError("Invalid project ID")
         return slug
 
     def _path(self, identifier: str) -> Path:
@@ -108,17 +108,17 @@ class ConversationStore:
         try:
             session = json.loads(path.read_text(encoding="utf-8"))
         except json.JSONDecodeError as exc:
-            raise ValueError("Samtalen er ikke gyldig JSON") from exc
+            raise ValueError("Conversation is not valid JSON") from exc
         if not isinstance(session, dict) or session.get("id") != identifier:
-            raise ValueError("Samtalefilen har feil ID")
+            raise ValueError("The conversation file has the wrong ID")
         return session
 
-    def create(self, project_slug: str | None = None, title: str = "Ny samtale") -> dict[str, Any]:
+    def create(self, project_slug: str | None = None, title: str = "New conversation") -> dict[str, Any]:
         project_slug = self._validate_slug(project_slug)
         now = self._stamp()
         session = {
             "id": uuid.uuid4().hex,
-            "title": title or "Ny samtale",
+            "title": title or "New conversation",
             "projectSlug": project_slug,
             "messages": [],
             "composer": {},
@@ -130,18 +130,18 @@ class ConversationStore:
 
     def save(self, session: dict[str, Any]) -> dict[str, Any]:
         if not isinstance(session, dict):
-            raise TypeError("Samtalen må være et objekt")
+            raise TypeError("Conversation must be an object")
         identifier = self._validate_id(session.get("id"))
         if "projectSlug" in session:
             session["projectSlug"] = self._validate_slug(session.get("projectSlug"))
         if not isinstance(session.get("messages", []), list):
-            raise ValueError("messages må være en liste")
+            raise ValueError("messages must be a list")
         if not isinstance(session.get("composer", {}), dict):
-            raise ValueError("composer må være et objekt")
-        session.setdefault("title", "Ny samtale")
+            raise ValueError("composer must be an object")
+        session.setdefault("title", "New conversation")
         session.setdefault("messages", [])
         session.setdefault("composer", {})
-        if session.get("title") in {"", "Ny samtale", "Untitled"}:
+        if session.get("title") in {"", "Ny samtale", "New conversation", "Untitled"}:
             first_user = next((message for message in session["messages"]
                                if isinstance(message, dict) and message.get("role") == "user"), None)
             content = first_user.get("content") if isinstance(first_user, dict) else ""
@@ -174,7 +174,7 @@ class ConversationStore:
                 continue
             result.append({
                 "id": session["id"],
-                "title": session.get("title", "Ny samtale"),
+                "title": session.get("title", "New conversation"),
                 "projectSlug": session.get("projectSlug"),
                 "createdAt": session.get("createdAt"),
                 "updatedAt": session.get("updatedAt"),
@@ -216,7 +216,7 @@ class ConversationStore:
             for message in session.get("messages",[]):
                 if not isinstance(message,dict): continue
                 if (message.get("execution") or {}).get("status") == "running":
-                    message["execution"]={"status":"interrupted","message":"Utførelsen ble avbrutt. Kontroller prosjektet og be om et oppdatert forslag før du fortsetter."}
+                    message["execution"]={"status":"interrupted","message":"Execution was interrupted. Review the project and request an updated proposal before continuing."}
                     message["stale"]=True
                     touched=True
             if touched:
@@ -254,16 +254,16 @@ class ConversationStore:
                 return candidate
         messages = json.loads(raw.decode("utf-8"))
         if not isinstance(messages, list):
-            raise ValueError("Legacy conversation må være en liste")
+            raise ValueError("Legacy conversation must be a list")
         first_user = next((m for m in messages if isinstance(m, dict) and m.get("role") == "user"), None)
         content = first_user.get("content") if isinstance(first_user, dict) else ""
-        title = str(content).strip().replace("\n", " ")[:80] or f"{project_slug} · Samtale"
+        title = str(content).strip().replace("\n", " ")[:80] or f"{project_slug} · Conversation"
         for message in messages:
             if isinstance(message, dict) and message.get("role") == "assistant":
                 message.setdefault("sourceSlug", project_slug)
                 if message.get("actions") and not message.get("applied"):
                     message["stale"] = True
-                    message["staleReason"] = "Regissørverktøyene er oppdatert; be om et nytt forslag."
+                    message["staleReason"] = "Director tools have been updated; request a new proposal."
         session = self.create(project_slug, title)
         session["messages"] = messages
         session["legacySource"] = {"path": source, "sha256": digest}

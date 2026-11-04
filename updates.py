@@ -15,7 +15,7 @@ class NativeUpdater:
         self.lib.sw_update_start()
     def status(self):
         if self.lib:return json.loads(self.lib.sw_update_status().decode())
-        return {'configured':False,'stage':'disabled','message':'Oppdateringer er tilgjengelige i den pakkede appen.','requestId':0}
+        return {'configured':False,'stage':'disabled','message':'Updates are available in the packaged app.','requestId':0}
     def check(self):
         if self.lib:self.lib.sw_update_check()
     def request_install(self):
@@ -27,10 +27,10 @@ class NativeUpdater:
 def local_blockers(studio):
     """Polling itself is harmless; all other pending work must finish."""
     blocked=[]
-    if not getattr(studio,'ready',False):blocked.append('Produksjonsmotoren er ikke bekreftet klar')
+    if not getattr(studio,'ready',False):blocked.append('The production engine is not confirmed ready')
     for key in getattr(studio,'pending',{}):
-        if key not in {'poll','updates.prepare'}:blocked.append('Aktivt arbeid: '+key)
+        if key not in {'poll','updates.prepare'}:blocked.append('Active work: '+key)
     for name in ('opening','director_starting','coverage_drag','coverage_io_busy','cut_gesture_pending','sound_gesture_pending'):
         if getattr(studio,name,False):blocked.append(name)
-    if getattr(studio,'dirty',False):blocked.append('Ulagrede klippendringer')
+    if getattr(studio,'dirty',False):blocked.append('Unsaved cut changes')
     return blocked

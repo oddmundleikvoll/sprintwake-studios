@@ -18,14 +18,14 @@ class LayoutPlaybackMixin:
         self.preview_media={'path':str(path),'inline':True,'time_media':True,'video':video,'playing':False,'muted':False}
         if not self.player.open(str(path).encode()):
             self.preview_media=None
-            raise ValueError('Kunne ikke åpne forhåndsvisningen.')
-        self.set_label('viewer.kind','FILM MED LYDMIKS' if video else 'LYDMIKS')
+            raise ValueError('Could not open the preview.')
+        self.set_label('viewer.kind','FILM MED SOUNDMIKS' if video else 'SOUNDMIKS')
         self.set_label('viewer.caption',title)
-        self.set_label('viewer.camera','Hele klippen · lagret miks')
-        self.set_label('viewer.source','Forhåndsvisning av lagret klipp og miks')
+        self.set_label('viewer.camera','Full cut · saved mix')
+        self.set_label('viewer.source','Preview of saved cut and mix')
         self.set_attr('viewer.empty','Visibility','Collapsed')
         self.set_attr('audio','Enabled',True)
-        r.Rbutton_set_text(self.w('audio'),'Lyd på')
+        r.Rbutton_set_text(self.w('audio'),'Audio on')
 
     def tick_workspace_preview(self):
         pixels,width,height=self.player.read_frame()
@@ -38,7 +38,7 @@ class LayoutPlaybackMixin:
         self.sound_cursor=max(0,round(current*24))
         self.update_clock()
         r.Rtimeline_set_time(self.find('sound.timeline'),current)
-        self.set_label('viewer.source',f'Lagret miks · {current:.2f} / {duration:.2f} s')
+        self.set_label('viewer.source',f'Saved mix · {current:.2f} / {duration:.2f} s')
         if self.player.status()<0:
             self.preview_media['playing']=False
             self.toast(self.player.error().decode(),True)

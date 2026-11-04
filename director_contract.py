@@ -14,10 +14,10 @@ from types import ModuleType
 def load_contract() -> ModuleType:
     path = Path(__file__).resolve().parent / "contracts/raven_contract.py"
     if not path.is_file():
-        raise FileNotFoundError(f"Raven-kontrakten finnes ikke: {path}")
+        raise FileNotFoundError(f"The Raven contract is missing: {path}")
     spec = importlib.util.spec_from_file_location("raven_canonical_contract", path)
     if spec is None or spec.loader is None:
-        raise ImportError("Kunne ikke laste Raven-kontrakten")
+        raise ImportError("Could not load the Raven contract")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module

@@ -20,12 +20,12 @@ def config_path():
 
 
 def endpoint(value):
-    if not isinstance(value,str) or any(c.isspace() for c in value): raise ValueError('Ugyldig tjenesteadresse.')
+    if not isinstance(value,str) or any(c.isspace() for c in value): raise ValueError('Invalid service address.')
     parts=urlsplit(value)
     if parts.scheme not in {'http','https'} or not parts.hostname or parts.username or parts.password or parts.query or parts.fragment:
-        raise ValueError('Bruk http(s)-adresse uten nøkkel, brukernavn eller spørreparametre.')
+        raise ValueError('Use an http(s) address without a key, username, or query parameters.')
     try: parts.port
-    except ValueError: raise ValueError('Ugyldig port.') from None
+    except ValueError: raise ValueError('Invalid port.') from None
     return value.rstrip('/')
 
 
@@ -47,41 +47,41 @@ def defaults():
 
 def validate(doc):
     if not isinstance(doc,dict) or set(doc)!={'version','paths','comfyUrl','selected','llmProfiles','workflowProfiles'} or type(doc['version']) is not int or doc['version']!=1:
-        raise ValueError('Ukjent tilkoblingsformat.')
+        raise ValueError('Unknown connection format.')
     out=copy.deepcopy(doc)
-    if not isinstance(out['paths'],dict) or set(out['paths'])!={'root','engine','python','workspace'}: raise ValueError('Ugyldige installasjonsmapper.')
+    if not isinstance(out['paths'],dict) or set(out['paths'])!={'root','engine','python','workspace'}: raise ValueError('Invalid installation paths.')
     for name,value in out['paths'].items():
-        if not isinstance(value,str) or not value.strip() or len(value)>4096 or '\0' in value: raise ValueError('Velg en gyldig sti for '+name)
+        if not isinstance(value,str) or not value.strip() or len(value)>4096 or '\0' in value: raise ValueError('Choose a valid path for '+name)
         path=Path(value).expanduser()
-        if not path.is_absolute(): raise ValueError('Bruk absolutt sti eller ~ for '+name)
+        if not path.is_absolute(): raise ValueError('Use an absolute path or ~ for '+name)
         out['paths'][name]=str(path)
     out['comfyUrl']=endpoint(out['comfyUrl'])
-    if not isinstance(out['llmProfiles'],list) or len(out['llmProfiles'])>30: raise ValueError('For mange språkmodeller.')
+    if not isinstance(out['llmProfiles'],list) or len(out['llmProfiles'])>30: raise ValueError('Too many language models.')
     llms={'local','none'}
     for item in out['llmProfiles']:
-        if not isinstance(item,dict) or set(item)!={'id','label','kind','url','model','vision'}: raise ValueError('Ugyldig språkmodellprofil.')
+        if not isinstance(item,dict) or set(item)!={'id','label','kind','url','model','vision'}: raise ValueError('Invalid language model profile.')
         ident=item['id']
-        if not isinstance(ident,str) or not IDS.fullmatch(ident) or ident in llms: raise ValueError('Velg en unik profil-ID.')
+        if not isinstance(ident,str) or not IDS.fullmatch(ident) or ident in llms: raise ValueError('Choose a unique profile ID.')
         llms.add(ident)
-        if item['kind'] not in LLM_KINDS or type(item['vision']) is not bool: raise ValueError('Ugyldig modelltype.')
+        if item['kind'] not in LLM_KINDS or type(item['vision']) is not bool: raise ValueError('Invalid model type.')
         for key in ('label','model'):
-            if not isinstance(item[key],str) or not item[key].strip() or len(item[key])>300: raise ValueError('Fyll ut navn og modell-ID.')
+            if not isinstance(item[key],str) or not item[key].strip() or len(item[key])>300: raise ValueError('Enter a name and model ID.')
         item['url']=endpoint(item['url'])
-    if not isinstance(out['workflowProfiles'],list) or len(out['workflowProfiles'])>30: raise ValueError('For mange workflow-profiler.')
+    if not isinstance(out['workflowProfiles'],list) or len(out['workflowProfiles'])>30: raise ValueError('Too many workflow profiles.')
     media={'image':{'qwen-local','none'},'video':{'ltx-local','none'}}
     seen=set()
     for item in out['workflowProfiles']:
         if not isinstance(item,dict) or not isinstance(item.get('kind'),str) or item['kind'] not in media or not isinstance(item.get('id'),str) or item['id'] in seen|{'none','qwen-local','ltx-local'}:
-            raise ValueError('Ugyldig eller duplisert workflow-profil.')
+            raise ValueError('Invalid or duplicate workflow profile.')
         # The bundled pure adapter schema is validated before profile import;
         # validate again at server startup before any job can be queued.
         _workflow_validator()(item)
         seen.add(item['id']);media[item['kind']].add(item['id'])
     selected=out['selected']
-    if not isinstance(selected,dict) or set(selected)!={'llm','image','video'}: raise ValueError('Velg modellprofiler.')
+    if not isinstance(selected,dict) or set(selected)!={'llm','image','video'}: raise ValueError('Choose model profiles.')
     for key,choices in {'llm':llms,**media}.items():
-        if not isinstance(selected[key],str) or selected[key] not in choices: raise ValueError('Ukjent valgt profil: '+key)
-    if len(json.dumps(out,ensure_ascii=False).encode())>4_000_000:raise ValueError('Tilkoblingsfilen er for stor.')
+        if not isinstance(selected[key],str) or selected[key] not in choices: raise ValueError('Unknown selected profile: '+key)
+    if len(json.dumps(out,ensure_ascii=False).encode())>4_000_000:raise ValueError('Connection file is too large.')
     return out
 
 
@@ -94,7 +94,7 @@ class ConnectionStore:
     def __init__(self,path=None): self.path=Path(path or config_path()).expanduser().resolve()
     def load(self):
         if not self.path.exists(): return defaults()
-        if self.path.stat().st_size>4_000_000: raise ValueError('Tilkoblingsfilen er for stor.')
+        if self.path.stat().st_size>4_000_000: raise ValueError('Connection file is too large.')
         return validate(json.loads(self.path.read_text()))
     def save(self,doc):
         doc=validate(doc)

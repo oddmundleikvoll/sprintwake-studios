@@ -1,6 +1,7 @@
 # Sprintwake Studios — mål og prosjektstatus
 
 Oppdatert 4. november 2026. Installert versjon: **0.10.1, build 15**.
+Kildeversjon under verifikasjon: **0.10.2, build 16**, med engelsk grensesnitt og offentlig README med skjermbilder. Installert app er ikke erstattet.
 Dette er den samlede oversikten over brukerens mål, levert arbeid og neste steg.
 [STATUS.md](STATUS.md) inneholder detaljert verifikasjon og historikk.
 

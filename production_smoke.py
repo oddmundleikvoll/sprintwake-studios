@@ -186,7 +186,7 @@ def run(studio):
     studio.on_action(None, "image.assign", None)
     wait(lambda: not studio.dirty and "save" not in studio.pending, "Image assigned")
     studio.show_take_history(); wait(lambda: "take.history" not in studio.pending, "Take history loaded")
-    check(studio.modal_kind == "Opptakshistorikk", "Actual take endpoint and empty history")
+    check(studio.modal_kind == "Take history", "Actual take endpoint and empty history")
     studio.modal_close()
     studio.mode_set("production"); studio.render_production(); pump(.2)
     studio.capture(QA_ROOT / "studio-production.png")
@@ -484,7 +484,7 @@ def run(studio):
     inspected = studio.history[-1]["execution"]["result"]
     check({row["tool"] for row in inspected["results"]}==set(EDITORIAL_TOOLS) and all(row["editorial"]["status"]=="ok" for row in inspected["results"]),"Director reads all four real editorial journals through validated tools")
     check(all(path.read_bytes()==data for path,data in before_inspection.items()),"Agent inspection preserves canonical production and every journal byte")
-    check(studio.modal_kind=="Regissørens resultat","Read-only director receipt opens in the actual native window")
+    check(studio.modal_kind=="Director result","Read-only director receipt opens in the actual native window")
     studio.capture(QA_ROOT/"studio-director-editorial.png")
     studio.on_action(None,"page.sound",None)
     wait(lambda:studio.mode=="sound" and "editorial.load" not in studio.pending,"Director receipt opens native sound panel")
@@ -505,8 +505,8 @@ def run(studio):
     preserved_ref=studio.board["shots"][0]["startRef"]["path"]
     studio.mode_set("home")
     studio.on_action(None,"project.delete."+original_slug,None)
-    wait(lambda:studio.modal_kind=="Slett prosjekt?", "Delete confirmation opens after pending edits save")
-    check(studio.modal_kind=="Slett prosjekt?", "Delete is discoverable on project cards with explicit confirmation")
+    wait(lambda:studio.modal_kind=="Delete project?", "Delete confirmation opens after pending edits save")
+    check(studio.modal_kind=="Delete project?", "Delete is discoverable on project cards with explicit confirmation")
     before=(project_path/"storyboard.json").read_bytes()
     studio.on_action(None,"project.delete.confirm",None)
     wait(lambda:"project.delete" not in studio.pending,"Project deletion completed")

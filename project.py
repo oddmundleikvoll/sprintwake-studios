@@ -87,18 +87,18 @@ class Project:
 
     def validate(self) -> None:
         if not re.fullmatch(r"[a-zA-Z0-9_-]{1,80}", self.id):
-            raise ValueError("Ugyldig prosjekt-ID.")
+            raise ValueError("Invalid project ID.")
         if len(self.shots) > 500:
-            raise ValueError("Prototypen støtter opptil 500 klipp.")
+            raise ValueError("Prototype supports up to 500 shots.")
         if len({s.id for s in self.shots}) != len(self.shots):
-            raise ValueError("Duplisert klipp-ID.")
+            raise ValueError("Duplicate shot ID.")
         for s in self.shots:
             if isinstance(s.duration, bool) or not isinstance(s.duration, (int, float)) or not math.isfinite(s.duration) or not 1 / 24 <= s.duration <= 3600:
-                raise ValueError("Klippvarighet må være mellom én ramme og én time.")
+                raise ValueError("Shot duration must be between one frame and one hour.")
             if type(s.selected_take) is not int or not 0 <= s.selected_take < max(1, len(s.takes)):
-                raise ValueError("Valgt take finnes ikke.")
+                raise ValueError("The selected take does not exist.")
             if isinstance(s.source_start, bool) or not isinstance(s.source_start, (int, float)) or not math.isfinite(s.source_start) or not 0 <= s.source_start <= 3600:
-                raise ValueError("Opptakets innpunkt må være mellom null og én time.")
+                raise ValueError("Take in-point must be between zero and one hour.")
             if len({t.id for t in s.takes}) != len(s.takes):
                 raise ValueError("Duplisert take-ID.")
 
@@ -137,21 +137,21 @@ def import_project(path: Path) -> Project:
     if path.is_dir():
         path /= "storyboard.json"
     if path.stat().st_size > 8_000_000:
-        raise ValueError("Prosjektfilen er for stor for prototypen.")
+        raise ValueError("Project file is too large.")
     data = json.loads(path.read_text())
     if not isinstance(data, dict):
-        raise ValueError("Prosjektfilen må inneholde et JSON-objekt.")
+        raise ValueError("Project file must contain a JSON object.")
     if data.get("format") == "storyboard-raven":
         if data.get("version") != 1:
-            raise ValueError("Ukjent versjon av Raven-arbeidskopien.")
+            raise ValueError("Unknown Raven workspace version.")
         return decode(data.get("project"), path.parent)
     if data.get("schema") != 1 or not isinstance(data.get("shots"), list):
-        raise ValueError("Velg storyboard.json eller en Raven-arbeidskopi.")
+        raise ValueError("Choose storyboard.json or a Raven working copy.")
     base = path.parent
     shots = []
     for i, item in enumerate(data["shots"]):
         if not isinstance(item, dict):
-            raise ValueError("Et klipp må inneholde et JSON-objekt.")
+            raise ValueError("A shot must contain a JSON object.")
         sid = str(item.get("id", f"{i + 1:02}"))
         take_image = ""
         stills = item.get("stills") or {}
@@ -174,14 +174,14 @@ def import_project(path: Path) -> Project:
         frames = item.get("frames", item.get("numFrames", 121))
         duration = float(item.get("duration") or float(frames) / 24)
         takes = [Take("imported", "Original", take_image, video)] if take_image or video else []
-        shots.append(Shot(sid, str(item.get("title") or f"Klipp {i + 1:02}"), duration,
-                          camera=str(item.get("camera") or "Kamera ikke beskrevet"),
+        shots.append(Shot(sid, str(item.get("title") or f"Shot {i + 1:02}"), duration,
+                          camera=str(item.get("camera") or "Camera not described"),
                           start=str(item.get("start") or item.get("startState") or ""),
                           action=str(item.get("action") or item.get("prompt") or ""),
                           end=str(item.get("end") or item.get("endState") or ""), takes=takes))
     project = Project("import-" + hashlib.sha256(str(path).encode()).hexdigest()[:16],
                       str(data.get("name") or data.get("title") or base.name),
-                      "Arbeidskopi fra Storyboard", shots, source=str(path))
+                      "Working copy from Storyboard", shots, source=str(path))
     cast = data.get("characters") or []
     if cast and isinstance(cast[0], dict):
         character = cast[0]
@@ -195,14 +195,14 @@ def import_project(path: Path) -> Project:
 
 def decode(data: dict, base: Path) -> Project:
     if not isinstance(data, dict) or not isinstance(data.get("shots"), list):
-        raise ValueError("Ugyldig Raven-prosjekt.")
+        raise ValueError("Invalid Raven project.")
     shots = []
     for item in data["shots"]:
         if not isinstance(item, dict) or not isinstance(item.get("takes", []), list):
-            raise ValueError("Ugyldig klipp i Raven-arbeidskopien.")
+            raise ValueError("Invalid shot in Raven workspace copy.")
         item = dict(item)
         if not all(isinstance(t, dict) for t in item.get("takes", [])):
-            raise ValueError("Ugyldig take i Raven-arbeidskopien.")
+            raise ValueError("Invalid take in Raven workspace copy.")
         item["takes"] = [Take(**{**t, "image": media_path(t.get("image"), base, external=True),
                                     "video": media_path(t.get("video"), base, external=True)})
                          for t in item.get("takes", [])]
@@ -228,11 +228,11 @@ def load_working_copy(path: Path, workspace: Path = ROOT / "workspace") -> Proje
 def save_project(project: Project, workspace: Path = ROOT / "workspace") -> Path:
     project.validate()
     if workspace.is_symlink():
-        raise ValueError("Arbeidsmappen kan ikke være en symbolsk lenke.")
+        raise ValueError("Workspace cannot be a symbolic link.")
     workspace.mkdir(parents=True, exist_ok=True)
     target = workspace / f"{project.id}.raven.json"
     if target.is_symlink():
-        raise ValueError("Arbeidskopien kan ikke være en symbolsk lenke.")
+        raise ValueError("Workspace copy cannot be a symbolic link.")
     data = {"format": "storyboard-raven", "version": 1, "project": asdict(project)}
     fd, temporary = tempfile.mkstemp(prefix=".save-", dir=workspace)
     try:

@@ -23,21 +23,21 @@
 }
 - (void)waitWithHandler:(void (^)(void))handler {
     self.installation=handler;self.approved=NO;self.requestID++;
-    self.stage=@"waiting";self.message=@"Oppdateringen venter på at aktive jobber og lagring er ferdige.";
+    self.stage=@"waiting";self.message=@"The update is waiting for active jobs and saves to finish.";
 }
 - (BOOL)updater:(SPUUpdater *)updater shouldPostponeRelaunchForUpdate:(SUAppcastItem *)item untilInvokingBlock:(void (^)(void))handler {
     (void)updater;(void)item;if (self.approved) return NO;[self waitWithHandler:handler];return YES;
 }
 - (BOOL)updater:(SPUUpdater *)updater willInstallUpdateOnQuit:(SUAppcastItem *)item immediateInstallationBlock:(void (^)(void))handler {
     (void)updater;(void)item;if (self.approved) return NO;self.installation=handler;self.approved=NO;
-    self.stage=@"staged";self.message=@"Oppdateringen er lastet ned. Installer når arbeidet er ferdig.";
+    self.stage=@"staged";self.message=@"Update downloaded. Install when work is finished.";
     return YES;
 }
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender {
     if (self.approved) return NSTerminateNow;
     if (self.installation || self.terminating || [self.stage isEqual:@"installing"]) {
         if (![self.stage isEqual:@"waiting"]) { self.requestID++;self.stage=@"waiting"; }
-        self.terminating=YES;self.message=@"Venter på trygg avslutning av produksjonsmotoren.";
+        self.terminating=YES;self.message=@"Waiting for the production engine to stop safely.";
         return NSTerminateCancel;
     }
     if ([self.previousDelegate respondsToSelector:_cmd]) return [self.previousDelegate applicationShouldTerminate:sender];
@@ -45,13 +45,13 @@
 }
 - (void)updater:(SPUUpdater *)updater didFindValidUpdate:(SUAppcastItem *)item {
     (void)updater;self.version=item.displayVersionString;self.build=item.versionString.integerValue;self.stage=@"available";
-    self.message=[NSString stringWithFormat:@"Versjon %@ er tilgjengelig.",self.version];
+    self.message=[NSString stringWithFormat:@"Version %@ is available.",self.version];
 }
 - (void)updater:(SPUUpdater *)updater didDownloadUpdate:(SUAppcastItem *)item {
-    (void)updater;(void)item;self.message=@"Oppdateringen er lastet ned og klargjøres.";
+    (void)updater;(void)item;self.message=@"Update downloaded and preparing.";
 }
 - (void)updater:(SPUUpdater *)updater didExtractUpdate:(SUAppcastItem *)item {
-    (void)updater;(void)item;self.message=@"Oppdateringen er klar. Bekreft installasjon i oppdateringsvinduet.";
+    (void)updater;(void)item;self.message=@"Update is ready. Confirm installation in the update window.";
 }
 - (void)updater:(SPUUpdater *)updater willInstallUpdate:(SUAppcastItem *)item {
     (void)updater;(void)item;
@@ -68,7 +68,7 @@ static SWUpdater *bridge;
 
 int sw_update_start(void) {
     if (bridge) return bridge.controller!=nil;
-    bridge=[SWUpdater new];bridge.stage=@"disabled";bridge.message=@"Oppdateringer er tilgjengelige i den pakkede appen.";bridge.version=@"";
+    bridge=[SWUpdater new];bridge.stage=@"disabled";bridge.message=@"Updates are available in the packaged app.";bridge.version=@"";
     NSDictionary *info=NSBundle.mainBundle.infoDictionary;
     NSString *feed=info[@"SUFeedURL"],*key=info[@"SUPublicEDKey"];
     NSURL *url=feed ? [NSURL URLWithString:feed] : nil;
@@ -76,25 +76,25 @@ int sw_update_start(void) {
     if (!url || (!localTest && ![url.scheme isEqual:@"https"]) || key.length!=44) return 0;
     bridge.previousDelegate=NSApp.delegate;NSApp.delegate=(id<NSApplicationDelegate>)bridge;
     bridge.controller=[[SPUStandardUpdaterController alloc] initWithStartingUpdater:NO updaterDelegate:bridge userDriverDelegate:nil];
-    bridge.stage=@"idle";bridge.message=@"Søk etter en ny signert utgave av Sprintwake Studios.";
+    bridge.stage=@"idle";bridge.message=@"Check for a new signed version of Sprintwake Studios.";
     [bridge.controller startUpdater];
     return 1;
 }
 void sw_update_check(void) {
     if (!bridge.controller || bridge.installation) return;
-    if (!bridge.controller.updater.sessionInProgress) {bridge.stage=@"checking";bridge.message=@"Ser etter oppdateringer…";}
+    if (!bridge.controller.updater.sessionInProgress) {bridge.stage=@"checking";bridge.message=@"Checking for updates…";}
     [bridge.controller checkForUpdates:nil];
 }
 void sw_update_request_install(void) {
     if (!bridge || (!bridge.installation && !bridge.terminating)) return;
-    bridge.requestID++;bridge.stage=@"waiting";bridge.message=@"Venter på aktive produksjoner og lagring…";
+    bridge.requestID++;bridge.stage=@"waiting";bridge.message=@"Waiting for active productions and saves…";
 }
 void sw_update_defer(void) {
-    if (!bridge.approved && bridge.installation) {bridge.stage=@"staged";bridge.message=@"Oppdateringen er klar til senere installasjon.";}
+    if (!bridge.approved && bridge.installation) {bridge.stage=@"staged";bridge.message=@"Update is ready for later installation.";}
 }
 int sw_update_approve(uint64_t requestID) {
     if (!bridge || bridge.requestID!=requestID || ![bridge.stage isEqual:@"waiting"]) return 0;
-    bridge.approved=YES;bridge.stage=@"installing";bridge.message=@"Installerer og starter på nytt…";
+    bridge.approved=YES;bridge.stage=@"installing";bridge.message=@"Installing and restarting…";
     void (^handler)(void)=bridge.installation;bridge.installation=nil;
     if (handler) handler();else [NSApp terminate:nil];
     return 1;

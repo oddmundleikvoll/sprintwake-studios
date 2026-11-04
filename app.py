@@ -23,7 +23,7 @@ def e(value: object) -> str:
 
 def image_xml(path: str, **attrs) -> str:
     options = " ".join(f'{k}="{e(v)}"' for k, v in attrs.items())
-    return f'<Image Source="{e(path)}" Stretch="Cover" {options}/>' if path else f'<Border Background="#252A2D" {options}><Label Text="Ingen bilder" Class="muted" Slot.HAlign="Center" Slot.VAlign="Center"/></Border>'
+    return f'<Image Source="{e(path)}" Stretch="Cover" {options}/>' if path else f'<Border Background="#252A2D" {options}><Label Text="No images" Class="muted" Slot.HAlign="Center" Slot.VAlign="Center"/></Border>'
 
 
 def timecode(seconds: float) -> str:
@@ -44,7 +44,7 @@ class Studio:
         self.errors: list[dict] = []
         r.Rerror_set_callback(self.on_error)
         if not r.Rinit(r.R_BACKEND_VULKAN):
-            raise RuntimeError(f"Raven kunne ikke starte: {r.Rerror_get_last()}")
+            raise RuntimeError(f"Raven could not start: {r.Rerror_get_last()}")
         r.Rxml_set_live_reload(False)
         r.Rtheme_load(str(ROOT / "assets/copper.xml"))
         r.Rtheme_use("Copper")
@@ -57,7 +57,7 @@ class Studio:
                 try:
                     self.projects[i] = import_project(saved)
                 except (OSError, ValueError, TypeError, KeyError) as error:
-                    print(f"Kunne ikke lese arbeidskopi {saved.name}: {error}", file=sys.stderr)
+                    print(f"Could not read working copy {saved.name}: {error}", file=sys.stderr)
         self.project = self.projects[0]
         self.index = 0
         self.mode = "film"
@@ -76,7 +76,7 @@ class Studio:
         self.compact = False
         self.window = r.Rwindow_create_from_xml_file(str(ROOT / "assets/studio.xml"))
         if self.window == r.R_INVALID_ID:
-            raise RuntimeError("Kunne ikke bygge Raven-vinduet.")
+            raise RuntimeError("Could not build the Raven window.")
         native = r.RNativeWindow()
         if r.Rwindow_get_native_handle(self.window, native):
             self.player.attach_window(native.display)
@@ -145,7 +145,7 @@ class Studio:
                   <Label Text="{e(shot.title)}" Slot.Fill="1" TextSize="13"/>
                   <Label Text="{shot.duration:.1f}s" Class="muted" TextSize="10"/></HBox>
               </VBox></Button>''')
-        empty = '<Label Text="Ingen klipp ennå. Originalprosjektet er åpnet som en tom arbeidskopi." Wrap="true" Class="muted"/>'
+        empty = '<Label Text="No clips yet. The original project is open as an empty working copy." Wrap="true" Class="muted"/>'
         return f'<VBox Spacing="12">{"".join(cards) or empty}</VBox>'
 
     def populate_project(self):
@@ -153,16 +153,16 @@ class Studio:
         self.index = min(self.index, max(0, len(self.project.shots) - 1))
         self.label("project.title", self.project.title)
         self.label("project.subtitle", self.project.subtitle)
-        self.label("sidebar.count", f"{len(self.project.shots):02} KLIPP")
+        self.label("sidebar.count", f"{len(self.project.shots):02} SHOTS")
         self.label("total", timecode(self.project.duration))
-        self.label("plan.summary", f"{len(self.project.shots)} klipp  /  {self.project.duration:.1f} sekunder  /  24 fps")
+        self.label("plan.summary", f"{len(self.project.shots)} shots  /  {self.project.duration:.1f} seconds  /  24 fps")
         self.replace("shots", self.sidebar_xml())
         timeline = self.w("timeline")
         r.Rtimeline_clear(timeline)
         r.Rtimeline_set_duration(timeline, max(1, self.project.duration + (10 if self.mode == "cut" else 0)))
         r.Rtimeline_set_frame_rate(timeline, 24)
         r.Rtimeline_set_view(timeline, 0, max(5, self.project.duration + 1))
-        track = r.Rtimeline_add_track(timeline, "BILDE")
+        track = r.Rtimeline_add_track(timeline, "PICTURE")
         r.Rtimeline_set_track_color(timeline, track, .77, .57, .40)
         r.Rtimeline_set_track_height(timeline, track, 42)
         r.Rtimeline_set_track_locked(timeline, track, self.mode != "cut")
@@ -173,7 +173,7 @@ class Studio:
             self.timeline_items[item] = i
             r.Rtimeline_set_item_color(timeline, item, .45, .34, .25)
             start += shot.duration
-        audio = r.Rtimeline_add_track(timeline, "LYD")
+        audio = r.Rtimeline_add_track(timeline, "SOUND")
         self.timeline_tracks = [track, audio]
         r.Rtimeline_set_track_locked(timeline, audio, True)
         r.Rtimeline_set_track_height(timeline, audio, 28)
@@ -182,13 +182,13 @@ class Studio:
             start = 0
             for shot in self.project.shots:
                 if shot.take and shot.take.video:
-                    r.Rtimeline_add_clip(timeline, audio, start, shot.duration, "Original lyd · bekreftes ved avspilling")
+                    r.Rtimeline_add_clip(timeline, audio, start, shot.duration, "Original audio · confirmed on playback")
                 start += shot.duration
         else:
-            r.Rtimeline_add_marker(timeline, 0, "Bildeplan · lyd ikke produsert")
+            r.Rtimeline_add_marker(timeline, 0, "Image plan · audio not produced")
         r.Rimage_set_texture(self.w("bible.image"), self.texture(self.project.character_image))
-        self.label("bible.name", self.project.character_name or "Ingen karakterkort")
-        self.label("bible.description", self.project.character_description or "Åpne et prosjekt med valgte karakterreferanser.")
+        self.label("bible.name", self.project.character_name or "No character card")
+        self.label("bible.description", self.project.character_description or "Open a project with selected character references.")
         self.updating = False
         self.select_shot(self.index)
         self.set_dirty(False)
@@ -206,11 +206,11 @@ class Studio:
             r.Rimage_set_texture(self.w("viewer"), r.R_INVALID_ID)
             self.attr("viewer.empty", "Visibility", "Visible")
             self.attr("inspector", "Enabled", "false")
-            self.label("shot.title", "Ingen klipp")
-            self.label("shot.meta", "Åpne en bildeplan for å begynne")
-            self.label("viewer.kind", "TOMT PROSJEKT")
-            self.label("viewer.source", "Originalprosjektet har ingen klipp eller medier")
-            self.label("viewer.caption", "Ingen klipp valgt")
+            self.label("shot.title", "No shots")
+            self.label("shot.meta", "Open an image plan to begin")
+            self.label("viewer.kind", "EMPTY PROJECT")
+            self.label("viewer.source", "The original project has no shots or media")
+            self.label("viewer.caption", "No shot selected")
             self.label("viewer.camera", "")
             self.attr("audio", "Enabled", "false")
             self.update_clock()
@@ -224,7 +224,7 @@ class Studio:
             if widget != r.R_INVALID_ID:
                 r.Rwidget_set_attribute(widget, "Class", "shot shot-active" if i == self.index else "shot")
         self.label("shot.title", shot.title)
-        self.label("shot.meta", f"KLIPP {self.index + 1:02}  /  {shot.duration:.1f} SEKUNDER")
+        self.label("shot.meta", f"SHOT {self.index + 1:02}  /  {shot.duration:.1f} SECONDS")
         self.label("viewer.camera", shot.camera)
         for name in ("start", "action", "end", "notes"):
             r.Rtext_editor_set_text(self.w(name), getattr(shot, name))
@@ -233,8 +233,8 @@ class Studio:
         for i, take in enumerate(shot.takes):
             cards.append(f'''<Button Class="{'take-active' if i == shot.selected_take else ''}" OnClicked="take.{i}" Metric.PaddingX="7" Metric.PaddingY="7">
               <HBox Spacing="12" HitTestable="false">{image_xml(take.image, Width="84", Height="57", CornerRadius="4")}
-                <VBox Slot.Fill="1" Spacing="5" Slot.VAlign="Center"><Label Text="{e(take.label)}"/><Label Text="{'Valgt' if i == shot.selected_take else 'Velg dette bildet'}" Class="muted" TextSize="11"/></VBox></HBox></Button>''')
-        self.replace("take.list", f'<VBox Spacing="10">{"".join(cards) or "<Label Text='Ingen takes i prosjektet' Class='muted'/>"}</VBox>')
+                <VBox Slot.Fill="1" Spacing="5" Slot.VAlign="Center"><Label Text="{e(take.label)}"/><Label Text="{'Selected' if i == shot.selected_take else 'Choose this image'}" Class="muted" TextSize="11"/></VBox></HBox></Button>''')
+        self.replace("take.list", f'<VBox Spacing="10">{"".join(cards) or "<Label Text='No takes in project' Class='muted'/>"}</VBox>')
         take = shot.take
         video = take.video if take else ""
         if video != self.active_video or (video and previous_index != self.index):
@@ -242,7 +242,7 @@ class Studio:
             self.active_video = video
             if video:
                 if not self.player.open(video.encode()):
-                    self.label("status", "Kunne ikke åpne videoen")
+                    self.label("status", "Could not open the video")
                 self.player.seek(shot.source_start)
                 if self.playing:
                     self.player.play(True)
@@ -253,10 +253,10 @@ class Studio:
             # A new shot must never show a previous shot's decoded pixels.
             r.Rimage_set_texture(self.w("viewer"), r.R_INVALID_ID)
         self.attr("viewer.empty", "Visibility", "Collapsed" if image or video else "Visible")
-        self.label("viewer.kind", "FAKTISK VIDEO" if video else "BILDEPLAN")
-        self.label("viewer.source", take.provenance if take else "Ingen medier valgt")
+        self.label("viewer.kind", "VIDEO" if video else "STORYBOARD")
+        self.label("viewer.source", take.provenance if take else "No media selected")
         self.label("viewer.caption", f"{self.index + 1:02}  /  {shot.title}")
-        r.Rbutton_set_text(self.w("audio"), "Lyd av" if self.muted else "Lyd på" if video else "Uten lyd")
+        r.Rbutton_set_text(self.w("audio"), "Audio off" if self.muted else "Audio on" if video else "No audio")
         self.attr("audio", "Enabled", "true" if video else "false")
         if seek:
             self.clock = sum(s.duration for s in self.project.shots[:self.index])
@@ -272,8 +272,8 @@ class Studio:
 
     def update_review(self):
         reviewed = self.shot and self.shot.reviewed
-        self.label("review.state", "Gjennomgått i arbeidskopien" if reviewed else "Klar for din gjennomgang")
-        r.Rbutton_set_text(self.w("review"), "Åpne for ny gjennomgang" if reviewed else "Merk gjennomgått")
+        self.label("review.state", "Reviewed in the working copy" if reviewed else "Ready for your review")
+        r.Rbutton_set_text(self.w("review"), "Open for another review" if reviewed else "Mark as reviewed")
 
     def edit(self, name):
         if self.updating or not self.shot:
@@ -301,12 +301,12 @@ class Studio:
 
     def set_dirty(self, value):
         self.dirty = value
-        self.label("save.state", "Ulagrede endringer" if value else "Arbeidskopi")
+        self.label("save.state", "Unsaved changes" if value else "Working copy")
 
     def save(self):
         path = save_project(self.project)
         self.set_dirty(False)
-        self.label("status", f"Lagret lokalt · {path.name}")
+        self.label("status", f"Saved locally · {path.name}")
         return path
 
     def switch_project(self, index):
@@ -322,7 +322,7 @@ class Studio:
         self.index = 0
         self.set_projects()
         self.populate_project()
-        self.label("status", "Bildeplanen er klar" if index == 0 else "Bevart prøveklipp · separat videostudie")
+        self.label("status", "Image plan is ready" if index == 0 else "Preserved test clip · separate video study")
 
     def mode_set(self, mode):
         self.mode = mode
@@ -392,7 +392,7 @@ class Studio:
                 self.muted = not self.muted
                 self.player.mute(self.muted)
                 r.Rtimeline_set_track_muted(self.w("timeline"), self.timeline_tracks[1], self.muted)
-                r.Rbutton_set_text(self.w("audio"), "Lyd av" if self.muted else "Lyd på")
+                r.Rbutton_set_text(self.w("audio"), "Audio off" if self.muted else "Audio on")
             elif action in ("transport.prev", "transport.next"):
                 self.select_shot(self.index + (-1 if action.endswith("prev") else 1))
             elif action in ("transport.left", "transport.right"):
@@ -429,7 +429,7 @@ class Studio:
                 elif command == "redo":
                     r.Rtext_editor_redo(editor)
         except (OSError, ValueError, TypeError, KeyError) as error:
-            self.label("status", f"Kunne ikke fullføre: {error}")
+            self.label("status", f"Could not complete: {error}")
             print(f"Handling {action}: {error}", file=sys.stderr)
 
     def seek(self, seconds):
@@ -464,7 +464,7 @@ class Studio:
             r.Rtimeline_set_item(timeline, item, self.timeline_tracks[0], start, shot.duration)
             start += shot.duration
         self.updating = False
-        self.label("status", "Tidslinjen viser planen. Endre rekkefølge og varighet i klippets Detaljer.")
+        self.label("status", "The timeline shows the plan. Change order and duration in the clip Details.")
 
     def update_clock(self):
         self.label("time", timecode(self.clock))
@@ -489,7 +489,7 @@ class Studio:
                 self.muted = muted
                 self.player.mute(muted)
                 if self.active_video:
-                    r.Rbutton_set_text(self.w("audio"), "Lyd av" if muted else "Lyd på")
+                    r.Rbutton_set_text(self.w("audio"), "Audio off" if muted else "Audio on")
             hidden = bool(r.Rtimeline_is_track_muted(timeline, self.timeline_tracks[0]))
             self.attr("viewer", "Visibility", "Hidden" if hidden else "Visible")
         if not getattr(self, 'live', False):
@@ -529,7 +529,7 @@ class Studio:
                         self.playing = False
             if self.player.has_audio():
                 take = self.shot.take
-                self.label("viewer.source", (take.provenance if take else "Video") + " · lydspor bekreftet")
+                self.label("viewer.source", (take.provenance if take else "Video") + " · audio track verified")
         elif self.playing:
             self.clock = min(self.project.duration, self.clock + dt)
             index, _ = self.project.shot_at(self.clock)
@@ -542,7 +542,7 @@ class Studio:
     def capture(self, path):
         pixels, width, height = r.Rwindow_capture(self.window)
         if not pixels:
-            raise RuntimeError("Raven kunne ikke ta vindusbilde.")
+            raise RuntimeError("Raven could not capture a window image.")
         try:
             write_png(path, ctypes.string_at(pixels, width * height * 4), width, height)
         finally:
@@ -568,7 +568,7 @@ def main():
                 studio.projects.append(load_working_copy(args.project))
                 studio.switch_project(len(studio.projects) - 1)
             except (OSError, ValueError, TypeError, KeyError) as error:
-                parser.error(f"Kunne ikke åpne prosjektet: {error}")
+                parser.error(f"Could not open project: {error}")
         if args.smoke_test:
             from smoke import run
             run(studio)

@@ -18,7 +18,7 @@ class DirectorStateTests(unittest.TestCase):
         actions=[{"tool":"add_shot","shot":{"title":f"Shot {i}"}} for i in range(6)]
         turn=response_turn({"message":"Her er første del.","proposalStatus":"ready","actions":actions},"source")
         self.assertEqual(turn["proposalStatus"],"ready")
-        self.assertIn("6 nye klipp",proposal_summary(turn["actions"]))
+        self.assertIn("6 new shots",proposal_summary(turn["actions"]))
         self.assertFalse(turn.get("applied"))
         self.assertEqual(normalize_turn(dict(turn,applied=True))["proposalStatus"],"applied")
 

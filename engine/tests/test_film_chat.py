@@ -217,7 +217,7 @@ class FilmChatTests(unittest.TestCase):
         board['shots'][1]['imageAnchors'] = [None]
         self.ctx.store.board_path(self.slug).write_text(json.dumps(board))
         state = self.state()
-        self.assertIn('Ugyldige', state['project']['clips'][1]['anchorError'])
+        self.assertIn('Invalid image anchors', state['project']['clips'][1]['anchorError'])
 
     def active(self):
         self.film._update(busy=True, phase='director', jobId='job-1')

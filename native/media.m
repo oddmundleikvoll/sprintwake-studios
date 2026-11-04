@@ -42,20 +42,20 @@ void sr_prepare(void) {
     [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
     menuTarget = [SRMenuTarget new];
     NSMenu *main = [[NSMenu alloc] initWithTitle:@"Sprintwake Studios"];
-    NSArray *titles = @[@"Sprintwake Studios", @"Arkiv", @"Rediger"];
+    NSArray *titles = @[@"Sprintwake Studios", @"File", @"Edit"];
     NSMutableArray *menus = [NSMutableArray array];
     for (NSString *title in titles) {
         NSMenuItem *item = [[NSMenuItem alloc] initWithTitle:title action:NULL keyEquivalent:@""];
         NSMenu *submenu = [[NSMenu alloc] initWithTitle:title];
         item.submenu = submenu; [main addItem:item]; [menus addObject:submenu];
     }
-    sr_add_menu(menus[0], @"Se etter oppdateringer…", @"", 11, NO);
-    sr_add_menu(menus[0], @"Avslutt Sprintwake Studios", @"q", 1, NO);
-    sr_add_menu(menus[1], @"Åpne prosjekt…", @"o", 2, NO);
-    sr_add_menu(menus[1], @"Nytt prosjekt…", @"n", 10, NO);
-    sr_add_menu(menus[1], @"Lagre prosjekt", @"s", 3, NO);
-    sr_add_menu(menus[2], @"Angre", @"z", 8, NO);
-    sr_add_menu(menus[2], @"Gjør om", @"z", 9, YES);
+    sr_add_menu(menus[0], @"Check for Updates…", @"", 11, NO);
+    sr_add_menu(menus[0], @"Quit Sprintwake Studios", @"q", 1, NO);
+    sr_add_menu(menus[1], @"Open Project…", @"o", 2, NO);
+    sr_add_menu(menus[1], @"New Project…", @"n", 10, NO);
+    sr_add_menu(menus[1], @"Save Project", @"s", 3, NO);
+    sr_add_menu(menus[2], @"Undo", @"z", 8, NO);
+    sr_add_menu(menus[2], @"Redo", @"z", 9, YES);
     [menus[2] addItem:[NSMenuItem separatorItem]];
     sr_add_menu(menus[2], @"Klipp ut", @"x", 7, NO);
     sr_add_menu(menus[2], @"Kopier", @"c", 5, NO);
@@ -143,7 +143,7 @@ uint8_t *sr_frame(int *width, int *height) {
         size_t w = CVPixelBufferGetWidth(pixel), h = CVPixelBufferGetHeight(pixel);
         if (w > 4096 || h > 4096) {
             CVPixelBufferRelease(pixel);
-            snprintf(errorText, sizeof(errorText), "Avspilleren støtter video opptil 4096 piksler per side.");
+            snprintf(errorText, sizeof(errorText), "Player supports video up to 4096 pixels per side.");
             return NULL;
         }
         size_t bytes = w * h * 4;
@@ -172,8 +172,8 @@ uint8_t *sr_frame(int *width, int *height) {
 const char *sr_choose_project(void) {
     free(dialogPath); dialogPath = NULL;
     NSOpenPanel *panel = [NSOpenPanel openPanel];
-    panel.title = @"Åpne Storyboard eller en Raven-arbeidskopi";
-    panel.message = @"Originalprosjektet leses. Endringer lagres i Raven sin egen mappe.";
+    panel.title = @"Open a Storyboard or Raven workspace copy";
+    panel.message = @"The original project is read-only. Changes are saved in Raven's own folder.";
     panel.canChooseDirectories = YES;
     panel.canChooseFiles = YES;
     panel.allowsMultipleSelection = NO;
@@ -184,7 +184,7 @@ const char *sr_choose_project(void) {
 const char *sr_choose_media(void) {
     free(dialogPath); dialogPath = NULL;
     NSOpenPanel *panel = [NSOpenPanel openPanel];
-    panel.title = @"Velg et bilde, en film eller et lydopptak";
+    panel.title = @"Choose an image, film, or audio recording";
     panel.canChooseDirectories = NO; panel.canChooseFiles = YES;
     panel.allowsMultipleSelection = NO;
     if ([panel runModal] == NSModalResponseOK) dialogPath = strdup(panel.URL.path.UTF8String);
@@ -198,7 +198,7 @@ int sr_confirm(const char *title, const char *message) {
     NSAlert *alert = [NSAlert new];
     alert.messageText = [NSString stringWithUTF8String:title];
     alert.informativeText = [NSString stringWithUTF8String:message];
-    [alert addButtonWithTitle:@"Fortsett"]; [alert addButtonWithTitle:@"Avbryt"];
+    [alert addButtonWithTitle:@"Continue"]; [alert addButtonWithTitle:@"Cancel"];
     return [alert runModal] == NSAlertFirstButtonReturn;
 }
 

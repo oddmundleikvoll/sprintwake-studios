@@ -43,6 +43,8 @@ def _write_plist(path: Path, *, release: dict) -> None:
         "CFBundleName": "Sprintwake Studios",
         "CFBundleDisplayName": "Sprintwake Studios",
         "CFBundlePackageType": "APPL",
+        "CFBundleDevelopmentRegion": "en",
+        "CFBundleLocalizations": ["en"],
         "CFBundleShortVersionString": str(release["version"]),
         "CFBundleVersion": str(release["build"]),
         "CFBundleIconFile": "AppIcon",

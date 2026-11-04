@@ -1,3 +1,5 @@
+import json
+import re
 import unittest
 
 from server.raven_contract import (CATALOG_VERSION, TOOLS, TOOL_SCHEMAS, catalogue, expert_system_prompt,
@@ -52,6 +54,11 @@ class RavenContractTests(unittest.TestCase):
         prompt = expert_system_prompt()
         self.assertIn(CATALOG_VERSION, prompt)
         self.assertIn("Qwen-Image-2.1-Turbo", prompt)
+        self.assertIn("Use English by default unless the user requests another language", prompt)
+        example = re.search(r'`(\[\{"tool":"create_project".*?\])`', prompt)
+        self.assertIsNotNone(example, "Guide must include its combined create-and-write example")
+        chain = json.loads(example.group(1))
+        self.assertEqual(validate_actions(chain, has_project=False), (chain, []))
         parsed, errors = parse_model_reply("not json")
         self.assertEqual(parsed["proposalStatus"], "incomplete")
         self.assertTrue(errors)

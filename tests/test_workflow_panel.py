@@ -21,7 +21,7 @@ class WorkflowPanelTests(unittest.TestCase):
 
     def test_open_confirmation_does_not_edit_shot_or_generate(self):
         p=panel();before=copy.deepcopy(p.raw_shot);p.show_modal=lambda *args:setattr(p,'modal',args)
-        p.workflow_action('video.generate');self.assertEqual(p.raw_shot,before);self.assertIn('Tidligere opptak beholdes',p.modal[1])
+        p.workflow_action('video.generate');self.assertEqual(p.raw_shot,before);self.assertIn('Previous takes are preserved',p.modal[1])
 
     def test_invalid_contract_does_not_save_or_launch(self):
         p=panel();p.text=lambda key:'120' if key=='video.frames' else '768x512';p.save=lambda **_:self.fail('must not save')
@@ -30,9 +30,10 @@ class WorkflowPanelTests(unittest.TestCase):
         self.assertEqual(p.raw_shot,before)
 
     def test_confirm_saves_explicit_parameters_then_requests_one_separate_take(self):
-        p=panel();calls=[];p.backend=SimpleNamespace(post=lambda path,doc:calls.append((path,doc)))
-        p.submit=lambda key,op,done:op();p.save=lambda after:after()
+        p=panel();calls=[];events=[];p.backend=SimpleNamespace(post=lambda path,doc:(events.append('request'),calls.append((path,doc))))
+        p.submit=lambda key,op,done:op();p.save=lambda after:(events.append('save'),after())
         p.workflow_action('video.confirm')
         self.assertEqual(p.raw_shot['model'],'own');self.assertEqual(p.raw_shot['frames'],121);self.assertEqual(p.raw_shot['resolution'],'768x512')
         self.assertEqual(p.raw_shot['modelProvider'],'comfy-workflow');self.assertEqual(len(p.raw_shot['modelProfileDigest']),64)
         self.assertEqual(calls,[('/api/render-seeds',{'slug':'demo','shotId':'s','count':1})])
+        self.assertEqual(events, ['save', 'request'])
