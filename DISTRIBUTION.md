@@ -39,8 +39,8 @@ The update signing account is the Keychain account
 `sprintwake-studios-updates`; its public key is committed in `release.json`.
 No Developer ID certificate is currently available, so local builds are
 ad-hoc only. A public release additionally requires Developer ID signing,
-notarization and a verified Sparkle appcast. Public source publication is
-authorized under CC BY-NC-SA 4.0. No release or appcast has been published.
+notarization and a verified Sparkle appcast. The source is public under
+CC BY-NC-SA 4.0. No downloadable app release or appcast has been published.
 
 CI has read-only repository permission and never uploads artifacts or creates
 releases. Signing/notarization jobs remain disabled until their secrets and

@@ -4,7 +4,7 @@ Project goal and current scope: [PROJECT.md](PROJECT.md).
 Sprintwake Studios 0.10.1/build 15 is installed with the three-card Start page and
 working optional-field image/clip entrances. Version 0.9.0's signed update/relaunch
 and preservation qualification remains recorded below. The user authorized public
-source publication under CC BY-NC-SA 4.0 on 2026-11-04. The source destination is
+source publication under CC BY-NC-SA 4.0 on 2026-11-04. The source is public at
 [oddmundleikvoll/sprintwake-studios](https://github.com/oddmundleikvoll/sprintwake-studios).
 No downloadable Mac release or appcast is published; those additionally need
 Developer ID/notarization and binary redistribution qualification.
@@ -58,6 +58,11 @@ the current overview and later entries; they are not a remaining-work list.
   CPU CI explicitly selects an absent RAVEN_MODEL_ROOT to catch this dependency.
   The complete 342-test CPU command also passed locally with a fresh empty model
   root and absent external worker source (five expected skips, 87.3 seconds).
+- Full hosted [GitHub CI](https://github.com/oddmundleikvoll/sprintwake-studios/actions/runs/41914411964)
+  passed for source commit 663a2d7: clean Apple Silicon build, 268 app tests,
+  seven CTest suites, pure contract parity and 342 CPU tests with five optional
+  external-worker skips and no installed model root. Source publication is
+  complete. A downloadable Mac release remains a separate qualified/signing task.
 
 # Studio open-button repair — 0.10.1/build 15, 2026-11-04
 

@@ -15,7 +15,8 @@ Appen og det planlagte åpne prosjektet heter **Sprintwake Studios**. Ett GitHub
 skal romme app, produksjonsmotor, bidrag og fremtidige Releases. Andre skal kunne
 bruke egne støttede modelltilkoblinger; dagens lokale Qwen/LTX-oppsett beholdes
 som standard hos brukeren. Brukeren autoriserte kildekodepublisering 4. november
-2026 og valgte **CC BY-NC-SA 4.0** for førsteversjonen. Ferdige Mac-releases
+2026 og valgte **CC BY-NC-SA 4.0** for førsteversjonen. Kildekoden er nå offentlig
+i [GitHub-repoet](https://github.com/oddmundleikvoll/sprintwake-studios). Ferdige Mac-releases
 krever separat publiseringsbeskjed og distribusjonskvalifisering.
 
 ## Det som er gjort
@@ -87,10 +88,10 @@ Qwen/LTX. Vilkårlige Comfy-grafer får ikke automatisk de samme egenskapene.
    kildegjennomgangen fant ingen nøkkelmønstertreff, store filer eller symlenker.
    Private kvalifiseringstitler og hjemmemappestier er anonymisert.
    [CONTRIBUTING.md](CONTRIBUTING.md) dokumenterer utviklerkontrollene.
-4. **Publisering autorisert og gjennomgått:** første kildeversjon bruker det
+4. **Publisert og verifisert:** første kildeversjon bruker det
    eksisterende [GitHub-repoet](https://github.com/oddmundleikvoll/sprintwake-studios).
    Ingen appbinær, appcast eller modellvekter inngår. Uavhengig gjennomgang er
-   ferdig; løpende vertsbasert CI vises under repoets Actions-fane.
+   ferdig, og [full GitHub CI består](https://github.com/oddmundleikvoll/sprintwake-studios/actions/runs/41914411964).
 
 ### Før en ferdig Mac-app legges ut som Release
 

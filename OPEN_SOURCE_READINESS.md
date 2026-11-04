@@ -5,12 +5,13 @@
 (0.7.0) og selvstendig app med lokalt testet Sparkle (0.9.0) er levert.
 Brukeren autoriserte offentlig kildekode 4. november 2026 og valgte CC BY-NC-SA
 4.0. Ren-klone-bygg, native oppstart, lokale CI-kontroller og uavhengig gjennomgang
-består. Offentlig signering gjelder en senere Mac-release. Denne filen skiller
+består. Kildekoden er offentlig, og [full GitHub CI består](https://github.com/oddmundleikvoll/sprintwake-studios/actions/runs/41914411964).
+Offentlig signering gjelder en senere Mac-release. Denne filen skiller
 inspirasjon fra faktisk støtte.
 
-Denne gjennomgangen gjelder design, arbeidsflyt og filmagentens faktiske
-verktøy. Ingen publisering, valg av lisens eller installasjon av nye modeller
-inngår. Referanseprosjektenes dokumentasjon er inspirasjonskilder; den dokumenterer
+Den opprinnelige gjennomgangen nedenfor gjaldt design, arbeidsflyt og filmagentens
+faktiske verktøy; den startet ingen modellinstallasjon eller publisering.
+Referanseprosjektenes dokumentasjon er inspirasjonskilder; den dokumenterer
 deres tilsiktede funksjoner, ikke verifisert filmkvalitet i Raven.
 
 ## Hva vi bør hente
