@@ -1,28 +1,18 @@
 # Purpose
 
 Sprintwake Studios, the native production studio. The retired Storyboard.app wrapper was removed at
-the user's request; the shared production engine remains. The user authorized expansion from
+the user's request; the independently authored production engine is included in engine/. The user authorized expansion from
 prototype on 2026-10-26 and selected ~/Movies/Raven Studio for new production data.
 Start is the default launch destination, independent of the saved director
 conversation. It offers image, independent clip and full film entrances. Film
 progression is director conversation → project → brief → bible → images/shot plan
 → production review → delivery. Keep actual media distinct from planned stills.
 
-Public source publication was authorized on 2026-11-04 under CC BY-NC-SA 4.0.
-Source setup uses the included engine/ and dedicated CPU runtime. App integration
-tests use those same paths and the shared media-tool resolver; only checks of an
-external ComfyUI LTX worker may skip when its source is absent (RAVEN_LTX_BRIDGE
-selects it explicitly). Local settings/backups/temp files and runtime outputs
-stay ignored. NOTICE.md preserves upstream attribution and dependency boundaries.
-The real import endpoint fixture explicitly disables all model selections and
-uses empty private service settings, so CI does not wait for ambient model probes.
-Engine numeric-loopback HTTP binding bypasses HTTPServer's optional reverse-DNS
-lookup, which stalled hosted macOS startup for ~35 seconds before any API served.
-Other bind addresses retain standard naming; the readiness socket test forbids DNS.
+Public source publication was authorized on 2026-11-04. On 2026-11-05 the user requested replacing the CC engine and selected MIT for independently authored code. Current engine/server and contracts use that replacement; old versions retain their CC terms in Git history. Native and bundled CPU tests use the included engine and synthetic media, without model startup or downloads. The independent engine preserves schema-v1 files, CAS, immutable media, production review and process/update ownership. Qwen uses native Comfy plus an independent memory barrier; LTX uses the external MIT CLI/local pack. Language/audio APIs and Comfy profiles may be local or cloud-hosted. Model/provider terms remain separate. Private settings and the installed 0.10.1 app are preserved.
 
 # English interface
 
-The 0.10.2 source uses English native chrome, menus, defaults and director guidance.
+The 0.11 source uses English native chrome, menus, defaults and director guidance.
 User text/dialogue and existing saved labels retain their language. Display copy must
 not rename stored IDs, connection statuses, contracts or private paths. Public README
 screenshots are real native captures from an isolated fictional project; the director

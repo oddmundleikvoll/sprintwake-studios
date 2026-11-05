@@ -1,0 +1,16 @@
+{
+  "sprintwakeLtx": {
+    "command": "/absolute/path/to/ltx-2-mlx",
+    "model": "/absolute/path/to/ltx-2.5-mlx-q8"
+  },
+  "languageLifecycle": {
+    "local-ollama": {
+      "lifecycle": "ollama",
+      "lifecycleTimeout": 720
+    },
+    "splash-local": {
+      "lifecycle": "omlx",
+      "lifecycleTimeout": 720
+    }
+  }
+}

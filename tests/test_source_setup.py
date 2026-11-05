@@ -63,10 +63,10 @@ class SourceSetupTests(unittest.TestCase):
             "signing.p8", "signing.pem", "signing.key",
         ]
         public = [
-            "engine/server/__main__.py", "engine/local/start_fable.py",
-            "engine/local/stop_fable.py", "engine/llm-services-sample.json",
+            "engine/server/__main__.py", "engine/comfy_nodes/memory.py",
+            "engine/comfy_nodes/pending.py", "engine/llm-services-sample.json",
             "engine/tts-services-sample.json", "engine/soundtrack-services-sample.json",
-            "engine/mflux-engines-sample.json", ".env.example", "release.json",
+            "engine/server-config-sample.json", ".env.example", "release.json",
         ]
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

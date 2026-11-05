@@ -60,7 +60,7 @@
 - (void)updater:(SPUUpdater *)updater didAbortWithError:(NSError *)error {
     (void)updater;self.installation=nil;self.terminating=NO;self.approved=NO;
     self.stage=error.code==SUNoUpdateError ? @"idle" : @"error";
-    self.message=error.code==SUNoUpdateError ? @"Du har den nyeste tilgjengelige utgaven." : error.localizedDescription;
+    self.message=error.code==SUNoUpdateError ? @"You have the latest available version." : error.localizedDescription;
 }
 @end
 

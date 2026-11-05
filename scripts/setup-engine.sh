@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 if [ "$#" != 2 ]; then
-  printf 'Usage: %s /path/to/storyboard-engine /path/to/runtime-venv\n' "$0"
+  printf 'Usage: %s /path/to/sprintwake-engine /path/to/runtime-venv\n' "$0"
   exit 2
 fi
 RAVEN_SETUP_ENGINE="$1"

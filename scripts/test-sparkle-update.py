@@ -19,7 +19,7 @@ class Handler(BaseHTTPRequestHandler):
         state=self.server.state;state['calls'].append(('GET',self.path))
         if self.path=='/system_stats':return self.reply({'system':{}})
         if self.path=='/object_info':return self.reply({'FakeVideo':{'input':{'required':{'text':['STRING',{}]}}}})
-        if self.path=='/queue':return self.reply({'queue_running':[] if state['finish'] else [[0,'fixture',{},{}]],'queue_pending':[]})
+        if self.path=='/queue':return self.reply({'queue_running':[] if state['finish'] or not state.get('submitted') else [[0,'fixture',{},{}]],'queue_pending':[]})
         if self.path.startswith('/history/'):
             return self.reply({'fixture':{'status':{'completed':state['finish'],'status_str':'success' if state['finish'] else 'running'},'outputs':{'1':{'videos':[{'filename':'clip.mp4','subfolder':'','type':'output'}]}}}})
         if self.path.startswith('/view?'):return self.reply(state['video'],'video/mp4')
@@ -29,7 +29,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_error(404)
     def do_POST(self):
         self.rfile.read(int(self.headers.get('Content-Length','0')));state=self.server.state;state['calls'].append(('POST',self.path))
-        if self.path=='/prompt':return self.reply({'prompt_id':'fixture'})
+        if self.path=='/prompt':state['submitted']=True;return self.reply({'prompt_id':'fixture'})
         if self.path=='/_qa/finish':state['finish']=True;return self.reply({'ok':True})
         if self.path in {'/queue','/interrupt','/free'}:state['unexpected'].append(self.path);return self.reply({})
         self.send_error(404)
@@ -41,6 +41,10 @@ def sign_bundle(app):
 def scenario(source,destination,tools,account,bad_feed,test_key_file=None):
     destination.mkdir(parents=True,exist_ok=False)
     installed=destination/'Installed/Sprintwake Studios.app';installed.parent.mkdir();shutil.copytree(source,installed,symlinks=True)
+    # The input may be a sealed read-only qualification bundle. Only this
+    # disposable scenario copy becomes writable for its synthetic metadata.
+    for entry in (installed,*installed.rglob('*')):
+        if not entry.is_symlink(): entry.chmod(entry.stat().st_mode|0o200)
     assets=destination/'feed';assets.mkdir()
     server=ThreadingHTTPServer(('127.0.0.1',0),Handler);url=f'http://127.0.0.1:{server.server_port}'
     video=destination/'fixture.mp4';ffmpeg=installed/'Contents/Resources/Studio/engine/local/bin/ffmpeg'

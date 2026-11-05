@@ -30,7 +30,7 @@ def endpoint(value):
 
 
 def defaults():
-    engine=next((p for p in (ROOT/'engine',ROOT.parent/'storyboard') if (p/'server/__main__.py').is_file()),ROOT.parent/'storyboard')
+    engine=ROOT/'engine'
     production=Path.home()/'Movies/Raven Studio'
     bundled=os.environ.get('SPRINTWAKE_BUNDLED_PYTHON')
     candidates=([Path(bundled)] if bundled else [])+[ROOT/'runtime/bundle-venv/bin/python',engine/'.venv/bin/python',ROOT.parent/'ComfyUI-Film/.venv/bin/python',ROOT/'.venv/bin/python']

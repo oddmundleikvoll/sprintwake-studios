@@ -4,7 +4,7 @@ from pathlib import Path
 
 def executable(name):
     explicit=os.environ.get('RAVEN_'+name.upper())
-    engine=Path(os.environ.get('RAVEN_ENGINE_ROOT',str(Path(__file__).resolve().parent.parent/'storyboard')))
+    engine=Path(os.environ.get('RAVEN_ENGINE_ROOT',str(Path(__file__).resolve().parent/'engine')))
     candidates=[Path(explicit)] if explicit else []
     bundle = Path(os.environ.get('RAVEN_BUNDLE_ROOT', str(Path(__file__).resolve().parent)))
     candidates += [bundle/'runtime/tools'/name, engine/'local/bin'/name]

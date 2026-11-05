@@ -1,149 +1,64 @@
-"""Small, model-free project filesystem operations used by Raven routes."""
-
-from __future__ import annotations
-
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Oddmund Leikvoll
+"""Recoverable project moves, with the native Trash/<id>/Project format."""
+from pathlib import Path
 import json
 import os
 import re
+import tempfile
 import time
 import uuid
-from pathlib import Path
-from typing import Any
 
-
-SLUG_RE = re.compile(r"[a-z0-9][a-z0-9_-]{0,79}")
-ENTRY_ID_RE = re.compile(r"[0-9a-f]{32}")
-
-
-def _slug(value: str) -> str:
-    if not isinstance(value, str) or not SLUG_RE.fullmatch(value):
-        raise ValueError("Ugyldig prosjekt-ID")
+def _slug(value):
+    if not isinstance(value,str) or not re.fullmatch('[a-z0-9][a-z0-9_-]{0,79}',value): raise ValueError('Invalid project ID')
     return value
 
+def _checked(root,*parts):
+    root=Path(root)
+    if root.is_symlink(): raise ValueError('Unsafe project directory')
+    current=root
+    for part in parts:
+        if not isinstance(part,str) or not part or part in {'.','..'} or '/' in part or '\\' in part: raise ValueError('Unsafe project path')
+        current/=part
+        if current.is_symlink(): raise ValueError('Unsafe project path')
+    return current
 
-def _inside(path: Path, root: Path) -> bool:
-    try:
-        path.relative_to(root)
-        return True
-    except ValueError:
-        return False
+def _sync(directory):
+    fd=os.open(directory,os.O_RDONLY)
+    try: os.fsync(fd)
+    finally: os.close(fd)
 
+def trash_project(projects_dir,slug):
+    projects=Path(projects_dir); slug=_slug(slug)
+    project=_checked(projects,slug)
+    if not projects.is_dir() or not project.is_dir(): raise FileNotFoundError('Project does not exist')
+    if any(path.is_symlink() for path in project.rglob('*')): raise ValueError('Project contains a symlink')
+    trash=_checked(projects.parent,'Trash'); trash.mkdir(exist_ok=True)
+    ident=uuid.uuid4().hex; entry=_checked(trash,ident); entry.mkdir()
+    source=_checked(project,'storyboard.json')
+    if source.stat().st_size>32*1024*1024: raise ValueError('Oversized project document')
+    board=json.loads(source.read_text())
+    name=str(board.get('name') or slug)
+    data={'id':ident,'slug':slug,'name':name,'deletedAt':time.time()}
+    with (entry/'entry.json').open('x') as stream:
+        json.dump(data,stream,ensure_ascii=False); stream.write('\n'); stream.flush(); os.fsync(stream.fileno())
+    _sync(entry)
+    project.rename(entry/'Project'); _sync(projects); _sync(entry)
+    return {'entry':entry,'id':ident,'slug':slug,'name':name}
 
-def _assert_safe(path: Path, root: Path) -> None:
-    if not _inside(path, root):
-        raise ValueError("Sti utenfor arbeidsområdet")
-    current = root
-    for part in ("", *path.relative_to(root).parts):
-        current = root if not part else current / part
-        if current.is_symlink():
-            raise ValueError(f"Symlink er ikke tillatt i arbeidsområdet: {current}")
-
-
-def _assert_no_symlinks(path: Path, root: Path) -> None:
-    _assert_safe(path, root)
-    for directory, names, files in os.walk(path, followlinks=False):
-        directory_path = Path(directory)
-        _assert_safe(directory_path, root)
-        for name in (*names, *files):
-            candidate = directory_path / name
-            if candidate.is_symlink():
-                raise ValueError(f"Symlink er ikke tillatt i arbeidsområdet: {candidate}")
-
-
-def trash_project(data_dir: Path | str, slug: str) -> dict[str, Any]:
-    """Atomically move ``Projects/<slug>`` to its recoverable Raven trash.
-
-    ``data_dir`` is the canonical ``Raven Studio/Projects`` directory.  The
-    sibling ``Trash`` directory is intentionally outside the project tree.
-    Metadata is written before the rename; an interrupted/failed rename is
-    therefore visible only as an incomplete entry, never as a false deletion.
-    """
-    projects = Path(data_dir).expanduser()
-    if projects.is_symlink() or not projects.is_dir():
-        raise FileNotFoundError(projects)
-    projects = projects.absolute()
-    root = projects.parent
-    _assert_safe(projects, root)
-    safe_slug = _slug(slug)
-    project = projects / safe_slug
-    if project.is_symlink() or not project.is_dir():
-        raise FileNotFoundError(project)
-    _assert_no_symlinks(project, root)
-
-    name = safe_slug
-    board_path = project / "storyboard.json"
-    if board_path.is_file() and not board_path.is_symlink():
-        try:
-            board = json.loads(board_path.read_text(encoding="utf-8"))
-            candidate = board.get("name") or board.get("title")
-            if isinstance(candidate, str) and candidate.strip():
-                name = candidate.strip()
-        except (OSError, TypeError, ValueError):
-            pass
-
-    trash = root / "Trash"
-    if trash.exists() and trash.is_symlink():
-        raise ValueError("Trash kan ikke være en symlink")
-    trash.mkdir(parents=True, exist_ok=True)
-    _assert_safe(trash, root)
-    while True:
-        entry_id = uuid.uuid4().hex
-        entry = trash / entry_id
-        if not entry.exists() and not entry.is_symlink():
-            break
-    entry.mkdir()
-    _assert_safe(entry, root)
-    metadata = {"id": entry_id, "slug": safe_slug, "name": name, "deletedAt": time.time()}
-    metadata_path = entry / "entry.json"
-    temporary = entry / ".entry.json.tmp"
-    with temporary.open("w",encoding="utf-8") as handle:
-        json.dump(metadata,handle,ensure_ascii=False,indent=2)
-        handle.write("\n"); handle.flush(); os.fsync(handle.fileno())
-    os.replace(temporary, metadata_path)
-    _assert_safe(metadata_path, root)
-    destination = entry / "Project"
-    _assert_safe(destination, root)
-    project.rename(destination)
-    return {**metadata, "entry": str(entry)}
-
-
-def restore_project(data_dir: Path | str, entry_id: str) -> str:
-    """Restore a complete trash entry to its original slug, without clobbering."""
-    if not isinstance(entry_id, str) or not ENTRY_ID_RE.fullmatch(entry_id):
-        raise ValueError("Ugyldig slettesoppføring")
-    projects = Path(data_dir).expanduser()
-    if projects.is_symlink() or not projects.is_dir():
-        raise FileNotFoundError(projects)
-    projects = projects.absolute()
-    root = projects.parent
-    _assert_safe(projects, root)
-    entry = root / "Trash" / entry_id
-    if entry.is_symlink() or not entry.is_dir():
-        raise FileNotFoundError(entry)
-    _assert_safe(entry, root)
-    metadata_path = entry / "entry.json"
-    project = entry / "Project"
-    if metadata_path.is_symlink() or not metadata_path.is_file() or project.is_symlink() or not project.is_dir():
-        raise ValueError("Ugyldig slettesoppføring")
-    _assert_safe(metadata_path, root)
-    _assert_no_symlinks(project, root)
-    try:
-        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-    except (OSError, TypeError, ValueError) as exc:
-        raise ValueError("Ugyldig slettesoppføring") from exc
-    if not isinstance(metadata, dict) or metadata.get("id") != entry_id:
-        raise ValueError("Ugyldig slettesoppføring")
-    slug = _slug(metadata.get("slug"))
-    destination = projects / slug
-    _assert_safe(destination, root)
-    if destination.exists() or destination.is_symlink():
-        raise FileExistsError(destination)
-    project.rename(destination)
-    # A restored project is no longer a trash entry.  Keep this cleanup
-    # deliberately narrow: unexpected files are not recursively deleted.
-    try:
-        metadata_path.unlink()
-        entry.rmdir()
-    except OSError:
-        pass
+def restore_project(projects_dir,entry_id):
+    projects=Path(projects_dir)
+    if not projects.is_dir() or projects.is_symlink(): raise ValueError('Unsafe projects directory')
+    if not isinstance(entry_id,str) or not re.fullmatch('[0-9a-f]{32}',entry_id): raise ValueError('Invalid trash ID')
+    trash=_checked(projects.parent,'Trash'); entry=_checked(trash,entry_id)
+    metadata=_checked(entry,'entry.json'); source=_checked(entry,'Project')
+    if not entry.is_dir() or not source.is_dir() or not metadata.is_file() or metadata.stat().st_size>64*1024: raise ValueError('Invalid trash entry')
+    if {path.name for path in entry.iterdir()}!={'entry.json','Project'}: raise ValueError('Trash entry contains unexpected files; inspect it before restoring')
+    meta=json.loads(metadata.read_text()); slug=_slug(meta.get('slug'))
+    if meta.get('id',entry_id)!=entry_id: raise ValueError('Trash identity changed')
+    target=_checked(projects,slug)
+    if target.exists(): raise FileExistsError('A project already uses this ID')
+    if any(path.is_symlink() for path in source.rglob('*')): raise ValueError('Trash project contains a symlink')
+    source.rename(target); _sync(projects)
+    metadata.unlink(); entry.rmdir(); _sync(trash)
     return slug

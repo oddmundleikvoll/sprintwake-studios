@@ -1,10 +1,10 @@
 {
   "services": [
     {
-      "id": "sa3-mlx",
-      "label": "Stable Audio 3 (MLX, local)",
-      "kind": "sa3-mlx",
-      "path": "../stable-audio-3/optimized/mlx"
+      "id": "hosted-audio",
+      "kind": "http-audio",
+      "url": "https://provider.example/v1",
+      "model": "music-model"
     }
   ]
 }

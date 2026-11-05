@@ -186,6 +186,8 @@ def _copy_licenses(source: Path, engine: Path, python_root: Path, studio: Path) 
         "moltenvk-LICENSE": source / "runtime/MoltenVK/LICENSE",
         "sparkle-LICENSE": source / "runtime/Sparkle/LICENSE",
         "engine-LICENSE": engine / "LICENSE",
+        "Sprintwake-LICENSE": source / "LICENSE",
+        "Sprintwake-NOTICE.md": source / "NOTICE.md",
         "python-LICENSE": python_root / "LICENSE.txt",
     }
     for name, path in candidates.items():
@@ -224,7 +226,7 @@ def build_bundle(source: Path, output: Path, *, engine: Path | None = None,
     if destination.exists() or destination.is_symlink():
         raise FileExistsError(f"refusing to replace existing bundle output: {destination}")
     source = source.expanduser().resolve()
-    engine = (engine or ((source / "engine") if (source / "engine").is_dir() else source.parent / "storyboard")).expanduser().resolve()
+    engine = (engine or (source / "engine")).expanduser().resolve()
     if not engine.is_dir():
         raise FileNotFoundError(f"Story engine not found: {engine}")
     if python_runtime is None:
@@ -257,9 +259,8 @@ def build_bundle(source: Path, output: Path, *, engine: Path | None = None,
                 _copytree(source / directory, studio / directory)
 
         _copytree(engine / "server", studio / "engine/server")
-        for name in ("start_fable.py", "stop_fable.py"):
-            if (engine / "local" / name).is_file():
-                _copy_file(engine / "local" / name, studio / "engine/local" / name)
+        if (engine / "comfy_nodes").is_dir():
+            _copytree(engine / "comfy_nodes", studio / "engine/comfy_nodes")
         ffmpeg = _find_ffmpeg(engine, python_runtime)
         _copy_file(ffmpeg, studio / "engine/local/bin/ffmpeg")
         probe = next((candidate for candidate in (source / "runtime/ffprobe.py", engine / "tools/ffprobe.py", engine / "local/bin/ffprobe") if candidate.is_file()), None)

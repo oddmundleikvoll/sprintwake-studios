@@ -66,7 +66,7 @@ class Backend:
         self.connection_settings = connection_settings
         self.credential_loader = credential_loader
         self.root = Path(root).expanduser().resolve()
-        selected_engine = engine_root or ((ROOT / "engine") if (ROOT / "engine").is_dir() else ROOT.parent / "storyboard")
+        selected_engine = engine_root or (ROOT / "engine")
         self.engine_root = Path(selected_engine).expanduser().resolve()
         self.job_state_dir = Path(job_state_dir) if job_state_dir else self.root/"System/provider-jobs"
         self.config_dir = Path(config_dir).resolve() if config_dir else None

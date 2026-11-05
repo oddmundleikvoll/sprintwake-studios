@@ -1,7 +1,7 @@
 # Sprintwake Studios — mål og prosjektstatus
 
-Oppdatert 4. november 2026. Installert versjon: **0.10.1, build 15**.
-Kildeversjon på GitHub: **0.10.2, build 16**, med engelsk grensesnitt og README med skjermbilder og tidlig installasjon. Installert app er ikke erstattet.
+Oppdatert 5. november 2026. Installert versjon: **0.10.1, build 15**.
+Kildeversjon på GitHub: **0.11.0, build 17**, med engelsk grensesnitt og README med skjermbilder og tidlig installasjon. Installert app er ikke erstattet.
 Dette er den samlede oversikten over brukerens mål, levert arbeid og neste steg.
 [STATUS.md](STATUS.md) inneholder detaljert verifikasjon og historikk.
 
@@ -16,11 +16,13 @@ Appen og det planlagte åpne prosjektet heter **Sprintwake Studios**. Ett GitHub
 skal romme app, produksjonsmotor, bidrag og fremtidige Releases. Andre skal kunne
 bruke egne støttede modelltilkoblinger; dagens lokale Qwen/LTX-oppsett beholdes
 som standard hos brukeren. Brukeren autoriserte kildekodepublisering 4. november
-2026 og valgte **CC BY-NC-SA 4.0** for førsteversjonen. Kildekoden er nå offentlig
+2026 og valgte først **CC BY-NC-SA 4.0**. Den 5. november ba brukeren om å erstatte CC-koden og valgte **MIT** for egen, uavhengig implementert kode. Den nye motoren erstatter hele den tidligere serveren, kopierte kontrakter, veiledning og webklient; historiske versjoner beholder lisensen sin. Kildekoden er nå offentlig
 i [GitHub-repoet](https://github.com/oddmundleikvoll/sprintwake-studios). Ferdige Mac-releases
 krever separat publiseringsbeskjed og distribusjonskvalifisering.
 
 ## Det som er gjort
+
+- **Uavhengig MIT-motor:** nytt lager/HTTP-API, regissørkontrakt, providere, filmjournal og oppdateringslås. Lokal LTX kjører gjennom MIT CLI; Qwen bruker native Comfy og en egen synkron minnebarriere. Skyomtalen står før første README-skjermbilde. Teknisk CPU-/API- og vindusverifikasjon bruker syntetiske medier; ingen ny modellfilm er generert.
 
 - **Ny startside:** tre kort for bilde, enkeltklipp og Filmstudio. Appen åpner
   på Start selv om den forrige samtalen tilhører et prosjekt. Egne, enkle
@@ -85,9 +87,18 @@ Modellinferens ble ikke startet. Installert app, prosjekter og modelloppsett er
 urørt. Den offentlige kildekoden kan bygges lokalt uten Developer ID/notarisering.
 [GitHub CI for 0.10.2 består](https://github.com/oddmundleikvoll/sprintwake-studios/actions/runs/41924455474).
 
+## MIT-erstatning (0.11)
+
+Den uavhengige motoren er verifisert med 77 CPU-/API-kontroller uten hopp,
+269 app-tester og sju CTest-suiter. Det faktiske vinduet består 194 kontroller
+både i kildekopien og i en flyttet, skrivebeskyttet app. En lokal Sparkle-prøve
+oppdaterte testkopien fra build 17 til 18 og bevarte åtte filer; en manipulert
+signert feed ble avvist mens produksjonen fortsatte. Ingen modellinferens ble
+startet. Detaljer og begrensninger står i [STATUS.md](STATUS.md).
+
 ## Offentlig GitHub-kilde
 
-### Første kildeversjon
+### Historisk første kildeversjon (0.10.x)
 
 1. **Lisens valgt:** [LICENSE](LICENSE) bruker CC BY-NC-SA 4.0 for appens bidrag,
    med bevart [engine/LICENSE](engine/LICENSE). [NOTICE.md](NOTICE.md) krediterer
@@ -114,7 +125,7 @@ Skaffe Developer ID-signering, fullføre notarisering og kvalifisere den offentl
 signerte pakken/oppdateringen. Dagens app er lokalt ad-hoc-signert. Dette er et
 separat distribusjonsløp; Apple-signering er ikke et krav for å åpne kildekoden.
 
-Lisensvilkår: [Creative Commons](https://creativecommons.org/licenses/by-nc-sa/4.0/).
+Gjeldende kodelisens: [MIT](LICENSE). Historiske CC-versjoner beholder sine vilkår.
 Appdistribusjon: [Apple Developer ID](https://developer.apple.com/developer-id/).
 
 OTIO/FCPXML-rundtur til andre klippeprogrammer og bevegelsesstyrt previs er mulige

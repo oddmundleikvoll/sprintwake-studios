@@ -63,9 +63,9 @@ class TakePanelMixin:
         cards = []
         for index, take in enumerate(takes):
             seed = take.get("seed", "?")
-            status = take.get("status") or "ukjent"
+            status = take.get("status") or "unknown"
             current = " · matches scene" if take.get("current") else " · older scene revision"
-            recipe = f"Seed {seed} · {status}{current} · oppskrift: {take.get('recipe') or 'preserved server recipe'}"
+            recipe = f"Seed {seed} · {status}{current} · recipe: {take.get('recipe') or 'preserved server recipe'}"
             if take.get("runtimeSeconds") is not None:
                 recipe += f" · {take['runtimeSeconds']} s"
             cards.append(v.button(f"View take {seed}", f"take.preview.{index}") + v.label(recipe, 12, True) + v.button("Use this take", f"take.adopt.{index}"))

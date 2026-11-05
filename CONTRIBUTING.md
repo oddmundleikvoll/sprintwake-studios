@@ -53,8 +53,4 @@ weights, generated media, runtime downloads and QA captures out of commits.
 Review both staged and unstaged changes before committing; `.gitignore` does not
 remove files already tracked by Git. Credentials belong in the OS Keychain.
 
-Preserve upstream copyrights and license notices. Contributions to Sprintwake
-Studios use [CC BY-NC-SA 4.0](LICENSE), including the noncommercial and share-alike
-conditions. The production engine and its copied contracts retain
-[engine/LICENSE](engine/LICENSE). Separately licensed dependencies retain their
-own terms; see [NOTICE.md](NOTICE.md) before proposing licensing changes.
+Preserve dependency copyrights and notices. Contributions to the current Sprintwake Studios app and independent engine use the [MIT License](LICENSE). Do not copy the retired CC engine, contracts or guide back from history. Historical files retain their own terms; model/provider and runtime licenses remain separate in [NOTICE.md](NOTICE.md).

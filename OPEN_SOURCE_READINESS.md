@@ -1,3 +1,5 @@
+> Historical readiness review for the first 0.10.x publication. The 0.11 engine and contracts have since been independently replaced under MIT at the user’s request. Current scope and verification: [PROJECT.md](PROJECT.md), [CC_REPLACEMENT.md](CC_REPLACEMENT.md). The CC references and test counts below describe that earlier publication.
+
 # Sprintwake Studios before public GitHub — 4 November 2026
 
 **Gjeldende mål og status:** [PROJECT.md](PROJECT.md), med verifikasjon i

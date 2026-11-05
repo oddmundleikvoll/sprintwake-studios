@@ -1,21 +1,17 @@
 # Third-party notices and source provenance
 
-Sprintwake Studios includes a modified copy of **Storyboard**, originally from
-[crashtestoz/storyboard](https://github.com/crashtestoz/storyboard).
-Copyright (c) 2026 Peter Chodyra (candco.com.au).
-The original copyright notice and full **CC BY-NC-SA 4.0** terms are preserved in
-[engine/LICENSE](engine/LICENSE). This requires attribution, noncommercial use
-and sharing adaptations on the same terms; it is not an MIT or Apache license.
-Sprintwake Studios additions use the same terms in [LICENSE](LICENSE), as chosen
-for the first public version. Separately licensed dependencies retain their own
-terms; this notice does not relicense them.
+Sprintwake Studios 0.11 uses an independently authored production engine and
+contracts under the [MIT License](LICENSE). Its HTTP interfaces and schema-v1
+project formats preserve interoperability; the prior Storyboard implementation,
+web client, copied contract modules and director guide are absent from the current
+source and app bundle. See [CC_REPLACEMENT.md](CC_REPLACEMENT.md).
 
-The copy in `engine/` has been modified for the native studio, Qwen/LTX and Comfy
-workflow providers, production review and continuity, director/editorial
-contracts, private settings, process ownership and safe application updates.
-`contracts/` contains copies of engine modules and its director guide. Those
-copies retain the engine's licensing and provenance. See
-[engine/UPSTREAM.md](engine/UPSTREAM.md) and [contracts/README.md](contracts/README.md).
+Earlier public commits included Storyboard by Peter Chodyra (candco.com.au),
+[crashtestoz/storyboard](https://github.com/crashtestoz/storyboard), under
+CC BY-NC-SA 4.0. Those historical files are **not relicensed**. Their attribution
+and [original license at the last CC baseline](https://github.com/oddmundleikvoll/sprintwake-studios/blob/492a6bf/engine/LICENSE)
+remain in Git history. This notice records that history and does not apply its
+noncommercial restriction to independently authored replacement code.
 
 ## Dependencies downloaded during setup
 

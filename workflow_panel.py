@@ -10,7 +10,7 @@ class WorkflowPanelMixin:
         if action=='video.stop':
             state=self.backend.get('/api/status')
             if state.get('slug')!=self.slug or not state.get('busy'):raise ValueError('No active take job in this project.')
-            self.submit('video.stop',lambda:self.backend.post('/api/stop',{}),lambda _:self.toast('Stop requested. Waiting for the local take job to finish.'))
+            self.submit('video.stop',lambda:self.backend.post('/api/stop',{'slug':self.slug,'jobId':state.get('jobId')}),lambda _:self.toast('Stop requested. Waiting for the local take job to finish.'))
             return True
         selected=self.connection_settings['selected']['video']
         profile=next((p for p in self.connection_settings['workflowProfiles'] if p['id']==selected and p['kind']=='video'),None)

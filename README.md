@@ -11,7 +11,7 @@ checkpoints instead of starting over.
 through supported API profiles, and image/video workflows through compatible remote
 ComfyUI services. You can also run entirely locally. See [supported connections
 and workflow limits](MODEL_CONNECTIONS.md); full-film continuation currently uses
-the qualified local Qwen/LTX workflow.
+the native local Qwen/LTX workflow.
 
 ![Sprintwake Studios film workspace](assets/screenshots/film-workspace.png)
 *The native film workspace: scene outline, storyboard preview, shot details and an editable timeline. Demo project shown.*
@@ -88,9 +88,7 @@ The interface is English; project text and dialogue can use your chosen language
 
 ## Model support and current scope
 
-The qualified full-film/continuation workflow uses **Qwen-Image-2.1-Turbo + LTX-2.5 Q8**
-through a matching external local ComfyUI installation. The app does not bundle that
-inference installation or its weights. The director can use a supported local or
+The native full-film/continuation path uses **Qwen-Image-2.1-Turbo in ComfyUI + LTX-2.5 Q8 through the MIT `ltx-2-mlx` CLI**. Install the independent Comfy memory-barrier plugin and configure the local CLI/model pack as described in [engine setup](engine/README.md). The app does not bundle those inference installations or weights. The director can use a supported local or
 cloud-hosted language service; model quality, memory requirements and generation
 speed depend on your setup.
 
@@ -99,8 +97,7 @@ saved recipes. Arbitrary workflows do not automatically gain native continuation
 long-film resume or every reference/audio capability. See
 [MODEL_CONNECTIONS.md](MODEL_CONNECTIONS.md) for the supported contract and limits.
 
-Long-form planning, resumability and review are implemented. Technical tests with
-synthetic media do not establish the quality of a completed feature-length film.
+Long-form planning, resumability and review are implemented. The independent 0.11 engine is verified with CPU/API fixtures and the real native interface; it has not been qualified by generating a new film. Synthetic tests do not establish model quality or feature-film runtime.
 
 ## Build, develop and contribute
 
@@ -122,9 +119,7 @@ the application while preserving production data and model installations.
 
 ## License and project status
 
-Source: [CC BY-NC-SA 4.0](LICENSE), including attribution, noncommercial use and sharing
-adaptations under the same terms. The included Storyboard engine retains its original
-copyright and license. See [NOTICE.md](NOTICE.md) for credits and dependency terms.
+Sprintwake's current application and independently authored production engine use the **[MIT License](LICENSE)**, which permits commercial use of that code. The earlier CC BY-NC-SA engine and copied contracts have been replaced. Historical versions keep their original terms. Dependencies, model weights and hosted providers retain their own licenses; see [NOTICE.md](NOTICE.md) and [replacement provenance](CC_REPLACEMENT.md).
 
 [Project scope](PROJECT.md) · [Verification and history](STATUS.md) ·
 [GitHub CI](https://github.com/oddmundleikvoll/sprintwake-studios/actions/workflows/ci.yml)

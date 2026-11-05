@@ -1,18 +1,22 @@
 {
   "services": [
     {
-      "id": "ollama-local",
-      "label": "Llama 3.1 8B (Ollama)",
-      "kind": "ollama",
-      "url": "http://localhost:11434",
-      "model": "llama3.1:8b"
+      "id": "cloud-openai-compatible",
+      "label": "Hosted OpenAI-compatible model",
+      "kind": "openai-compatible",
+      "url": "https://provider.example/v1",
+      "model": "provider-model",
+      "vision": false
     },
     {
-      "id": "lmstudio-local",
-      "label": "Local model (LM Studio)",
-      "kind": "openai",
-      "url": "http://localhost:1234",
-      "model": "qwen2.5-7b-instruct"
+      "id": "local-ollama",
+      "label": "Local Ollama model",
+      "kind": "ollama",
+      "url": "http://127.0.0.1:11434",
+      "model": "local-model",
+      "vision": false,
+      "lifecycle": "ollama",
+      "lifecycleTimeout": 720
     }
   ]
 }

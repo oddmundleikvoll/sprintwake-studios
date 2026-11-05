@@ -1,4 +1,6 @@
-# CPU media checks; matches the verified local Python 3.12 environment.
+# MIT replacement engine CPU verification runtime. Keep versions aligned with
+# the relocatable runtime; model runtimes are external and are not installed here.
 av==18.1.0
 Pillow==12.3.0
 numpy==2.5.3
+imageio-ffmpeg==0.8.1

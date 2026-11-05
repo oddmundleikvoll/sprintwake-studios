@@ -1,3 +1,5 @@
+> **0.11 engine setup:** Local video now uses the MIT ltx-2-mlx CLI, not the retired CC Comfy LTX bridge. Follow [engine/README.md](engine/README.md) for the explicit CLI/model-pack settings and independent Comfy memory-barrier plugin. Existing settings/media are preserved. Configure optional local or hosted speech/music HTTP services separately; retired direct MOSS/SA3 adapters are not included.
+
 # Sprintwake Studios model connections
 
 Sprintwake Studios separates connection, model profile and project data. Shipped defaults

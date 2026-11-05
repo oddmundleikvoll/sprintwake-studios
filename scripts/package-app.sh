@@ -9,7 +9,7 @@ if [ -n "${RAVEN_BUNDLE_ENGINE:-}" ]; then
 elif [ -d "$PWD/engine" ]; then
   ENGINE_ROOT="$PWD/engine"
 else
-  ENGINE_ROOT="$PWD/../storyboard"
+  ENGINE_ROOT="$PWD/engine"
 fi
 PYTHON_RUNTIME="${RAVEN_BUNDLE_PYTHON:-}"
 FEED_URL="${RAVEN_SPARKLE_FEED_URL:-}"

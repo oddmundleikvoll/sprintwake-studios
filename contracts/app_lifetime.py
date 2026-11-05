@@ -1,176 +1,117 @@
-"""Cross-process lifetime and update handoff locks.
-
-The code-reader lock is held for the complete engine lifetime.  Sparkle (or
-another installer) can therefore replace a bundle only after every old engine
-has exited, including engines using another project/config directory.
-"""
-from __future__ import annotations
-
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Oddmund Leikvoll
+"""Reader leases and update handoff, interoperable with installed Raven builds."""
+from pathlib import Path
 import fcntl
 import json
 import os
+import stat
 import tempfile
-from pathlib import Path
-
-
-class AppAlreadyRunning(RuntimeError):
-    pass
-
-
-class UpdatePending(RuntimeError):
-    pass
-
+import time
+import uuid
 
 class AppLifetime:
-    def __init__(self, root=None, bundle=None, build=None):
-        self.root = Path(root or os.environ.get(
-            "SPRINTWAKE_UPDATE_LOCK_ROOT",
-            Path.home() / "Library/Application Support/Raven Studio/Updates",
-        )).expanduser().resolve()
-        self.bundle = str(Path(bundle).expanduser().resolve()) if bundle else ""
-        self.build = int(build or 0)
-        self._instance = None
-        self._reader = None
-        self._startup = None
-        self._reserved = False
-
-    def _open(self, name):
-        path = self.root / name
-        path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-        return path.open("a+")
-
-    def _pending_path(self):
-        return self.root / "pending-update.json"
-
+    def __init__(self,root=None,bundle=None,build=None):
+        self.root=Path(root or os.environ.get('SPRINTWAKE_UPDATE_LOCK_ROOT') or Path.home()/'Library/Application Support/Raven Studio/Updates')
+        self.bundle=str(bundle) if bundle is not None else None
+        self.build=int(build) if isinstance(build,str) and build.isdigit() else build
+        self._handle=self._instance=self._startup=None
+        self.mode=self._token=None
+    def _open(self,name):
+        if self.root.is_symlink(): raise RuntimeError('Unsafe lifetime directory')
+        self.root.mkdir(parents=True,exist_ok=True)
+        fd=os.open(self.root/name,os.O_CREAT|os.O_RDWR|os.O_NOFOLLOW,0o600)
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            os.close(fd); raise RuntimeError('Unsafe lifetime lock')
+        return os.fdopen(fd,'r+b')
     def _pending(self):
+        path=self.root/'pending-update.json'
+        if path.is_symlink(): raise RuntimeError('Unsafe update marker')
+        if not path.exists(): return None
+        if not path.is_file() or path.stat().st_size>4096: raise RuntimeError('Uncertain update marker')
+        try: value=json.loads(path.read_text())
+        except (ValueError,OSError) as error: raise RuntimeError('Uncertain update marker') from error
+        if not isinstance(value,dict) or type(value.get('build')) is not int or not isinstance(value.get('bundle'),str) or type(value.get('pid')) is not int:
+            raise RuntimeError('Uncertain update marker')
+        # Published builds before 0.11 used exactly these three protocol fields.
+        if 'token' not in value and set(value)!={'build','bundle','pid'}: raise RuntimeError('Unknown legacy update marker')
+        if 'token' in value and (not isinstance(value['token'],str) or not value['token']): raise RuntimeError('Uncertain update ownership')
+        return value
+    @staticmethod
+    def _lock(handle,mode):
+        try: fcntl.flock(handle,mode|fcntl.LOCK_NB)
+        except BlockingIOError as error: raise RuntimeError('Application update ownership is busy') from error
+    @staticmethod
+    def _close(handle):
+        if handle:
+            fcntl.flock(handle,fcntl.LOCK_UN); handle.close()
+    def enter_engine(self):
+        fence=self._open('startup.lock')
         try:
-            path = self._pending_path()
-            if not path.exists():
-                return None
-            value = json.loads(path.read_text())
-            if not isinstance(value, dict) or not isinstance(value.get("bundle"), str):
-                raise UpdatePending("Malformed update handoff marker")
-            try:
-                int(value.get("build"))
-            except (TypeError, ValueError) as exc:
-                raise UpdatePending("Malformed update handoff marker") from exc
-            return value
-        except UpdatePending:
-            raise
-        except (OSError, ValueError) as exc:
-            raise UpdatePending("Unreadable update handoff marker") from exc
-
-    def _clear_matching_pending(self):
-        pending = self._pending()
-        if not pending or str(pending.get("bundle")) != self.bundle:
-            return
-        try:
-            target = int(pending.get("build"))
-        except (TypeError, ValueError):
-            return
-        if self.build < target:
-            return
-        # We are still under startup mutex and code is exclusively probed by
-        # the caller, so deleting this marker cannot race a live old reader.
-        try:
-            self._pending_path().unlink()
-        except FileNotFoundError:
-            pass
-
-    def enter_app(self):
-        if self._reader is not None:
-            return self
-        self._instance = self._open("app-instance.lock")
-        try:
-            fcntl.flock(self._instance, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError as exc:
-            self._instance.close(); self._instance = None
-            raise AppAlreadyRunning("Sprintwake Studios is already running") from exc
-        self._startup = self._open("startup.lock")
-        fcntl.flock(self._startup, fcntl.LOCK_EX)
-        try:
-            self._reader = self._open("code-reader.lock")
-            pending = self._pending()
-            if pending and not (str(pending.get("bundle")) == self.bundle and self.build >= int(pending.get("build", 0))):
-                raise UpdatePending("An update is pending; restart with the updated application")
-            if pending:
-                fcntl.flock(self._reader, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                self._clear_matching_pending()
-                fcntl.flock(self._reader, fcntl.LOCK_SH)
-            else:
-                fcntl.flock(self._reader, fcntl.LOCK_SH)
-            return self
+            self._lock(fence,fcntl.LOCK_SH)
+            if self._pending() is not None: raise RuntimeError('Pending update blocks engine startup')
+            self._handle=self._open('code-reader.lock'); self._lock(self._handle,fcntl.LOCK_SH)
+            self.mode='reader'; return self
         except Exception:
             self.close(); raise
-        finally:
-            fcntl.flock(self._startup, fcntl.LOCK_UN)
-            self._startup.close(); self._startup = None
-
-    def enter_engine(self):
-        if self._reader is not None:
-            return self
-        self._startup = self._open("startup.lock")
-        fcntl.flock(self._startup, fcntl.LOCK_EX)
+        finally: self._close(fence)
+    def enter_app(self):
+        fence=self._open('startup.lock')
         try:
-            if self._pending():
-                raise UpdatePending("An update is pending; restart with the updated application")
-            self._reader = self._open("code-reader.lock")
-            fcntl.flock(self._reader, fcntl.LOCK_SH)
-            return self
+            self._lock(fence,fcntl.LOCK_SH)
+            pending=self._pending()
+            self._instance=self._open('app-instance.lock'); self._lock(self._instance,fcntl.LOCK_EX)
+            self._handle=self._open('code-reader.lock')
+            if pending is not None:
+                if pending['build']!=self.build or pending['bundle']!=self.bundle: raise RuntimeError('Pending update requires its exact matching application')
+                self._lock(fence,fcntl.LOCK_EX); self._lock(self._handle,fcntl.LOCK_EX)
+                if self._pending()!=pending: raise RuntimeError('Update marker changed during handoff')
+                (self.root/'pending-update.json').unlink(); self._sync_directory()
+            self._lock(self._handle,fcntl.LOCK_SH); self.mode='reader'; return self
         except Exception:
-            self.close()
-            raise
-        finally:
-            fcntl.flock(self._startup, fcntl.LOCK_UN)
-            self._startup.close(); self._startup = None
-
-    def reserve(self, target_build):
-        if self._reader is None:
-            raise RuntimeError("application lifetime is not entered")
-        self._startup = self._open("startup.lock")
-        fcntl.flock(self._startup, fcntl.LOCK_EX)
+            self.close(); raise
+        finally: self._close(fence)
+    def _sync_directory(self):
+        fd=os.open(self.root,os.O_RDONLY)
+        try: os.fsync(fd)
+        finally: os.close(fd)
+    def reserve(self,build=None):
+        if not self._instance or not self._handle: raise RuntimeError('Only an owning application can reserve an update')
+        if self._pending() is not None: raise RuntimeError('An update is already pending')
+        target=build if build is not None else self.build
+        if type(target) is not int or not self.bundle: raise RuntimeError('An exact target build and bundle are required')
+        fence=self._open('startup.lock')
         try:
-            marker = {"bundle": self.bundle, "build": int(target_build), "pid": os.getpid()}
-            path = self._pending_path()
-            fd, temp = tempfile.mkstemp(prefix=".pending-", dir=self.root)
-            try:
-                with os.fdopen(fd, "w") as out:
-                    json.dump(marker, out); out.write("\n"); out.flush(); os.fsync(out.fileno())
-                os.chmod(temp, 0o600)
-                os.replace(temp, path)
-            finally:
-                if os.path.exists(temp): os.unlink(temp)
-            self._reserved = True
-            return marker
-        finally:
-            fcntl.flock(self._startup, fcntl.LOCK_UN); self._startup.close(); self._startup = None
-
+            self._lock(fence,fcntl.LOCK_EX)
+            if self._pending() is not None: raise RuntimeError('An update is already pending')
+            token=uuid.uuid4().hex
+            data={'build':target,'bundle':self.bundle,'pid':os.getpid(),'token':token,'reservedAt':time.time()}
+            fd=os.open(self.root/'pending-update.json',os.O_CREAT|os.O_EXCL|os.O_WRONLY|os.O_NOFOLLOW,0o600)
+            with os.fdopen(fd,'w') as stream:
+                json.dump(data,stream); stream.flush(); os.fsync(stream.fileno())
+            self._sync_directory(); self._startup=fence; self._token=token
+        except Exception:
+            self._close(fence); raise
     def writer_ready(self):
-        if self._reader is None:
-            return False
+        if not self._handle or not self._instance or not self._startup or not self._token: return False
+        pending=self._pending()
+        if pending is None or pending.get('token')!=self._token: raise RuntimeError('Update ownership changed')
         try:
-            fcntl.flock(self._reader, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            return True
-        except BlockingIOError:
-            return False
-
+            self._lock(self._startup,fcntl.LOCK_EX); self._lock(self._handle,fcntl.LOCK_EX)
+            self.mode='writer'; return True
+        except RuntimeError:
+            # Restore our reader after a failed conversion; the startup fence
+            # remains exclusive while existing peer readers drain.
+            self._lock(self._handle,fcntl.LOCK_SH); self.mode='reader'; return False
     def cancel_update(self):
-        if self._reader is not None:
-            fcntl.flock(self._reader, fcntl.LOCK_SH)
-        if self._startup is None:
-            self._startup = self._open("startup.lock"); fcntl.flock(self._startup, fcntl.LOCK_EX)
-        try:
-            pending = self._pending()
-            if pending and pending.get("pid") == os.getpid():
-                try: self._pending_path().unlink()
-                except FileNotFoundError: pass
-            self._reserved = False
-        finally:
-            fcntl.flock(self._startup, fcntl.LOCK_UN); self._startup.close(); self._startup = None
-
+        if not self._handle or not self._instance or not self._token: raise RuntimeError('This application does not own the update marker')
+        pending=self._pending()
+        if pending is None or pending.get('token')!=self._token: raise RuntimeError('Update ownership changed')
+        (self.root/'pending-update.json').unlink(); self._sync_directory()
+        self._lock(self._handle,fcntl.LOCK_SH); self.mode='reader'
+        self._close(self._startup); self._startup=None; self._token=None
     def close(self):
-        for attr in ("_reader", "_instance"):
-            handle = getattr(self, attr)
-            if handle is not None:
-                try: fcntl.flock(handle, fcntl.LOCK_UN)
-                finally: handle.close(); setattr(self, attr, None)
+        # Keep a reserved marker through exit; the matching new app clears it.
+        for name in ('_startup','_instance','_handle'):
+            self._close(getattr(self,name)); setattr(self,name,None)
+        self.mode=None

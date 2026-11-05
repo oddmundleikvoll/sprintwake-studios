@@ -1,146 +1,51 @@
-"""Image anchors shared by the editor, chat and isolated LTX scene worker.
-
-Frames are zero based *published* clip frames. In an extension LTX adds its
-25 carried frames internally; callers must never add that offset themselves.
-"""
-from __future__ import annotations
-
-import copy
+"""Stable, path-contained image anchor helpers."""
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Oddmund Leikvoll
+from pathlib import Path
 import hashlib
-import math
-from pathlib import Path, PurePosixPath
-
-MAX_ANCHORS = 32  # Editor guard, not a limit advertised by the LTX model.
-MAX_SCENE_ANCHORS = MAX_ANCHORS + 2  # Explicit list plus legacy Start/End.
-
-
-def readable_anchors(shot):
-    """Tolerate corrupt saved metadata for inspection, never for rendering."""
-    value = shot.get('imageAnchors')
-    return [item for item in value if isinstance(item, dict)] if isinstance(value, list) else []
-
-
-def anchor_error(shot):
-    try:
-        clean_anchors(shot.get('imageAnchors', []), int(shot.get('frames') or 0))
-        return ''
-    except (ValueError, TypeError):
-        return 'Invalid image anchors — fix or clear the anchor list before saving/rendering'
-
-
-def frame_index(value, frames):
-    if value == 'last' or (type(value) is int and value == -1):
-        return frames - 1
-    if type(value) is not int or not 0 <= value < frames:
-        raise ValueError(f'Anchor frame index must be 0–{frames - 1} or last')
-    return value
-
-
-def clean_anchors(value, frames, *, image_key='ref'):
-    """Validate the whole list; never silently discard an invalid anchor."""
-    limit = MAX_ANCHORS if image_key == 'ref' else MAX_SCENE_ANCHORS
-    if not isinstance(value, list) or len(value) > limit:
-        raise ValueError(f'Provide a list with at most {limit} image anchors per shot')
-    result, seen = [], set()
-    for item in value:
-        if not isinstance(item, dict) or image_key not in item:
-            raise ValueError('Each image anchor must have an image, frame index, and strength')
-        image = item[image_key]
-        if image_key == 'ref':
-            if (not isinstance(image, dict) or image.get('kind') == 'chain'
-                    or not isinstance(image.get('path') or image.get('url'), str)):
-                raise ValueError('Choose a saved image for each anchor')
-        elif not isinstance(image, (str, Path)) or not str(image):
-            raise ValueError('Invalid anchor image')
-        frame = frame_index(item.get('frame'), frames)
-        strength = item.get('strength')
-        if (type(strength) not in (int, float) or not math.isfinite(strength)
-                or not 0 < strength <= 1):
-            raise ValueError('Anchor strength must be greater than 0 and at most 1')
-        if frame in seen:
-            raise ValueError(f'Multiple image anchors point to the same video frame ({frame})')
-        seen.add(frame)
-        result.append({image_key: copy.deepcopy(item[image_key]),
-                       'frame': 'last' if item['frame'] in ('last', -1) else frame,
-                       'strength': float(strength)})
+from urllib.parse import urlsplit, unquote
+def _safe(root,value):
+    root=Path(root).absolute(); path=Path(value)
+    if root.is_symlink(): return None
+    if path.is_absolute():
+        relative=None
+        for base in (root,root.resolve()):
+            try: relative=path.relative_to(base); break
+            except ValueError: pass
+        if relative is None: return None
+    else: relative=path
+    if '..' in relative.parts: return None
+    current=root
+    for part in relative.parts:
+        current/=part
+        if current.is_symlink(): return None
+    try: current.resolve().relative_to(root.resolve())
+    except ValueError: return None
+    return current.resolve() if current.is_file() else None
+def image_catalog(board, projects_dir=None):
+    board=board if isinstance(board,dict) else {}; result={}
+    def add(ref, prefix):
+        if isinstance(ref,str): ref={"path":ref}
+        if not isinstance(ref,dict): return
+        path=ref.get("path") or ref.get("url") or ref.get("ref")
+        if not isinstance(path,str): return
+        if isinstance(path,str) and path.startswith('/media/'): path=unquote(urlsplit(path).path[7:])
+        p=_safe(Path(projects_dir),path) if projects_dir else Path(path) if Path(path).is_file() else None
+        if not p: return
+        ident=str(ref.get("id") or hashlib.sha256(str(p).encode()).hexdigest()[:16])
+        relative=p.relative_to(Path(projects_dir).resolve()).as_posix() if projects_dir else str(p)
+        result[ident]={"path":relative,"url":"/media/"+relative,"ref":{"path":relative,"url":"/media/"+relative},"kind":"image"}
+    for shot in board.get("shots",[]) or []:
+        if isinstance(shot,dict):
+            for key in ("startRef","endRef","thumb"): add(shot.get(key),"shot")
+            for ref in shot.get("referenceImages",[]) or []: add(ref,"shot")
+    for group in ("characters","locations","props"):
+        items=list(board.get(group,[]) or [])
+        bible=board.get('filmBible') if isinstance(board.get('filmBible'),dict) else {}
+        items.extend(bible.get(group,[]) or [])
+        for item in items:
+            if isinstance(item,dict): add(item.get("image") or item.get("referenceImage"),group)
     return result
-
-
-def image_path(ref, data_dir, *, verify=False):
-    """Only local images under the projects tree; no URLs, chains or traversal."""
-    if not isinstance(ref, dict) or ref.get('kind') == 'chain':
-        raise ValueError('Choose a saved image for the anchor; chaining is controlled by the Start image')
-    rel = ref.get('path') or ref.get('url') or ''
-    if not isinstance(rel, str):
-        raise ValueError('Invalid anchor image')
-    if rel.startswith('/media/'):
-        rel = rel[7:]
-    parts = PurePosixPath(rel)
-    if not rel or parts.is_absolute() or '..' in parts.parts or ':' in rel or '\\' in rel:
-        raise ValueError('Anchor image must be in the project media library')
-    root = Path(data_dir).resolve()
-    path = (root / rel).resolve()
-    if not path.is_relative_to(root) or not path.is_file():
-        raise ValueError('Anchor image is missing or outside the media library')
-    if path.suffix.lower() not in ('.png', '.jpg', '.jpeg', '.webp', '.bmp'):
-        raise ValueError('Choose a PNG, JPEG, WebP, or BMP image')
-    if verify:
-        from PIL import Image
-        with Image.open(path) as image:
-            image.verify()
-    return path
-
-
-def shot_anchors(shot, frames, data_dir):
-    return [{'path': str(image_path(a['ref'], data_dir, verify=True)),
-             'frame': a['frame'], 'strength': a['strength']}
-            for a in clean_anchors(shot.get('imageAnchors', []), frames)]
-
-
-def image_catalog(board, data_dir):
-    """Opaque choices for Qwen, derived only from media already on this board."""
-    refs = [(r, 'library') for r in board.get('styleRefs') or []]
-    refs += [(c.get('image'), c.get('name') or 'character') for c in board.get('characters') or []]
-    for i, shot in enumerate(board.get('shots') or [], 1):
-        refs += [(shot.get(k), f'clip {i} {k}') for k in ('startRef', 'endRef')]
-        refs += [(r, f'clip {i} reference') for r in shot.get('referenceImages') or []]
-        refs += [(a.get('ref'), f'clip {i} anchor') for a in readable_anchors(shot)]
-    bible = board.get('filmBible') or {}
-    for group in ('locations', 'props'):
-        for entry in bible.get(group) or []:
-            if isinstance(entry, dict):
-                refs.append((entry.get('referenceImage'), f'bible {group[:-1]}'))
-    choices = {}
-    for ref, source in refs:
-        try:
-            path = image_path(ref, data_dir)
-        except ValueError:
-            continue
-        try:
-            stat = path.stat()
-        except OSError:
-            continue
-        key = hashlib.sha256(f'{path}:{stat.st_mtime_ns}:{stat.st_size}'.encode()).hexdigest()[:20]
-        rel = path.relative_to(Path(data_dir).resolve()).as_posix()
-        local_ref = {k: ref[k] for k in ('label', 'tag', 'role', 'contentHash') if isinstance(ref.get(k), str)}
-        local_ref.update(path=rel, url='/media/' + rel)
-        choices.setdefault('img_' + key, {'ref': local_ref,
-                           'label': ref.get('tag') or ref.get('label') or path.name, 'source': source})
-    return choices
-
-
-def public_catalog(catalog):
-    return [{'imageId': key, 'label': item['label'], 'source': item['source']}
-            for key, item in catalog.items()]
-
-
-def public_anchors(shot, catalog):
-    result = []
-    for anchor in readable_anchors(shot):
-        ref = anchor.get('ref') if isinstance(anchor.get('ref'), dict) else {}
-        value = ref.get('path') or ref.get('url') or ''
-        rel = value.removeprefix('/media/') if isinstance(value, str) else ''
-        image_id = next((key for key, item in catalog.items()
-                         if item['ref'].get('path') == rel), None)
-        result.append({'imageId': image_id, 'frame': anchor.get('frame'), 'strength': anchor.get('strength')})
-    return result
+def stable_id(path, *, prefix="project"):
+    return f"{prefix}:{hashlib.sha256(str(Path(path).resolve()).encode()).hexdigest()[:24]}"
+def containment(root, path): return _safe(Path(root),path)

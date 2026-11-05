@@ -21,7 +21,9 @@ old recipes or media.
 
 
 The Python files and raven_director_guide.md here are verbatim copies of the
-matching companion engine's pure modules. `__init__.py` is native packaging only.
+independently authored MIT engine's pure modules. `__init__.py` is native packaging only.
 Run `uv run --frozen python -B scripts/sync-contracts.py` to check parity, or add
 `--engine /path/to/engine --write` for an intentional synchronized update. Tests
 check imports from a standalone native checkout with no sibling engine.
+
+`store.py` and `media.py` supply the workflow adapter’s standard-library persistence and lazy media helpers. They start no services or model work at import.

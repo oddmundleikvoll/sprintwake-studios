@@ -1,4 +1,49 @@
-# Current status — 2026-11-04
+# Current status — 2026-11-05
+
+Sprintwake Studios **0.11.0 / build 17** uses an independently authored **MIT**
+production engine and pure contracts. The user requested replacing the CC code,
+then selected MIT. The old server, copied contracts/guide, web client, upstream
+tests and re-vendoring helper are removed from the current source. Historical
+commits retain their terms and upstream attribution. [CC_REPLACEMENT.md](CC_REPLACEMENT.md)
+records the boundary and remaining model/provider terms.
+
+The installed app remains **0.10.1 / build 15**. Original Storyboard, ComfyUI,
+model weights, signed oMLX app, projects, private settings and Keychain domains
+are preserved. No Mac release, appcast or model weights were published.
+
+Verification for the independent engine:
+
+- `./scripts/check.sh`: **269 native tests and 7 CTests passed**.
+- Owned CPU runtime + `unittest discover -s engine/tests -v`: **77 passed**,
+  with no required skips. Includes real synthetic video/audio decoding,
+  exact carry trimming, subprocess-group drain, checkpoint resume, CAS,
+  immutable take selection/re-review, privacy and provider transport.
+- Actual native window: **194 controls passed** from isolated source and
+  **194 passed** in the relocated read-only standalone bundle; zero Raven
+  errors and no model inference. Source/bundle modules and seals were checked.
+- Real local Sparkle valid update: fixture build **17 → 18**, waited for its
+  owned synthetic job, preserved **8 files**, then relaunched successfully.
+  Negative signed-feed fixture was rejected while production stayed active;
+  build **17** remained installed. Scenarios passed in separate runs; an
+  earlier negative run timed out waiting for its interactive alert.
+- Independent Comfy memory barrier executed in an isolated real core executor
+  using CLASSIC cache, with no loaded models before or after. No server or
+  model generation was started, and no installed Comfy plugin was changed.
+- Fresh independent review: no remaining P0/P1 finding after fixes. Pure
+  contract parity, frozen lock metadata and staged diff checks pass.
+
+Evidence stays ignored under `qa/`: `cc-source-release-check.log`,
+`cc-source-release-engine.log`, `cc-source-window-v3/`, `cc-source-release-window/`,
+`cc-update-verified.noindex/valid/result.json` and
+`cc-negative-rerun.noindex/tampered/result.json`. Disposable executable app
+copies are unregistered and moved to Trash after verification; logs/screenshots
+remain. No quality or runtime claim for a newly generated film follows from
+these CPU/API checks. Optional direct MOSS/SA3 adapters are retired; explicit
+local/hosted speech/music HTTP adapters are documented in `engine/README.md`.
+
+---
+
+# Historical current status — 2026-11-04
 
 Project goal and current scope: [PROJECT.md](PROJECT.md).
 Sprintwake Studios 0.10.1/build 15 is installed with the three-card Start page and

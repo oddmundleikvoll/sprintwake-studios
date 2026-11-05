@@ -39,8 +39,7 @@ The update signing account is the Keychain account
 `sprintwake-studios-updates`; its public key is committed in `release.json`.
 No Developer ID certificate is currently available, so local builds are
 ad-hoc only. A public release additionally requires Developer ID signing,
-notarization and a verified Sparkle appcast. The source is public under
-CC BY-NC-SA 4.0. No downloadable app release or appcast has been published.
+notarization and a verified Sparkle appcast. The independently authored current source uses MIT; historical source retains its original terms. No downloadable app release or appcast has been published.
 
 CI has read-only repository permission and never uploads artifacts or creates
 releases. Signing/notarization jobs remain disabled until their secrets and
@@ -93,7 +92,7 @@ never change the bundle ID or update public key casually. Keep the private signi
 key in Keychain and maintain a secure backup independently of the repository.
 Developer ID builds use `RAVEN_CODESIGN_IDENTITY`; signing, notarization, stapling
 and a fresh install/update test must precede public distribution. The application's
-source uses CC BY-NC-SA 4.0, as chosen for the first public version; dependencies
+source uses MIT following replacement of the prior CC engine; dependencies
 retain their own terms in NOTICE.md. Binary redistribution review remains a
 separate release requirement.
 

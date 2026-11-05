@@ -11,7 +11,7 @@ Never restore the retired `Storyboard.app` wrapper.
 Keep bundle ID `no.oddmund.storyboard.raven`, Raven Studio data/settings paths and
 Keychain service stable. User media, weights, credentials and machine settings
 must remain outside the bundle. `DISTRIBUTION.md` documents build/update commands.
-The user authorized public source publication on 2026-11-04 under CC BY-NC-SA 4.0.
+The user authorized public source publication on 2026-11-04, then requested an independent replacement of the CC engine and chose MIT on 2026-11-05. The current engine/contracts are independently authored MIT code; historical versions retain their CC license.
 Do not publish downloadable app releases without a separate instruction and the
 release qualifications in DISTRIBUTION.md. No long production for implementation QA.
 
@@ -21,7 +21,7 @@ plans and older STATUS entries are history, not instructions to redo finished wo
 The user authorized full production integration on 2026-10-26 and chose
 `~/Movies/Raven Studio` for all new production data. This supersedes
 the earlier prototype-only restriction. Keep the original Storyboard's existing
-projects/configuration and oMLX app untouched. Reuse the existing production
+projects/configuration and oMLX app untouched. Use the included independent production
 backend in a Raven-owned child process with external data-dir and desktop pipe
 ownership. Keep canonical receipts/refs/shots; never bypass image-plan/review
 gates or terminate foreign work. No long film generation for implementation QA.
@@ -33,9 +33,7 @@ No top-level test runner or CI existed when this independent prototype was added
 
 Public-source preparation was requested on 2026-11-04. Keep local engine settings,
 backups, locks, weights and runtime binaries out of Git; retain engine/local's
-source helpers and *-sample.json templates. NOTICE.md records upstream attribution;
-LICENSE retains CC BY-NC-SA 4.0 for the first public version. Do not imply unrestricted
-commercial use or replace engine/LICENSE. Setup defaults to included engine/;
+*-sample.json templates. LICENSE and engine/LICENSE cover independently authored code under MIT; NOTICE.md retains historical upstream credit and separate dependency/model terms. Never copy the retired CC implementation back into the current engine/contracts. Setup defaults to included engine/;
 RAVEN_BUNDLE_ENGINE remains an explicit override. Focused verification:
 
 ```sh
@@ -206,7 +204,7 @@ Model connections (0.8.0): `connections.py` owns version-1 installation/provider
 settings under ~/Library/Application Support/Raven Studio, outside productions.
 Defaults discover today's sibling engine/runtime/configured workspace and retain
 Qwen/LTX/local language selections. Missing engine/runtime must open native setup.
-`contracts/` bundles pure engine contracts; refresh only from matching source and
+`contracts/` bundles pure engine contracts; refresh only from matching independent source and
 keep parity covered. Config saves apply on the next ordinary launch; never move
 productions or restart active jobs implicitly. Credentials use Security.framework
 Keychain entries bound to both profile and endpoint; no keys in JSON/recipes.
@@ -220,7 +218,7 @@ and common macOS locations. Native smoke sources are synthetic FFmpeg media.
 Read MODEL_CONNECTIONS.md for portable setup and profile schema/limits.
 
 ```sh
-./scripts/setup-engine.sh /path/to/storyboard-engine /path/to/dedicated-runtime
+./scripts/setup-engine.sh /path/to/sprintwake-engine /path/to/dedicated-runtime
 uv run --frozen python -B scripts/sync-contracts.py
 uv run --frozen python -B -m unittest tests.test_connections tests.test_connections_panel tests.test_workflow_panel -v
 uv run --frozen python -B scripts/make-profile.py --help
@@ -287,3 +285,15 @@ Use a fresh directory. This opens a disposable fictional project in the real Rav
 window, uses existing public art and a clearly disclosed scripted director reply, and
 starts no model inference. Inspect the captures before copying only the PNGs into
 assets/screenshots/. Preserve user data and keep QA metadata/logs ignored.
+
+## Independent engine (0.11)
+
+`engine/server` is independently authored from native interfaces and production requirements. Do not restore the retired server, web client, Fable helpers or old copied director prose from history. Local video uses the external MIT ltx-2-mlx CLI with explicit installed model paths; Qwen uses native Comfy nodes and engine/comfy_nodes. Do not install that plugin, start inference servers, download weights or run model generation for ordinary implementation QA. Existing models, signed oMLX app, old Storyboard source/config/projects and installed Sprintwake app remain unchanged unless separately requested.
+
+```sh
+PATH="$PWD/runtime/tools:$PATH" runtime/bundle-venv/bin/python -B -m unittest discover -s engine/tests -v
+.venv/bin/python -B scripts/sync-contracts.py
+.venv/bin/python -B scripts/install-comfy-plugin.py /path/to/ComfyUI --dry-run
+```
+
+Pure contract mirrors include store/media dependencies; imports remain lazy and require no model packages. Provider journals and global GPU/language/process admission survive workspace changes. Pending Comfy cancellation requires an atomic never-started receipt; without that plugin capability, drain to terminal history rather than guessing from queue disappearance. App lifetime must retain the published Updates/code-reader.lock domain and accept matching legacy tokenless handoff markers only under exclusive startup/instance/reader ownership. No Mac Release/appcast publication is authorized by this source replacement.
