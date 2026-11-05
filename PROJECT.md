@@ -51,8 +51,10 @@ krever separat publiseringsbeskjed og distribusjonskvalifisering.
 - **Installering og navn:** Sprintwake Studios er installert i
   `~/Applications/Sprintwake Studios.app`, med Sprintwake-logoen i kobber/gull på
   mørk plommebakgrunn. Prosjekter og lokalt modelloppsett er bevart.
-- **Opprydding:** 27 testkopier er flyttet til papirkurven og avregistrert.
-  Bare den installerte Sprintwake Studios er beholdt som tilgjengelig app.
+- **Opprydding:** fem gamle apparkiver er flyttet til papirkurven, og 49
+  gjenstående appregistreringer fra papirkurven er fjernet. Bare den installerte
+  MIT-appen er igjen utenfor papirkurven og registrert som Sprintwake Studios.
+  Avregistrering må skje på den faktiske papirkurvstien etter flytting.
   Sprintwake Projects er en annen app og er bevart.
 
 ## Verifisert — og hva testene ikke beviser

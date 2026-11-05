@@ -121,3 +121,11 @@ Temporary app copies must be unregistered and moved to Trash after QA. Keep
 only `~/Applications/Sprintwake Studios.app` discoverable; retain the JSON/log
 reports instead of executable QA bundles. Use `.noindex` parents for new test
 bundles to reduce unwanted app indexing during a run.
+
+After successful installed-app startup, move obsolete archived app bundles to
+Trash as well. Capture the actual destination returned by `NSFileManager` and
+run `lsregister -u` on that resulting Trash path: the move can create a fresh
+registration even if the original path was already unregistered. Check main and
+QA bundle IDs across the final LaunchServices inventory, including Trash; only
+the installed app may remain registered. Keep recoverable files in Trash without
+emptying it, and preserve the separate Sprintwake Projects app and vendor SDKs.

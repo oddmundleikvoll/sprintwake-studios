@@ -87,6 +87,28 @@ Evidence: ignored `qa/mit-local-installed-app.json`,
 `qa/mit-installed-candidate-window/production-smoke.json` and
 `qa/mit-local-install-{tests,updates-tests,build}.log`.
 
+## Single installed app cleanup — 2026-11-05
+
+The user reported duplicate app entries after installation. The earlier cleanup
+checked original QA paths, but moving bundles to Trash had registered them again
+at their new URLs. LaunchServices contained 49 main/QA entries in Trash alongside
+the correct installed app.
+
+Five older extensionless app archives (0.3.0, 0.8.0, 0.9.0, 0.10.0 and 0.10.1)
+were found in the two known retired-app folders and moved recoverably to Trash
+after identity and inactive-process checks. Their actual returned destinations
+were recorded. The 49 remaining Trash registrations were then removed; the
+canonical **0.11.0/build 17** app is the sole main/QA registration. No new app
+was built, no Trash was emptied, and no global app-database reset was performed.
+Independent verification confirms the sole Spotlight result, unchanged canonical
+Info.plist/launcher hashes, valid deep/strict signature, all five archive source
+paths absent and **173** protected production/model/settings files unchanged.
+
+Separate Sprintwake Projects apps, vendor Sparkle SDK/helpers, original
+Storyboard, oMLX, models, productions and private settings are outside the cleanup.
+Evidence stays ignored under `qa/single-app-*.json`; the durable cleanup rule now
+requires unregistering the actual resulting Trash URL after each move.
+
 ---
 
 # Historical current status — 2026-11-04

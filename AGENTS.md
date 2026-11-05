@@ -264,6 +264,13 @@ After QA, unregister and trash disposable app bundles; keep only the installed
 not executable test copies. Put future bundle test runs inside `.noindex`
 directories, and still unregister them after explicit GUI tests. Never remove
 Sprintwake Projects or production/configuration/model folders during this cleanup.
+Moving an app to Trash can register it again at its new URL. Capture
+NSFileManager's resultingItemURL and unregister that actual Trash path after the
+move; checking only the original path is insufficient. Final verification must
+include main and QA bundle IDs throughout LaunchServices, including Trash paths,
+and leave only the canonical app. Do not empty Trash or reset the whole database.
+The user requested one local app on 2026-11-05: previous/QA app bundles are now
+recoverable in Trash, rather than retained as live extensionless app archives.
 
 ## English public interface (0.10.2)
 
@@ -275,7 +282,7 @@ fixture expectations together. Canonical director/anchor copy belongs in engine/
 refresh contracts/ through scripts/sync-contracts.py rather than editing its mirror.
 The user explicitly requested the local update on 2026-11-05; the installed app
 is now MIT 0.11.0/build 17. Its compatible private LTX/oMLX settings and independent
-Comfy helper are installed, with backups and the previous app retained. No public
+Comfy helper are installed, with private backups and the previous app in Trash. No public
 Mac release or appcast is authorized by that local installation.
 
 Reproducible README screenshots, with an unlocked graphical macOS session:

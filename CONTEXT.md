@@ -11,12 +11,19 @@ progression is director conversation → project → brief → bible → images/
 Public source publication was authorized on 2026-11-04. On 2026-11-05 the user requested replacing the CC engine and selected MIT for independently authored code. Current engine/server and contracts use that replacement; old versions retain their CC terms in Git history. Native and bundled CPU tests use the included engine and synthetic media, without model startup or downloads. The independent engine preserves schema-v1 files, CAS, immutable media, production review and process/update ownership. Qwen uses native Comfy plus an independent memory barrier; LTX uses the external MIT CLI/local pack. Language/audio APIs and Comfy profiles may be local or cloud-hosted. Model/provider terms remain separate.
 
 The user then explicitly requested the local app update. Installed Sprintwake is
-now MIT **0.11.0/build 17**, with the prior app retained for rollback. Private
+now MIT **0.11.0/build 17**. Private
 configuration backups precede compatible LTX CLI and direct oMLX connection entries;
 the same language model and all production paths are retained. Credentials use the
 existing endpoint-scoped Keychain service. The independent Comfy helper is installed,
 but ComfyUI and inference were not started for installation QA. Existing production
 files, weights, original Storyboard and the signed oMLX app/settings are preserved.
+
+The user subsequently requested exactly one local Sprintwake Studios app.
+Five obsolete archived bundles are recoverable in Trash; 49 main/QA app
+registrations pointing into Trash were removed. Only the canonical installed
+app remains registered. Cleanup must unregister the resulting Trash URL after
+moving each app, since the move can create a new registration. Private backups,
+projects/models and the separate Sprintwake Projects app are preserved.
 
 LTX drain handles macOS zombie-only group `EPERM` using a bounded, validated
 process-table snapshot. Permission errors alone never authorize another model;
