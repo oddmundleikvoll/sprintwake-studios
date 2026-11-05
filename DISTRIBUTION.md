@@ -24,9 +24,21 @@ RAVEN_BUNDLE_PYTHON="$PWD/runtime/bundle-venv" \
 scripts/package-app.sh
 ```
 
-The build refuses to replace an existing output bundle. It does not install an
-app or migrate settings. QA must copy the result elsewhere and exercise the
-embedded Python/runtime before any local install.
+The build refuses to replace an existing output bundle. Resolved output paths
+must be below a `.noindex` directory, including when ancestors are symlinks.
+It does not install an app or migrate settings. For normal standalone QA, use
+the managed build/check path, which retires its app on success and failure:
+
+```sh
+RAVEN_BUNDLE_PYTHON="$PWD/runtime/bundle-venv" ./scripts/package-app.sh --verify
+```
+
+Reports and recovery receipts remain under `qa/`; executable test copies do not.
+An existing explicit build can also be checked and consumed with:
+
+```sh
+.venv/bin/python -B scripts/check-bundle.py "$PWD/qa/fresh.noindex/Sprintwake Studios.app" --output "$PWD/qa/window-fresh.noindex"
+```
 
 ## Updates and release policy
 
@@ -56,8 +68,19 @@ The normal installer command, after reviewing a fresh signed QA build:
 
 Installation refuses a running old/new app, an active registered engine reader,
 an invalid signature and an unknown destination. It verifies a copy staged on
-the target volume before swapping, preserving source and previous app on failure. The old
-known Raven bundle is retained under `~/Applications/qa/retired-apps.noindex/`.
+the target volume before swapping, preserving source and previous app on failure.
+Only after a verified replacement is committed does it retire the previous app,
+known legacy launcher and input build. Each obsolete app is moved to Trash and
+converted to a ZIP: file bytes, entry types, permissions, symlinks and an unchanged
+source snapshot are checked before removing the executable directory. The ZIP
+and recovery receipt are synced to disk first. Failure preserves the original
+app directory. ZIPs cannot be rediscovered as app bundles by macOS.
+
+Original and actual Trash URLs are unregistered. Recovery receipts live under
+`~/Applications/qa/app-cleanup.noindex/`; each records `backup` and `restoreName`.
+To recover, extract the ZIP and rename its root to the receipt's restore name.
+If cleanup fails after commit, the error states that the new app is installed
+and retains its handoff and recovery data.
 The retired generic `Storyboard.app` is never touched. Local migration copies
 missing private configuration, preserving explicit custom engines/runtimes and
 all model/service selections. It never moves projects or weights.
@@ -79,7 +102,9 @@ when extraction is complete. The download indicator reopens a hidden update
 window. The fixture then verifies production waiting, replacement and relaunch;
 the modified-feed scenario is automatic. It never queries GitHub or starts a model.
 Choose new output paths for each run. Disposable QA app IDs/data are separate
-from the normal app. Model inference is outside this distribution check.
+from the normal app. The fixture always retires its Installed/payload app copies
+in `finally`, including failed or cancelled scenarios, and cleans registrations
+for that run's unique QA identifier. Model inference is outside this distribution check.
 
 Production release assets can be prepared locally, without uploading:
 
@@ -117,15 +142,17 @@ production waiting, ten preserved QA files and signed-body tampering rejection.
 The installed app also retained all eleven audited existing production/settings
 files. Evidence is retained under ignored `qa/`; no public release was made.
 
-Temporary app copies must be unregistered and moved to Trash after QA. Keep
-only `~/Applications/Sprintwake Studios.app` discoverable; retain the JSON/log
-reports instead of executable QA bundles. Use `.noindex` parents for new test
-bundles to reduce unwanted app indexing during a run.
+Temporary app copies are retired with `scripts/cleanup-app.py`, which preserves
+verified recovery ZIPs in Trash and receipts outside the app. Keep only
+`~/Applications/Sprintwake Studios.app` discoverable; retain JSON/log reports
+instead of executable QA bundles. `.noindex` staging also reduces indexing.
+Unregistering an app folder in Trash alone is insufficient: macOS can rediscover
+it hours later. Do not retain obsolete executable folders there.
 
-After successful installed-app startup, move obsolete archived app bundles to
-Trash as well. Capture the actual destination returned by `NSFileManager` and
-run `lsregister -u` on that resulting Trash path: the move can create a fresh
-registration even if the original path was already unregistered. Check main and
-QA bundle IDs across the final LaunchServices inventory, including Trash; only
-the installed app may remain registered. Keep recoverable files in Trash without
-emptying it, and preserve the separate Sprintwake Projects app and vendor SDKs.
+After readiness, native bundled startup reconciles physically present and
+registered owned Trash apps in a background task. Production startup includes
+Sprintwake's unique QA IDs; a QA app only cleans its own ID. Direct Trash children
+are inspected without recursing into unrelated packages. A cross-process lock
+serializes retirement and startup reconciliation. Existing user media, models,
+settings, Sprintwake Projects and vendor SDKs remain protected; Trash is never
+emptied and the LaunchServices database is never reset. Cleanup errors are visible.

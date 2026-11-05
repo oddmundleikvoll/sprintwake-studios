@@ -24,21 +24,20 @@ the native local Qwen/LTX workflow.
 git clone https://github.com/oddmundleikvoll/sprintwake-studios.git
 cd sprintwake-studios
 ./scripts/setup.sh
-open "dist/Sprintwake Studios.app"
-```
-
-The build produces a standalone app in `dist/`. **Local builds do not require a
-Developer ID certificate or notarization.** Setup downloads pinned development/runtime
-dependencies; it does not download model weights or start generation.
-
-To install the built app in your Applications folder:
-
-```sh
 .venv/bin/python -B scripts/install_app.py install \
-  "$HOME/Applications" "$PWD/dist/Sprintwake Studios.app" \
+  "$HOME/Applications" "$PWD/dist/Build.noindex/Sprintwake Studios.app" \
   "$HOME/Applications/Sprintwake Studios.app"
 open "$HOME/Applications/Sprintwake Studios.app"
 ```
+
+The build stages a standalone app in `dist/Build.noindex/`. **Local builds do not
+require a Developer ID certificate or notarization.** Setup downloads pinned
+runtime dependencies; it does not download model weights or start generation.
+
+Installation replaces the same application path. After the verified swap, the
+installer retires the source build and previous app as verified recovery ZIPs
+in Trash, then removes their app registrations. Failed installs preserve the
+existing app and input build. Recovery receipts stay outside the app.
 
 Then open **Models** (the **Models and connections** panel), choose a production folder, and connect your
 local or cloud-hosted model services. The app includes its production engine, Python CPU runtime and
@@ -118,8 +117,14 @@ For development, `./run.command` launches directly from the checkout. To verify:
 ```
 
 The smoke test uses disposable projects and synthetic media, with no model inference.
-Setup preserves existing build outputs; choose a fresh `RAVEN_PACKAGE_OUTPUT` for
-subsequent builds. See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow
+For a disposable standalone build and window check with automatic cleanup:
+
+```sh
+RAVEN_BUNDLE_PYTHON="$PWD/runtime/bundle-venv" ./scripts/package-app.sh --verify
+```
+
+Explicit retained build outputs must resolve inside a `.noindex` directory;
+installation consumes them after a successful replacement. See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow
 and [DISTRIBUTION.md](DISTRIBUTION.md) for installation, signing and updates.
 
 Projects and private settings stay outside the app. The default production location

@@ -259,18 +259,14 @@ failure. Keep rollback coverage with an actually live reader process and injecte
 copy/registration failures. Bundled ffprobe must use `-I -B`; even a standalone
 probe must preserve the sealed app and never write Python cache files inside it.
 
-After QA, unregister and trash disposable app bundles; keep only the installed
-`~/Applications/Sprintwake Studios.app` discoverable. Retain logs/JSON/screenshots,
-not executable test copies. Put future bundle test runs inside `.noindex`
-directories, and still unregister them after explicit GUI tests. Never remove
-Sprintwake Projects or production/configuration/model folders during this cleanup.
-Moving an app to Trash can register it again at its new URL. Capture
-NSFileManager's resultingItemURL and unregister that actual Trash path after the
-move; checking only the original path is insufficient. Final verification must
-include main and QA bundle IDs throughout LaunchServices, including Trash paths,
-and leave only the canonical app. Do not empty Trash or reset the whole database.
-The user requested one local app on 2026-11-05: previous/QA app bundles are now
-recoverable in Trash, rather than retained as live extensionless app archives.
+After QA, retire disposable app bundles through `app_bundles.py`; keep only the
+installed `~/Applications/Sprintwake Studios.app` discoverable. Retain reports
+and verified recovery ZIPs, not executable test folders, including in Trash.
+macOS can rediscover old `.app` folders hours after unregistering them. Capture
+NSFileManager's actual Trash URL, archive and verify before removing the redundant
+folder, and unregister both URLs. New build paths resolve below `.noindex`.
+Check main and QA identifiers in LaunchServices. Never remove Sprintwake Projects,
+production/configuration/model folders, empty Trash or reset the whole database.
 
 ## English public interface (0.10.2)
 
@@ -343,3 +339,26 @@ publication of these improvements, still without tests or generation. Version
 0.11.2/build 19 is prepared from an isolated checkout to preserve unrelated pending
 installer work. No public Mac release/appcast is implied. Record build/signature
 and installation evidence separately from deferred functional qualification.
+
+## Automatic app-copy lifecycle
+
+Use `RAVEN_BUNDLE_PYTHON="$PWD/runtime/bundle-venv" ./scripts/package-app.sh --verify`
+for disposable standalone QA. It runs the real window check and retires its own
+app on success and failure. Explicit retained outputs must resolve below
+`.noindex` and are consumed after successful installation. Never test from the
+canonical installed app. Keep reports, not executable test copies.
+
+`app_bundles.py` owns identity/whole-Contents process guards, serialized retirement,
+Foundation Trash moves and verified recovery ZIPs. Before removing an obsolete
+app directory, verify all archived bytes/types/modes/links and an unchanged source
+snapshot, then sync the ZIP and receipt. Unregister original and actual Trash
+URLs. Retaining `.app` folders in Trash permits later rediscovery; keep ZIPs.
+Preserve rollback until installation commits, and preserve the new handoff on
+post-commit cleanup errors. Native startup reconciles old owned Trash apps after
+readiness; Sparkle fixtures clean their own copies/UUID in `finally`. No global
+registry reset, Trash emptying, foreign app removal or model startup belongs here.
+
+```sh
+RAVEN_RUN_REAL_APP_BUNDLE_PROBE=1 uv run --frozen python -B -m unittest tests.test_app_bundles tests.test_app_workflows tests.test_install_app tests.test_updates -v
+bash -n scripts/package-app.sh scripts/setup.sh
+```

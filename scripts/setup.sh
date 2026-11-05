@@ -43,5 +43,5 @@ tar -xf "$ARCHIVE" -C runtime
 .venv/bin/cmake --build runtime/build --parallel 8
 ./scripts/setup-sparkle.sh
 ./scripts/build-native.sh
-RAVEN_BUILD_ONLY=1 RAVEN_BUNDLE_PYTHON="$PWD/runtime/bundle-venv" RAVEN_PACKAGE_OUTPUT="${RAVEN_PACKAGE_OUTPUT:-$PWD/dist/Sprintwake Studios.app}" ./scripts/package-app.sh
+RAVEN_BUILD_ONLY=1 RAVEN_BUNDLE_PYTHON="$PWD/runtime/bundle-venv" RAVEN_PACKAGE_OUTPUT="${RAVEN_PACKAGE_OUTPUT:-$PWD/dist/Build.noindex/Sprintwake Studios.app}" ./scripts/package-app.sh
 printf 'Ready. Standalone app built without installation; verify it before installing.\n'

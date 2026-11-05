@@ -20,6 +20,8 @@ jobs:
           test "$(uname -m)" = arm64
           ./scripts/setup.sh
       - name: Native unit tests, CTest and diff checks
+        env:
+          RAVEN_RUN_REAL_APP_BUNDLE_PROBE: "1"
         run: ./scripts/check.sh
       - name: Check pure contracts
         run: .venv/bin/python -B scripts/sync-contracts.py

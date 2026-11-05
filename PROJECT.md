@@ -100,6 +100,14 @@ Modellinferens ble ikke startet. Installert app, prosjekter og modelloppsett er
 urørt. Den offentlige kildekoden kan bygges lokalt uten Developer ID/notarisering.
 [GitHub CI for 0.10.2 består](https://github.com/oddmundleikvoll/sprintwake-studios/actions/runs/41924455474).
 
+## Forebygging av appkopier
+
+Fremtidige bygg bruker `.noindex`, og vellykket installasjon forbruker byggekilden
+og rydder gammel app. Disponibel byggkontroll og Sparkle-prøver rydder egne kopier
+også ved feil. Gamle appmapper blir kontrollerte ZIP-sikkerhetskopier i papirkurven,
+siden macOS ellers kan oppdage dem igjen. Oppstart rydder gamle, egne kopier i
+bakgrunnen. Den separat installerte 0.11.2/build 19 beholdes i denne endringen.
+
 ## MIT-erstatning (0.11)
 
 Den uavhengige motoren er verifisert med 80 CPU-/API-kontroller uten hopp,

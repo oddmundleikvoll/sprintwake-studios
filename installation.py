@@ -4,6 +4,16 @@ import copy,json,os
 from pathlib import Path
 from connections import ConnectionStore,defaults,write_private
 
+def cleanup_app_registration(bundle=None):
+    """Remove old Trash registrations left by a completed Sparkle replacement."""
+    selected=bundle or os.environ.get('SPRINTWAKE_APP_BUNDLE')
+    if not selected:return 0
+    from app_bundles import BUNDLE_ID,bundle_id,clear_trash_registrations
+    path=Path(selected).expanduser().absolute()
+    ident=bundle_id(path)
+    if not ident:raise ValueError('Installed application identity is unavailable')
+    return clear_trash_registrations(ident,keep=(path,),include_qa=ident==BUNDLE_ID)
+
 def rebase_bundle_paths(doc,bundle):
     doc=copy.deepcopy(doc);bundle=Path(bundle)
     suffixes={'engine':'/Contents/Resources/Studio/engine','python':'/Contents/Resources/Python/bin/python3.12'}

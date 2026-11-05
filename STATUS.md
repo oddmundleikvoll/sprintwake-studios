@@ -1,5 +1,45 @@
 # Current status — 2026-11-05
 
+## Automatic app-copy prevention — completed 2026-11-05
+
+Managed builds now use resolved `.noindex` staging. `package-app.sh --verify`
+checks a disposable standalone app and retires it on success or failure. The
+transactional installer consumes its source and retires previous/known legacy
+apps only after verified replacement commits. Sparkle fixtures clean their own
+copies in `finally`. Whole-Contents process guards protect running apps/workers.
+
+Unregistration alone proved insufficient: macOS rediscovered `.app` folders in
+Trash hours later. Retirement now verifies a recovery ZIP's file hashes, entry
+types, permissions and symlinks, checks an unchanged source snapshot, and syncs
+the ZIP and receipt before removing the redundant executable folder. Original
+and actual Trash URLs are unregistered. Background bundled startup reconciles
+owned physical/registered Trash copies; a cross-process lock serializes cleanup.
+Failures preserve recovery data and a committed install's handoff. No Trash
+emptying, global registry reset, foreign app removal or model startup occurs.
+
+Verification is scoped to this lifecycle change:
+
+- Latest source: **48 focused tests pass**, including real Foundation/ZIP/
+  LaunchServices behavior, rollback, active workers and failure cleanup.
+- Isolated `ce976be` plus lifecycle changes: **296 tests and 7 CTests pass**;
+  pure contract parity and frozen lock checks pass. The disposable standalone
+  build passes **194 window checks**, starts no models and retires itself.
+- A tiny signed real install verifies replacement, consumed source, retired old
+  app, two verified ZIP recovery receipts and completed handoff.
+- One-time migration converted **68 old Trash app directories** to verified
+  recovery ZIPs. Final inventory contains only the canonical app registration
+  and no owned executable app folders in Trash. Its signature remains valid.
+- All **173** protected production/settings/model entries retain their recorded
+  metadata and, where recorded, hashes. The separately installed **0.11.2/build
+  19** remains unchanged by this task.
+
+The film-direction work in `7255a53` retains its separately deferred functional
+verification. Broad tests/window checks above use the isolated earlier base;
+this integration skips hosted CI to respect that request. No binary release or
+appcast is published. Lifecycle evidence is consolidated under ignored
+`qa/app-copy-prevention/`; the temporary lifecycle worktree is removed.
+
+
 ## 0.11.2 / build 19 local and source update
 
 The filmmaker explicitly requested installing the film-direction improvements

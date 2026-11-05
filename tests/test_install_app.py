@@ -8,6 +8,8 @@ import sys
 import tempfile
 import time
 import unittest
+import shutil
+import uuid
 
 spec=importlib.util.spec_from_file_location("install_app",Path(__file__).parents[1]/"scripts/install_app.py")
 install=importlib.util.module_from_spec(spec)
@@ -15,12 +17,25 @@ spec.loader.exec_module(install)
 
 
 class InstallationTests(unittest.TestCase):
+    def setUp(self):
+        self.retired = []
+        def move(path, *, keep, receipt_dir):
+            self.assertNotIn(Path(path).resolve(), [Path(p).resolve() for p in keep])
+            destination = Path(receipt_dir).parent / 'test-trash' / uuid.uuid4().hex
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(path), destination)
+            self.retired.append(destination)
+            return destination
+        patcher = patch.object(install, 'trash_bundle', side_effect=move)
+        self.trash = patcher.start()
+        self.addCleanup(patcher.stop)
+
     def bundle(self,path,identifier=install.BUNDLE_ID):
         (path/"Contents").mkdir(parents=True)
         (path/"Contents/Info.plist").write_bytes(plistlib.dumps({"CFBundleIdentifier":identifier,"CFBundleVersion":"13"}))
         return path
 
-    def test_shortcut_migration_leaves_one_bundle_and_retains_old_launcher(self):
+    def test_finalization_registers_before_returning_validated_legacy_launcher(self):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp)/"source"; root.mkdir()
             old=self.bundle(root/"Storyboard Raven.app")
@@ -30,10 +45,10 @@ class InstallationTests(unittest.TestCase):
             self.assertFalse(target.is_symlink())
             self.bundle(target)
             retired=install.finalize_install(root,target,register=False)
-            self.assertFalse(old.exists())
-            self.assertTrue((retired/"Contents/Info.plist").is_file())
+            self.assertEqual(retired, old)
+            self.assertTrue(old.exists())
             self.assertTrue(target.is_dir())
-            self.assertIsNone(install.finalize_install(root,target,register=False))
+            self.trash.assert_not_called()
 
     def test_unknown_destination_is_preserved(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -114,21 +129,64 @@ class InstallationTests(unittest.TestCase):
             self.assertEqual((target/'keep.txt').read_text(),'working app');self.assertTrue(source.exists())
             self.assertFalse((root/'locks/pending-update.json').exists());self.assertFalse(list(root.glob('.*.staged-*')))
 
-    def test_success_preserves_source_and_archives_previous_app(self):
+    def test_success_consumes_source_and_retires_previous_only_after_commit(self):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp);target=self.bundle(root/'Sprintwake Studios.app');source=self.bundle(root/'incoming.app')
             (target/'marker').write_text('old');(source/'marker').write_text('new')
             with patch.dict(os.environ,{'SPRINTWAKE_UPDATE_LOCK_ROOT':str(root/'locks')}),patch.object(install,'_verify_signature') as verify:
                 install.transactional_install(root,source,target)
                 self.assertEqual(verify.call_count,2)
-            self.assertEqual((target/'marker').read_text(),'new');self.assertEqual((source/'marker').read_text(),'new')
-            self.assertEqual([p.read_text() for p in (root/'qa/retired-apps.noindex').glob('*/marker')],['old'])
+            self.assertEqual((target/'marker').read_text(),'new');self.assertFalse(source.exists())
+            self.assertEqual([p.joinpath('marker').read_text() for p in self.retired],['old','new'])
+            self.assertFalse((root/'qa/retired-apps.noindex').exists())
             self.assertTrue((root/'locks/pending-update.json').exists())
             with self.assertRaises(RuntimeError):
                 install.AppLifetime(root=root/'locks',bundle='old',build=12).enter_engine()
             updated=install.AppLifetime(root=root/'locks',bundle=target,build=13).enter_app()
             updated.close()
             self.assertFalse((root/'locks/pending-update.json').exists())
+
+    def test_success_retires_legacy_launcher_as_well_as_build_source(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);legacy=self.bundle(root/'Storyboard Raven.app')
+            source=self.bundle(root/'incoming.app');target=root/'Sprintwake Studios.app'
+            with patch.dict(os.environ,{'SPRINTWAKE_UPDATE_LOCK_ROOT':str(root/'locks')}),patch.object(install,'_verify_signature'):
+                moved=install.transactional_install(root,source,target)
+            self.assertFalse(legacy.exists());self.assertFalse(source.exists())
+            self.assertTrue(target.exists());self.assertEqual(moved,self.retired[0])
+
+    def test_cleanup_failure_preserves_committed_app_and_handoff(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);target=self.bundle(root/'Sprintwake Studios.app');source=self.bundle(root/'incoming.app')
+            (target/'marker').write_text('old');(source/'marker').write_text('new')
+            self.trash.side_effect=OSError('Trash unavailable')
+            with patch.dict(os.environ,{'SPRINTWAKE_UPDATE_LOCK_ROOT':str(root/'locks')}),patch.object(install,'_verify_signature'):
+                with self.assertRaisesRegex(RuntimeError,'new app is installed'):
+                    install.transactional_install(root,source,target)
+            self.assertEqual((target/'marker').read_text(),'new')
+            self.assertTrue(source.exists());self.assertTrue((root/'locks/pending-update.json').exists())
+            self.assertEqual([p.joinpath('marker').read_text() for p in root.glob('*.previous-*')],['old'])
+
+    def test_same_bundle_or_symlink_source_is_never_consumed(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);target=self.bundle(root/'Sprintwake Studios.app')
+            with self.assertRaises(ValueError):install.transactional_install(root,target,target)
+            source=root/'source.app';source.symlink_to(target,target_is_directory=True)
+            with self.assertRaises(ValueError):install.transactional_install(root,source,root/'other.app')
+            self.assertTrue(target.exists());self.assertTrue(source.is_symlink())
+            self.trash.assert_not_called()
+
+    def test_live_bundled_worker_blocks_install_before_any_rename(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);target=self.bundle(root/'Sprintwake Studios.app');source=self.bundle(root/'incoming.app')
+            output=f'{os.getpid()} /usr/bin/python\n123 {target.resolve()}/Contents/Resources/Python/bin/python3.12\n'
+            result=type('R',(),{'stdout':output,'returncode':0})()
+            with patch('app_bundles.subprocess.run',return_value=result),patch.object(install,'_verify_signature') as verify:
+                with self.assertRaisesRegex(RuntimeError,'bundled worker'):
+                    install.transactional_install(root,source,target)
+            verify.assert_not_called();self.trash.assert_not_called()
+            self.assertTrue(target.exists());self.assertTrue(source.exists())
+            self.assertFalse(list(root.glob('*.previous-*')))
 
     def test_registration_failure_restores_previous_target(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -138,6 +196,7 @@ class InstallationTests(unittest.TestCase):
                 with self.assertRaises(OSError):install.transactional_install(root,source,target,register=True)
             self.assertEqual((target/'marker').read_text(),'old');self.assertTrue(source.exists())
             self.assertFalse((root/'locks/pending-update.json').exists())
+            self.trash.assert_not_called()
 
     def test_failed_registration_never_archives_legacy_app(self):
         with tempfile.TemporaryDirectory() as temp:

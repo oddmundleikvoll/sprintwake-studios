@@ -258,3 +258,12 @@ Sparkle to authenticated engine quiescence. `engine/server/app_lifetime.py` is
 synchronized into `contracts/` and owns process-lifetime update safety. A pending
 marker blocks old startup during the installer handoff. No GitHub upload occurs
 in build, signing, verification or installation scripts.
+
+Automatic duplicate prevention: managed build paths resolve below `.noindex`.
+`package-app.sh --verify` and Sparkle QA retire owned copies on every outcome;
+committed installation consumes the input and retires old/legacy apps. Recovery
+uses verified, synced ZIPs in Trash, with external receipts. Keeping executable
+folders in Trash allows macOS to rediscover them despite unregistration. A shared
+lock serializes retirement and background startup reconciliation of owned Trash
+apps. Whole-Contents active-process guards precede installer rename. Cleanup
+failures stay visible and preserve a committed installation's handoff.

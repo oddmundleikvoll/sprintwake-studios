@@ -18,13 +18,11 @@ _ROOT = Path(__file__).resolve().parents[1]
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 from contracts.app_lifetime import AppLifetime
+from app_bundles import assert_bundle_idle,bundle_id,trash_bundle
 
 
 def _ours(path: Path) -> bool:
-    try:
-        return plistlib.loads((path / "Contents/Info.plist").read_bytes()).get("CFBundleIdentifier") == BUNDLE_ID
-    except (OSError, ValueError):
-        return False
+    return bundle_id(path)==BUNDLE_ID
 
 
 def prepare_destination(root: Path, target: Path) -> None:
@@ -39,24 +37,25 @@ def prepare_destination(root: Path, target: Path) -> None:
     target.parent.mkdir(parents=True, exist_ok=True)
 
 
+def _legacy_bundle(root: Path, target: Path) -> Path | None:
+    for name in LEGACY_NAMES:
+        legacy = root / name
+        if legacy.exists() and legacy.absolute() != target.absolute():
+            if legacy.is_symlink() or not _ours(legacy):
+                raise ValueError("The old app path belongs to an unknown application")
+            return legacy
+    return None
+
+
 def finalize_install(root: Path, target: Path, *, register=True) -> Path | None:
-    """Retain the old launcher outside .app indexing after the new app is signed."""
+    """Register only the installed app; return a validated obsolete launcher."""
     if target.is_symlink() or not _ours(target):
         raise ValueError("Den ferdige Raven-appen mangler")
-    legacy = next((root / name for name in LEGACY_NAMES if (root / name).exists() and (root / name).resolve() != target.resolve()), root / APP_NAME)
-    retired = None
+    legacy = _legacy_bundle(root, target)
     registrar = "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
     if register:
         subprocess.run([registrar, "-f", str(target)], check=True, capture_output=True)
-    if legacy.exists() and legacy.resolve() != target.resolve():
-        if legacy.is_symlink() or not _ours(legacy):
-            raise ValueError("Den gamle appbanen tilhører en ukjent app")
-        if register:
-            subprocess.run([registrar, "-u", str(legacy)], check=True, capture_output=True)
-        retired = root / "qa/retired-apps.noindex" / uuid.uuid4().hex
-        retired.parent.mkdir(parents=True, exist_ok=True)
-        shutil.move(str(legacy), str(retired))
-    return retired
+    return legacy
 
 
 def _verify_signature(bundle: Path) -> None:
@@ -67,18 +66,17 @@ def _verify_signature(bundle: Path) -> None:
 def transactional_install(root: Path, bundle: Path, target: Path, *, register=False) -> Path | None:
     """Verify and stage on the target volume, then swap under the lifetime lock."""
     root = Path(root).expanduser().absolute()
-    bundle = Path(bundle).expanduser().resolve()
+    bundle = Path(bundle).expanduser().absolute()
     target = Path(target).expanduser().absolute()
-    if not _ours(bundle):
+    if bundle.is_symlink() or not _ours(bundle):
         raise ValueError("Den nye Sprintwake-bunten mangler eller har feil identitet")
+    bundle = bundle.resolve()
+    if bundle == target.resolve() or target.resolve().is_relative_to(bundle) or bundle.is_relative_to(target.resolve()):
+        raise ValueError("Build source and installed application must be separate bundles")
     if target.exists() and (target.is_symlink() or not _ours(target)):
         raise ValueError("Installeringsmålet tilhører en annen app")
-    executable_paths = [target / "Contents/MacOS/Sprintwake Studios",
-                        root / "Storyboard Raven.app/Contents/MacOS/Storyboard Raven"]
-    processes = subprocess.run(["ps", "-axo", "pid=,command="], capture_output=True, text=True, check=True).stdout
-    for executable in executable_paths:
-        if any(str(executable) in line and not line.lstrip().startswith(str(os.getpid()) + " ") for line in processes.splitlines()):
-            raise RuntimeError("Raven kjører fortsatt; oppdateringen er utsatt")
+    for candidate in (target,root/'Storyboard Raven.app',bundle):
+        assert_bundle_idle(candidate)
     try:
         build = int(plistlib.loads((bundle / "Contents/Info.plist").read_bytes())["CFBundleVersion"])
         if build <= 0: raise ValueError()
@@ -112,12 +110,22 @@ def transactional_install(root: Path, bundle: Path, target: Path, *, register=Fa
             previous.rename(target)
         raise
     else:
-        if previous and previous.exists():
-            retired_previous = root / "qa/retired-apps.noindex" / uuid.uuid4().hex
-            retired_previous.parent.mkdir(parents=True, exist_ok=True)
-            shutil.move(str(previous), str(retired_previous))
+        # The verified replacement is committed. A cleanup failure must not undo
+        # that replacement or cancel its handoff marker. Receipts retain the
+        # actual Trash URL so registration cleanup can be retried safely.
         installed = True
-        return retired
+        receipt_dir = root / "qa/app-cleanup.noindex"
+        result = None
+        for obsolete in (previous, retired, bundle):
+            if obsolete is not None and obsolete.exists():
+                try:
+                    moved = trash_bundle(obsolete, keep=(target,), receipt_dir=receipt_dir)
+                    if obsolete == retired:
+                        result = moved
+                except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
+                    raise RuntimeError("The new app is installed; obsolete app cleanup is incomplete. "
+                                       f"Recovery receipts: {receipt_dir}") from error
+        return result
     finally:
         try:
             if staged.exists(): shutil.rmtree(staged)
@@ -136,7 +144,9 @@ if __name__ == "__main__":
         prepare_destination(Path(source), Path(destination))
     elif stage == "finalize":
         source, destination = arguments
-        finalize_install(Path(source), Path(destination))
+        obsolete = finalize_install(Path(source), Path(destination))
+        if obsolete is not None:
+            trash_bundle(obsolete, keep=(Path(destination),), receipt_dir=Path(source)/"qa/app-cleanup.noindex")
     elif stage == "install":
         root, bundle, target = arguments
         transactional_install(Path(root), Path(bundle), Path(target), register=True)

@@ -2,6 +2,15 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+VERIFY=0
+if [ "$#" -gt 0 ]; then
+  if [ "$#" -ne 1 ] || [ "$1" != "--verify" ]; then
+    printf 'Usage: scripts/package-app.sh [--verify]\n' >&2
+    exit 2
+  fi
+  VERIFY=1
+fi
+
 APP_NAME="Sprintwake Studios.app"
 APP_ROOT="$HOME/Applications"
 if [ -n "${RAVEN_BUNDLE_ENGINE:-}" ]; then
@@ -16,7 +25,21 @@ FEED_URL="${RAVEN_SPARKLE_FEED_URL:-}"
 PUBLIC_KEY="${RAVEN_SPARKLE_PUBLIC_KEY:-}"
 SPARKLE_FRAMEWORK="${RAVEN_BUNDLE_SPARKLE:-$PWD/runtime/Sparkle/Sparkle.framework}"
 BUILD_DIR="$(mktemp -d "${TMPDIR:-/tmp}/sprintwake-package.XXXXXX")"
-trap 'rm -rf "$BUILD_DIR"' EXIT
+OWN_OUTPUT=0
+cleanup_package() {
+  PACKAGE_STATUS=$?
+  REMOVE_BUILD_DIR=1
+  if [ "$VERIFY" = "1" ] && [ "$OWN_OUTPUT" = "1" ] && [ -d "$BUNDLE" ]; then
+    if ! uv run --frozen python -B scripts/cleanup-app.py "$BUNDLE" \
+      --receipt-dir "${QA_OUTPUT:-$PWD/qa/bundle-cleanup.noindex}"; then
+      PACKAGE_STATUS=1
+      REMOVE_BUILD_DIR=0
+    fi
+  fi
+  if [ "$REMOVE_BUILD_DIR" = "1" ]; then rm -rf "$BUILD_DIR"; fi
+  return "$PACKAGE_STATUS"
+}
+trap cleanup_package EXIT
 
 if [ -z "$PYTHON_RUNTIME" ]; then
   PYTHON_RUNTIME="$BUILD_DIR/bundle-venv"
@@ -40,10 +63,22 @@ for SIZE in 16 32 128 256 512; do
 done
 iconutil -c icns "$ICONSET" -o "$ICON"
 
-BUNDLE="$BUILD_DIR/$APP_NAME"
+BUNDLE="$BUILD_DIR/Build.noindex/$APP_NAME"
 if [ -n "${RAVEN_PACKAGE_OUTPUT:-}" ]; then
   BUNDLE="$RAVEN_PACKAGE_OUTPUT"
 fi
+BUNDLE="$(uv run --frozen python -B - "$BUNDLE" <<'PY'
+from pathlib import Path
+import sys
+from app_bundles import validate_build_output
+print(validate_build_output(Path(sys.argv[1])))
+PY
+)"
+if [ -e "$BUNDLE" ] || [ -L "$BUNDLE" ]; then
+  printf 'Refusing to replace an existing build output: %s\n' "$BUNDLE" >&2
+  exit 2
+fi
+OWN_OUTPUT=1
 BUILD_ARGS=(
   --source "$PWD" --engine "$ENGINE_ROOT" --python-runtime "$PYTHON_RUNTIME"
   --output "$BUNDLE" --launcher "$LAUNCHER"
@@ -77,6 +112,11 @@ sign_one "$BUNDLE"
 codesign --verify --deep --strict "$BUNDLE"
 
 TARGET="$APP_ROOT/$APP_NAME"
+if [ "$VERIFY" = "1" ]; then
+  QA_OUTPUT="${RAVEN_QA_OUTPUT:-$PWD/qa/bundle-check-$(date +%Y%m%d-%H%M%S).noindex}"
+  uv run --frozen python -B scripts/check-bundle.py "$BUNDLE" --output "$QA_OUTPUT"
+  exit 0
+fi
 if [ "${RAVEN_BUILD_ONLY:-0}" = "1" ]; then
   if [ -z "${RAVEN_PACKAGE_OUTPUT:-}" ]; then
     printf 'RAVEN_PACKAGE_OUTPUT is required with RAVEN_BUILD_ONLY=1\n' >&2

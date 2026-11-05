@@ -9,6 +9,7 @@ from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from connections import defaults,ConnectionStore,validate
 from release_artifacts import prepare_release
+from app_bundles import BUNDLE_ID,bundle_id,clear_trash_registrations,trash_bundle
 
 class Handler(BaseHTTPRequestHandler):
     def log_message(self,*_):pass
@@ -38,17 +39,43 @@ def sign_bundle(app):
     subprocess.run(['codesign','--force','--deep','--sign','-',str(app)],check=True,capture_output=True)
     subprocess.run(['codesign','--verify','--deep','--strict',str(app)],check=True,capture_output=True)
 
+def cleanup_scenario(source,destination):
+    """Only paths created by this scenario; never its input or user apps."""
+    identities=set()
+    for group in ('Installed','payload'):
+        app=destination/'Apps.noindex'/group/'Sprintwake Studios.app'
+        if not app.exists():continue
+        if app.is_symlink() or not app.resolve().is_relative_to(destination.resolve()):
+            raise ValueError('A QA application path escaped its scenario directory')
+        ident=bundle_id(app)
+        if ident:
+            identities.add(ident)
+            trash_bundle(app,keep=(source,),receipt_dir=destination/'cleanup-receipts.noindex')
+        else:
+            # An interrupted copy has no valid application identity and was
+            # created exclusively inside this scenario's new directory.
+            shutil.rmtree(app)
+    for ident in identities:
+        if ident.startswith(BUNDLE_ID+'.qa.'):
+            clear_trash_registrations(ident,keep=(source,))
+
 def scenario(source,destination,tools,account,bad_feed,test_key_file=None):
     destination.mkdir(parents=True,exist_ok=False)
-    installed=destination/'Installed/Sprintwake Studios.app';installed.parent.mkdir();shutil.copytree(source,installed,symlinks=True)
+    try:
+        return _scenario(source,destination,tools,account,bad_feed,test_key_file)
+    finally:
+        cleanup_scenario(source,destination)
+
+def _scenario(source,destination,tools,account,bad_feed,test_key_file=None):
+    installed=destination/'Apps.noindex/Installed/Sprintwake Studios.app';installed.parent.mkdir(parents=True);shutil.copytree(source,installed,symlinks=True)
     # The input may be a sealed read-only qualification bundle. Only this
     # disposable scenario copy becomes writable for its synthetic metadata.
     for entry in (installed,*installed.rglob('*')):
         if not entry.is_symlink(): entry.chmod(entry.stat().st_mode|0o200)
     assets=destination/'feed';assets.mkdir()
-    server=ThreadingHTTPServer(('127.0.0.1',0),Handler);url=f'http://127.0.0.1:{server.server_port}'
     video=destination/'fixture.mp4';ffmpeg=installed/'Contents/Resources/Studio/engine/local/bin/ffmpeg'
     subprocess.run([str(ffmpeg),'-v','error','-y','-f','lavfi','-i','testsrc2=size=128x128:rate=24','-frames:v','24',str(video)],check=True,timeout=20)
+    server=ThreadingHTTPServer(('127.0.0.1',0),Handler);url=f'http://127.0.0.1:{server.server_port}'
     server.state={'finish':False,'calls':[],'unexpected':[],'assets':assets,'video':video.read_bytes()}
     thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
     proc=None
@@ -58,7 +85,7 @@ def scenario(source,destination,tools,account,bad_feed,test_key_file=None):
         info_path=installed/'Contents/Info.plist';info=plistlib.loads(info_path.read_bytes());old_build=int(info['CFBundleVersion']);target_build=old_build+1
         info.update(CFBundleIdentifier=ident,SUFeedURL=url+'/appcast.xml',SUPublicEDKey=public,SUEnableAutomaticChecks=False,SprintwakeUpdateTest=True,SprintwakeQARoot=str(destination),NSAppTransportSecurity={'NSAllowsArbitraryLoads':True})
         info_path.write_bytes(plistlib.dumps(info));sign_bundle(installed)
-        payload=destination/'payload/Sprintwake Studios.app';payload.parent.mkdir();shutil.copytree(installed,payload,symlinks=True)
+        payload=destination/'Apps.noindex/payload/Sprintwake Studios.app';payload.parent.mkdir();shutil.copytree(installed,payload,symlinks=True)
         updated=copy.deepcopy(info);updated['CFBundleVersion']=str(target_build);updated['CFBundleShortVersionString']='0.9.1';(payload/'Contents/Info.plist').write_bytes(plistlib.dumps(updated))
         metadata=payload/'Contents/Resources/release.json';release=json.loads(metadata.read_text());release.update(version='0.9.1',build=target_build,publicKey=public);metadata.write_text(json.dumps(release));sign_bundle(payload)
         prepare_release(payload,assets,tools=tools,account=account,asset_base=url,test_fixture=True,test_key_file=test_key_file)

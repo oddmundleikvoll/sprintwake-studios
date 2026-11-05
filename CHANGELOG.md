@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Prevent duplicate app entries from future managed builds, installs and QA runs.
+  Retire obsolete bundles as verified recovery ZIPs, and reconcile owned Trash
+  copies after startup. Preserve one canonical installed application path.
+
 ## 0.11.2 — 2026-11-05
 
 ### Film direction and continuity
