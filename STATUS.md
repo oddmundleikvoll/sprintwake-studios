@@ -38,7 +38,9 @@ group can return `EPERM` instead of `ESRCH`. The follow-up confirms drain with a
 bounded, validated process-table snapshot; live members, failed reads and ambiguous
 results still block admission and preserve the process journal. All **80** engine
 tests pass locally, including three added permission/race/journal regressions and
-a real process-table probe. Hosted CI is rerun for this follow-up.
+a real process-table probe. Hosted [GitHub CI](https://github.com/oddmundleikvoll/sprintwake-studios/actions/runs/41946069838)
+passes for follow-up commit `f3b9938`: clean standalone app build, **269 native
+tests, 7 CTests, contract parity and 80 engine tests**, with no model inference.
 
 Evidence stays ignored under `qa/`: `cc-source-release-check.log`,
 `cc-source-release-engine.log`, `cc-macos-drain-engine.log`, `cc-source-window-v3/`, `cc-source-release-window/`,
