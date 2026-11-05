@@ -1,5 +1,6 @@
 import os, stat, tempfile, textwrap, unittest, json, subprocess, sys, shutil
 from pathlib import Path
+from unittest.mock import Mock, patch
 
 from engine.server.ltx_runner import LTXRunner
 
@@ -68,6 +69,48 @@ subprocess.run([{ffmpeg!r},'-y','-f','lavfi','-i','testsrc=size=64x64:rate=24','
             if record.exists():
                 try: os.killpg(json.loads(record.read_text())['group'],signal.SIGKILL)
                 except ProcessLookupError: pass
+                except PermissionError:
+                    if not runner._group_gone(json.loads(record.read_text())['group']): raise
+
+    def test_group_permission_requires_positive_process_table(self):
+        group=2**30
+        own=f'{os.getpid()} {os.getpgrp()} S\n'
+        with patch('engine.server.ltx_runner.os.killpg',side_effect=PermissionError), \
+                patch('engine.server.ltx_runner.subprocess.run') as snapshot:
+            for state,drained in [('Z',True),('Z+',True),('S',False),('R+',False)]:
+                with self.subTest(state=state):
+                    snapshot.return_value=subprocess.CompletedProcess([],0,own+f'123 {group} {state}\n','')
+                    self.assertEqual(LTXRunner._group_gone(group),drained)
+            snapshot.return_value=subprocess.CompletedProcess([],0,own,'')
+            self.assertTrue(LTXRunner._group_gone(group))
+
+    def test_unconfirmed_group_snapshot_keeps_journal(self):
+        runner=LTXRunner(self.cmd,self.model,self.work)
+        runner._active.write_text(json.dumps({'pid':2**30,'phase':'running'}))
+        own=f'{os.getpid()} {os.getpgrp()} S\n'
+        with patch('engine.server.ltx_runner.os.killpg',side_effect=PermissionError), \
+                patch('engine.server.ltx_runner.subprocess.run') as snapshot:
+            for output in ['',own+'invalid\n',own+f'123 {2**30} S\n']:
+                snapshot.return_value=subprocess.CompletedProcess([],0,output,'')
+                with self.assertRaises(RuntimeError): runner.assert_drained()
+                self.assertTrue(runner._active.exists())
+            snapshot.side_effect=subprocess.TimeoutExpired('/bin/ps',5)
+            with self.assertRaises(RuntimeError): runner.assert_drained()
+            self.assertTrue(runner._active.exists())
+            snapshot.side_effect=None
+            snapshot.return_value=subprocess.CompletedProcess([],0,own+f'123 {2**30} Z\n','')
+            runner.assert_drained()
+            self.assertFalse(runner._active.exists())
+
+    def test_signal_permission_race_only_accepts_confirmed_drain(self):
+        runner=LTXRunner(self.cmd,self.model,self.work)
+        process=Mock(pid=2**30)
+        with patch.object(runner,'_group_gone',side_effect=[False,True,True]), \
+                patch('engine.server.ltx_runner.os.killpg',side_effect=PermissionError):
+            runner._drain(process)
+        with patch.object(runner,'_group_gone',return_value=False), \
+                patch('engine.server.ltx_runner.os.killpg',side_effect=PermissionError):
+            with self.assertRaisesRegex(RuntimeError,'unconfirmed'): runner._drain(process)
 
     def test_process_journal_blocks_after_workspace_change(self):
         import signal

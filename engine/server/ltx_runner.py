@@ -15,13 +15,34 @@ import uuid
 from .store import atomic_json, read_json, safe_path
 from .media import file_sha256, validate_decoded, trim_carried_frames, tail_frames, join_clips
 
+def _process_group_drained(pid):
+    try: os.killpg(pid,0)
+    except ProcessLookupError: return True
+    except PermissionError:
+        # Darwin can return EPERM for a group containing only zombies. A denied
+        # signal alone proves nothing; confirm that no live member remains.
+        try:
+            result=subprocess.run(['/bin/ps','-axo','pid=,pgid=,stat='],check=True,
+                capture_output=True,text=True,timeout=5,env=dict(os.environ,LC_ALL='C'))
+            rows=[]
+            for line in result.stdout.splitlines():
+                fields=line.split()
+                if len(fields)!=3 or not all(value.isdecimal() for value in fields[:2]) or not re.fullmatch(r'[A-Za-z][A-Za-z0-9+<>-]*',fields[2]):
+                    raise ValueError('Invalid process table')
+                rows.append((int(fields[0]),int(fields[1]),fields[2]))
+            if not any(member==os.getpid() for member,_,_ in rows):
+                raise ValueError('Incomplete process table')
+        except (OSError,subprocess.SubprocessError,ValueError) as error:
+            raise RuntimeError('Cannot confirm LTX process-group drain') from error
+        return not any(group==pid and not state.startswith('Z') for _,group,state in rows)
+    return False
+
 def reconcile_process_journal(path):
     path=Path(path); state=read_json(path)
     if state is None: return
     if not isinstance(state,dict) or type(state.get('pid')) is not int or state['pid']<=1:
         raise RuntimeError('LTX launch completion is uncertain; inspect its process journal before recovery')
-    try: os.killpg(state['pid'],0)
-    except ProcessLookupError: path.unlink(); return
+    if _process_group_drained(state['pid']): path.unlink(); return
     raise RuntimeError('A previous LTX process group may still own model resources')
 
 class LTXRunner:
@@ -34,9 +55,7 @@ class LTXRunner:
         safe_path(self._active.parent,self._active.name,create_parent=True)
     @staticmethod
     def _group_gone(pid):
-        try: os.killpg(pid,0)
-        except ProcessLookupError: return True
-        return False
+        return _process_group_drained(pid)
     def assert_drained(self):
         reconcile_process_journal(self._active)
     def _drain(self,process):
@@ -44,6 +63,9 @@ class LTXRunner:
             if self._group_gone(process.pid): break
             try: os.killpg(process.pid,sig)
             except ProcessLookupError: break
+            except PermissionError as error:
+                if self._group_gone(process.pid): break
+                raise RuntimeError('Cannot signal the owned LTX process group; drain is unconfirmed') from error
             deadline=time.monotonic()+seconds
             while time.monotonic()<deadline:
                 process.poll()

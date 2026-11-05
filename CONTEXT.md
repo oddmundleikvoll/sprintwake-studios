@@ -10,6 +10,10 @@ progression is director conversation → project → brief → bible → images/
 
 Public source publication was authorized on 2026-11-04. On 2026-11-05 the user requested replacing the CC engine and selected MIT for independently authored code. Current engine/server and contracts use that replacement; old versions retain their CC terms in Git history. Native and bundled CPU tests use the included engine and synthetic media, without model startup or downloads. The independent engine preserves schema-v1 files, CAS, immutable media, production review and process/update ownership. Qwen uses native Comfy plus an independent memory barrier; LTX uses the external MIT CLI/local pack. Language/audio APIs and Comfy profiles may be local or cloud-hosted. Model/provider terms remain separate. Private settings and the installed 0.10.1 app are preserved.
 
+LTX drain handles macOS zombie-only group `EPERM` using a bounded, validated
+process-table snapshot. Permission errors alone never authorize another model;
+live or uncertain membership keeps the global process journal and admission block.
+
 # English interface
 
 The 0.11 source uses English native chrome, menus, defaults and director guidance.

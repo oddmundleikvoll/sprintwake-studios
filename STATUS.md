@@ -14,11 +14,11 @@ are preserved. No Mac release, appcast or model weights were published.
 Verification for the independent engine:
 
 - `./scripts/check.sh`: **269 native tests and 7 CTests passed**.
-- Owned CPU runtime + `unittest discover -s engine/tests -v`: **77 passed**,
+- Owned CPU runtime + `unittest discover -s engine/tests -v`: **80 passed**,
   with no required skips. Includes real synthetic video/audio decoding,
   exact carry trimming, subprocess-group drain, checkpoint resume, CAS,
   immutable take selection/re-review, privacy and provider transport.
-- Actual native window: **194 controls passed** from isolated source and
+- Actual native window at replacement commit `fcac4d3`: **194 controls passed** from isolated source and
   **194 passed** in the relocated read-only standalone bundle; zero Raven
   errors and no model inference. Source/bundle modules and seals were checked.
 - Real local Sparkle valid update: fixture build **17 → 18**, waited for its
@@ -32,8 +32,16 @@ Verification for the independent engine:
 - Fresh independent review: no remaining P0/P1 finding after fixes. Pure
   contract parity, frozen lock metadata and staged diff checks pass.
 
+The first public CI run built the standalone app and passed native/contract
+checks, but exposed a macOS process-group race in one engine test: a zombie-only
+group can return `EPERM` instead of `ESRCH`. The follow-up confirms drain with a
+bounded, validated process-table snapshot; live members, failed reads and ambiguous
+results still block admission and preserve the process journal. All **80** engine
+tests pass locally, including three added permission/race/journal regressions and
+a real process-table probe. Hosted CI is rerun for this follow-up.
+
 Evidence stays ignored under `qa/`: `cc-source-release-check.log`,
-`cc-source-release-engine.log`, `cc-source-window-v3/`, `cc-source-release-window/`,
+`cc-source-release-engine.log`, `cc-macos-drain-engine.log`, `cc-source-window-v3/`, `cc-source-release-window/`,
 `cc-update-verified.noindex/valid/result.json` and
 `cc-negative-rerun.noindex/tampered/result.json`. Disposable executable app
 copies are unregistered and moved to Trash after verification; logs/screenshots
