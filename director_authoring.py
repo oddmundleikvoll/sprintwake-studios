@@ -94,6 +94,22 @@ def _retry_feedback(brief: str, board: dict[str, Any], error: Exception) -> str:
     )
 
 
+def _planned_handoff(board: dict[str, Any]) -> list[dict[str, Any]]:
+    """Bound recent authored state explicitly; never send outputs, recipes or paths."""
+    result=[]
+    for shot in board.get("shots", [])[-6:]:
+        item={key:shot[key][:600] for key in ("title","start","action","end","camera","locationId",
+              "stateBefore","stateAfter","soundNote") if isinstance(shot.get(key),str)}
+        for key in ("characterIds","propIds"):
+            item[key]=[value[:128] for value in (shot.get(key) or [])[:16] if isinstance(value,str)]
+        states=shot.get("assetStates")
+        if isinstance(states,dict):
+            item["assetStates"]={key[:128]:value[:300] for key,value in list(states.items())[:16]
+                                 if isinstance(key,str) and isinstance(value,str)}
+        result.append(item)
+    return result
+
+
 def _shot_prompt(board: dict[str, Any], brief: str, count: int, completed: int, batch: int) -> str:
     first_group = max((s.get("directorScene", 0) for s in board.get("shots", [])
                        if type(s.get("directorScene")) is int), default=0) + 1
@@ -107,12 +123,27 @@ def _shot_prompt(board: dict[str, Any], brief: str, count: int, completed: int, 
         "directorScene, as part of one continuous, ordered global plot outline across "
         "all batches. Each card must have a known locationId, English prose prompt, clear "
         "start/action/end/camera, 4–6 seconds, and the same camera within a continuous "
-        "camera group (maximum six; use exactly the same camera text within the group). Propose only add_shot; "
+        "camera group (maximum six; use exactly the same camera text within the group). "
+        "Include non-empty stateBefore/stateAfter describing positions, eyelines, clothing "
+        "and prop ownership before and after the action. Use propIds for relevant registered "
+        "props and assetStates for their concrete physical details, keyed by known cast/prop "
+        "IDs with text values. These are planned states, not observations of generated video. "
+        "Propose only add_shot; "
         "do not claim the cards are saved, and do not use media or production operations. The brief was:\n" + brief +
         "\nTECHNICAL SHOT PLAN FOR THIS DRAFT: Use a separate camera setup for each new shot. "
         "directorScene is a camera setup, NOT an act number. Use the following exact numbers/frames in order, "
         "and vary framing/camera to suit the scene. Write the creative action from the brief and bible.\n" +
-        json.dumps(slots, ensure_ascii=False)
+        json.dumps(slots, ensure_ascii=False) +
+        "\nCINEMATIC COVERAGE: Give each angle a story purpose: establish geography, reveal "
+        "information, show a reaction, follow an action or show its consequence. Select only "
+        "the coverage this scene needs; avoid repeating the same action to fill the count. "
+        "Keep screen direction, eyelines, light and prop ownership coherent across cuts. "
+        "One card contains one achievable action and one camera setup, with brief dialogue "
+        "in its chosen language. Put language/delivery in dialogueStyle and select speakerId "
+        "for native speech. Plan scene ambience in soundNote; soundtrackPrompt is a separate "
+        "film score, not a new musical opening in every clip.\n"
+        "RECENT PLANNED HANDOFF (not evidence of rendered action):\n" +
+        json.dumps(_planned_handoff(board), ensure_ascii=False)
     )
 
 
@@ -122,14 +153,18 @@ def _validated_shot_candidate(board: dict[str, Any], result: Any, batch: int) ->
         raise ValueError(f"Director returned {len(actions)} shots; expected {batch}")
     locations = {(item.get("id") if isinstance(item, dict) else None)
                  for item in (board.get("filmBible") or {}).get("locations", [])}
+    cast = {item.get("id") for item in board.get("characters", []) if isinstance(item, dict)}
+    props = {item.get("id") for item in (board.get("filmBible") or {}).get("props", []) if isinstance(item, dict)}
     groups: dict[Any, dict[str, Any]] = {}
     for existing in board.get("shots", []):
         if isinstance(existing, dict) and existing.get("directorScene") is not None:
             scene_key = existing.get("directorScene")
-            group = groups.setdefault(scene_key, {"camera": existing.get("camera"), "count": 0})
+            group = groups.setdefault(scene_key, {"camera": existing.get("camera"),
+                "locationId": existing.get("locationId"), "resolution": existing.get("resolution", "384x256"), "count": 0})
             if group["camera"] == existing.get("camera"):
                 group["count"] += 1
     problems=[]
+    last_scene = board.get("shots", [{}])[-1].get("directorScene") if board.get("shots") else None
     for offset,action in enumerate(actions,1):
         shot=action.get("shot")
         label=f"Shot {len(board.get('shots',[]))+offset}"
@@ -137,19 +172,41 @@ def _validated_shot_candidate(board: dict[str, Any], result: Any, batch: int) ->
             problems.append(label+": missing complete start/action/end/camera and prompt")
             continue
         if shot.get("locationId") not in locations: problems.append(label+": missing a known locationId")
+        if any(not isinstance(shot.get(key), str) or not shot[key].strip() for key in ("stateBefore", "stateAfter")):
+            problems.append(label+": stateBefore and stateAfter must describe concrete planned continuity")
+        for key,known in (("characterIds",cast),("propIds",props)):
+            values=shot.get(key,[])
+            if not isinstance(values,list) or any(not isinstance(ident,str) or ident not in known for ident in values):
+                problems.append(label+": "+key+" must use known IDs")
+        states=shot.get("assetStates",{})
+        if not isinstance(states,dict) or any(key not in cast|props or not isinstance(value,str) or not value.strip() for key,value in states.items()):
+            problems.append(label+": assetStates must map known character/prop IDs to non-empty physical descriptions")
+        if shot.get("speakerId") and shot["speakerId"] not in cast:
+            problems.append(label+": speakerId must use a known character ID")
+        speech_source=shot.get("dialogueSource", "native")
+        if speech_source not in {"native","recording"}:
+            problems.append(label+": dialogueSource must be native or recording")
+        if shot.get("dialogue") and speech_source=="native" and not shot.get("speakerId") and len(shot.get("characterIds") or [])!=1:
+            problems.append(label+": native dialogue needs a known speakerId or one visible character")
         frames=shot.get("frames",121)
         scene=shot.get("directorScene")
         if type(scene) is not int or scene<1:
             problems.append(label+": directorScene must be a positive integer")
             continue
         group=groups.get(scene)
+        if group and last_scene!=scene: problems.append(label+": a camera group must be contiguous; use a new directorScene for a returning angle")
         allowed={96,120,144} if group else {97,121,145}
         if type(frames) is not int or frames not in allowed:
             problems.append(f"{label}: invalid opening/continuation frame {frames} in camera group {scene}; use {sorted(allowed)}")
         if group and group["camera"]!=shot.get("camera"):
             problems.append(f"{label}: A continuous camera group cannot change camera. directorScene={scene} has camera={group['camera']!r}, but this shot has {shot['camera']!r}. A new angle/location needs a NEW directorScene and frames=121; a continuation needs the exact existing camera text and frames=120.")
         if group and group["count"]>=6: problems.append(label+": a camera group can contain at most six shots")
-        groups[scene]={"camera":group["camera"] if group else shot["camera"],"count":(group["count"] if group else 0)+1}
+        if group and (group["locationId"]!=shot.get("locationId") or group["resolution"]!=shot.get("resolution", "384x256")):
+            problems.append(label+": a continuous camera group cannot change location or resolution")
+        groups[scene]={"camera":group["camera"] if group else shot["camera"],
+            "locationId":shot.get("locationId"),"resolution":shot.get("resolution", "384x256"),
+            "count":(group["count"] if group else 0)+1}
+        last_scene=scene
     if problems: raise ValueError("\n".join(problems))
     before_ids = {str(s.get("id")) for s in board.get("shots", []) if isinstance(s, dict) and s.get("id")}
     candidate = apply_proposals(board, [dict(a, reviewed=True) for a in actions])
@@ -334,6 +391,11 @@ def author_project(
                 "soundscape and filmBible (acts, locations, props), plus add_character. "
                 "Film bible must have at least one described act and at least one named location with "
                 "a unique, stable ID. New characters get names and descriptions; Raven assigns their IDs. "
+                "Define each character's stable face, silhouette and costume; describe recurring "
+                "locations with geography, time and lighting, and recurring props with appearance "
+                "and initial ownership. Keep changing poses and emotions in individual shot cards. "
+                "Plan the story beats and scene transitions across the complete requested shot count "
+                "before writing the first batch. Separate ongoing ambience from the musical score. "
                 "Reuse existing characters when available. Do not propose shots yet and "
                 "do not propose any production operation. This is a proposal to be saved "
                 "by the app.\n\nORIGINAL BRIEF:\n" + brief

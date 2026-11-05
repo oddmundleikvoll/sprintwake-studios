@@ -39,6 +39,19 @@ response is scripted and explicitly disclosed. Capture via scripts/capture-showc
 
 # Boundaries
 
+- `engine/server/film_direction.py`: native Qwen/LTX prompt composition from the
+  selected cast/location/props and planned stateBefore/stateAfter. Image reference
+  roles follow the actual deduplicated pixel order. Video retains full camera-group
+  identity with separate visible/offscreen roles, native dialogue delivery and separate-score intent. Its version enters
+  the film source digest; recipes retain the resolved direction. Re-preparation
+  archives prior production journals. `director_authoring.py` carries a bounded
+  recent planned-state handoff and validates new manuscript continuity fields;
+  `review_gate.py`/`panels.py` expose planned-versus-actual comparisons and optional
+  human observations tied to clip hashes. `studio.py` exposes before/after state,
+  speaker and language/delivery in the clip details panel. Version 0.11.2/build 19
+  is installed for the expressly requested local/GitHub update. Tests and model generation
+  remain deferred; STATUS.md records installation separately from qualification.
+
 - `creation_panel.py` / `creation_smoke.py`: native three-card start page and
   simple image/one-shot clip entrances. `Script/creation.json` (v1 image/clip)
   only selects the room on explicit project reopen; canonical board schemas

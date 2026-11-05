@@ -34,6 +34,8 @@ def shots(count, start=1):
     return [{"tool": "add_shot", "shot": {
         "title": f"Klipp {i}", "prompt": "Ada stands by the gate and looks toward the light.",
         "start": "Ada stands.", "action": "Ada looks.", "end": "Ada remains still.",
+        "stateBefore": "Ada stands at the gate, facing the light.",
+        "stateAfter": "Ada stays at the gate, looking toward the light.",
         "camera": "Wide locked camera.", "directorScene": i, "locationId": "loc-gate",
         "frames": 121,
         "characterIds": ["c1"],
@@ -288,6 +290,62 @@ class DirectorAuthoringTests(unittest.TestCase):
         self.assertIn("continuation frame",text)
         self.assertIn("continuous camera group",text)
         self.assertIn("NEW directorScene",text)
+
+    def test_new_manuscript_cards_require_continuity_and_registered_props(self):
+        from director_authoring import _validated_shot_candidate
+        board=copy.deepcopy(self.board)
+        board['characters']=[{'id':'c1','name':'Ada'}]
+        board['filmBible']={'locations':[{'id':'loc-gate'}], 'props':[{'id':'key','title':'Brass key'}]}
+        card=shots(1)[0]
+        card['shot'].update(propIds=['unknown'],assetStates={'unknown':'In Ada\'s hand'})
+        card['shot'].pop('stateAfter')
+        with self.assertRaises(ValueError) as failure:
+            _validated_shot_candidate(board,{'actions':[card]},1)
+        for message in ('stateBefore and stateAfter','propIds','assetStates'):
+            self.assertIn(message,str(failure.exception))
+        card['shot'].update(stateAfter='The brass key lies beside Ada.',propIds=['key'],assetStates={'key':'Dull brass'})
+        _,candidate,_=_validated_shot_candidate(board,{'actions':[card]},1)
+        self.assertEqual(candidate['shots'][0]['assetStates'],{'key':'Dull brass'})
+
+    def test_batch_prompt_carries_recent_planned_handoff_without_media_or_global_repetition(self):
+        from director_authoring import _shot_prompt
+        board=copy.deepcopy(self.board)
+        board['shots']=[dict(shots(1)[0]['shot'],outputs=['PRIVATE_MOVIE.mp4'],recipe={'key':'PRIVATE_RECIPE'})]
+        prompt=_shot_prompt(board,'The original story',12,3,3)
+        self.assertIn('Ada stays at the gate',prompt)
+        self.assertIn('RECENT PLANNED HANDOFF (not evidence of rendered action)',prompt)
+        self.assertIn('CINEMATIC COVERAGE',prompt)
+        self.assertIn('The original story',prompt)
+        self.assertNotIn('PRIVATE_MOVIE',prompt)
+        self.assertNotIn('PRIVATE_RECIPE',prompt)
+
+    def test_writer_rejects_noncontiguous_group_and_location_change(self):
+        from director_authoring import _validated_shot_candidate
+        board=copy.deepcopy(self.board)
+        board['characters']=[{'id':'c1','name':'Ada'}]
+        board['filmBible']={'locations':[{'id':'loc-gate'},{'id':'loc-room'}]}
+        board['shots']=[dict(shots(1)[0]['shot'],id='s1'),dict(shots(1,2)[0]['shot'],id='s2')]
+        card=shots(1,3)[0]
+        card['shot'].update(directorScene=1,frames=120,locationId='loc-room')
+        with self.assertRaises(ValueError) as failure:
+            _validated_shot_candidate(board,{'actions':[card]},1)
+        self.assertIn('contiguous',str(failure.exception))
+        self.assertIn('location or resolution',str(failure.exception))
+
+    def test_writer_native_dialogue_requires_a_known_or_unambiguous_speaker(self):
+        from director_authoring import _validated_shot_candidate
+        board=copy.deepcopy(self.board)
+        board['characters']=[{'id':'c1','name':'Ada'},{'id':'c2','name':'Bo'}]
+        board['filmBible']={'locations':[{'id':'loc-gate'}]}
+        card=shots(1)[0]
+        card['shot'].update(characterIds=['c1','c2'],dialogue='Hello',dialogueSource='native')
+        with self.assertRaisesRegex(ValueError,'speakerId'):
+            _validated_shot_candidate(board,{'actions':[card]},1)
+        card['shot']['speakerId']='c1'
+        _validated_shot_candidate(board,{'actions':[card]},1)
+        card['shot']['dialogueSource']='typo'
+        with self.assertRaisesRegex(ValueError,'dialogueSource'):
+            _validated_shot_candidate(board,{'actions':[card]},1)
 
     def test_empty_film_bible_gets_one_setup_correction_then_commits(self):
         bad_setup = {"proposalStatus": "ready", "actions": [

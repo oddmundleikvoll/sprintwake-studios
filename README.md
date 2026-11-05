@@ -77,9 +77,11 @@ FFmpeg. **Model weights and inference services are installed separately.** See
 
 1. Open **Film Studio** and start with the **AI Director**, or create a project directly.
 2. Develop the script and film bible: characters, locations, props and reference images.
-3. Plan shots with a clear opening, action, ending, camera and sound.
+3. Plan useful camera views with a clear opening, action, ending and sound. Track
+   positions, eyelines, costume and prop ownership before and after each shot.
 4. Prepare and review the image plan, then explicitly request production.
-5. Watch each required shot with audio and inspect camera-group boundaries before resuming.
+5. Watch each required shot with audio, compare its actual ending to the next
+   planned opening, and record observations before resuming.
 6. Refine the cut and sound, then export the finished movie or a portable project ZIP.
 
 The Start page also offers **Create an image** and **Create a clip** for smaller work.
@@ -98,6 +100,13 @@ long-film resume or every reference/audio capability. See
 [MODEL_CONNECTIONS.md](MODEL_CONNECTIONS.md) for the supported contract and limits.
 
 Long-form planning, resumability and review are implemented. The independent 0.11 engine is verified with CPU/API fixtures and the real native interface; it has not been qualified by generating a new film. Synthetic tests do not establish model quality or feature-film runtime.
+
+Version 0.11.2 adds role-labelled references, planned physical-state handoff,
+scene coverage guidance, speaker/delivery controls and retained human review
+notes. Automated tests and model generation were intentionally deferred for this
+update. Existing image plans require
+explicit preparation and review under the new direction version; prior production
+journals, media and recipes are retained.
 
 ## Build, develop and contribute
 
@@ -121,7 +130,7 @@ the application while preserving production data and model installations.
 
 Sprintwake's current application and independently authored production engine use the **[MIT License](LICENSE)**, which permits commercial use of that code. The earlier CC BY-NC-SA engine and copied contracts have been replaced. Historical versions keep their original terms. Dependencies, model weights and hosted providers retain their own licenses; see [NOTICE.md](NOTICE.md) and [replacement provenance](CC_REPLACEMENT.md).
 
-[Project scope](PROJECT.md) · [Verification and history](STATUS.md) ·
+[Changelog](CHANGELOG.md) · [Project scope](PROJECT.md) · [Verification and history](STATUS.md) ·
 [GitHub CI](https://github.com/oddmundleikvoll/sprintwake-studios/actions/workflows/ci.yml)
 
 Prebuilt Mac releases and signed updates are a separate distribution step. You can

@@ -24,6 +24,42 @@ operation. Credentials belong in the host application's Keychain or environment,
 never in project JSON, recipes, or workflow graphs. Model and provider licenses
 remain separate from this engine's MIT license.
 
+## Film direction
+
+Native scene images receive the selected cast, location and prop descriptions,
+their planned physical state, and roles matching the exact reference-image order.
+Only the current frame's staging is sent; the global plot is not appended to each
+opening. Optional generated endings also use the opening reference when capacity
+allows, without dropping selected references or exceeding ten inputs. Manual
+openings/endings retain priority.
+
+Native video uses chronological prose for one camera setup, including planned
+stateBefore/stateAfter, stable full-group cast and relevant location/props. Visible
+cast is distinguished from offscreen continuity references. State-keyed props retain
+their text and pixel references even on older cards without explicit propIds. Native
+dialogue uses speakerId (or an unambiguous single visible character), dialogueStyle
+and the exact line; invalid dialogue sources are rejected. Recorded dialogue is
+prepared separately. A non-empty soundtrackPrompt means the score is separate
+from native scene sound. Independent native takes use the same direction builder;
+explicit external workflow bindings keep their original prompt contract.
+
+Resolved native prompts and image-reference roles/hashes are retained in recipes.
+The direction version is part of the film source digest, so old plans require
+explicit re-preparation and review rather than resuming with different prompts.
+Successful re-preparation archives the previous production journal under
+System/ProductionHistory; existing media and recipes remain untouched. Optional
+human review notes are bound to the reviewed clip hashes, not treated as automatic
+observations or fed into generation as established facts.
+Non-final review requires the exact next opening from the current image plan.
+Native seed-take currency also includes direction, resolved prompt and reference
+pixel fingerprints; older takes remain
+available for deliberate selection.
+
+These direction changes ship in source version 0.11.2. Automated tests and model
+generation remain deferred at the filmmaker's request. The separately authorized
+local app update uses packaging/signature checks only; it does not qualify the
+quality or runtime of a newly generated film.
+
 ## Private settings
 
 Copy the sample files into the private EngineSettings directory outside Git.

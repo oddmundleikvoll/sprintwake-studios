@@ -1,5 +1,38 @@
 # Current status — 2026-11-05
 
+## 0.11.2 / build 19 local and source update
+
+The filmmaker explicitly requested installing the film-direction improvements
+and publishing the source with an English changelog, without running tests or
+generation. The update is prepared in an isolated source checkout so unrelated
+pending installer changes are preserved. Version 0.11.1/build 18 was already
+reserved in that separate work, so this update uses 0.11.2/build 19.
+
+Only the film-direction changes, English CHANGELOG.md and matching version/status
+metadata are included. CI is skipped for this publication; no public Mac release
+or appcast is created.
+
+The build reused the existing pinned native/Python runtime and passed the
+packager's Mach-O/signature checks. Nine bundled film-direction/guide/UI files
+matched their isolated source bytes. Transactional installation replaced the
+canonical app with 0.11.2/build 19; its deep/strict signature is valid and all
+106 recorded production/settings files retained their bytes. The old bundle and
+staging copy were moved recoverably to Trash and unregistered at their actual
+destinations. No Trash was emptied.
+
+Ordinary installed-app launch opened the native Start page and completed the
+build-19 handoff. macOS requested access to the existing model Keychain item;
+that system dialog requires the user's local approval. No test, smoke fixture,
+project exercise or model generation was launched. This is installation evidence,
+not functional or film-quality qualification.
+
+Ignored evidence: qa/build-0.11.2.log, qa/install-0.11.2.log,
+qa/package-content.json, qa/preinstall-preservation.json,
+qa/installed-startup.json and qa/obsolete-apps.json in the isolated checkout.
+
+The following 0.11.0 qualification and the earlier source-only entry are history;
+they do not claim tests passed for the 0.11.2 film-direction changes.
+
 Sprintwake Studios **0.11.0 / build 17** uses an independently authored **MIT**
 production engine and pure contracts. The user requested replacing the CC code,
 then selected MIT. The old server, copied contracts/guide, web client, upstream
@@ -12,6 +45,58 @@ is now **0.11.0 / build 17**. Original Storyboard, model weights, signed oMLX ap
 projects and private settings domains are preserved. Compatible private connection
 entries and the independent Comfy helper were added as recorded below.
 No Mac release, appcast or model weights were published.
+
+## Film-direction source improvements — 2026-11-05 (verification deferred)
+
+The filmmaker requested improvements after studying The Field Agent's public
+generation project, explicitly without running tests now. The implementation
+targets the existing native Qwen/LTX flow rather than adding another model service.
+
+- Image prompts bind each deduplicated reference to its role and include the
+  selected cast/location/props, lighting and planned physical state. The complete
+  story synopsis is no longer appended to each opening. Optional automatic end
+  frames receive the opening as an additional reference when capacity allows;
+  manual anchors and the ten-reference limit are preserved.
+- A shared native direction builder carries stateBefore/stateAfter, physical
+  details and stable full-group cast into natural video prose. Native speech
+  includes the speaker and exact line/delivery. Recorded speech and a separate
+  film score remain separate. Native seed takes use the same direction path;
+  custom workflow prompts retain their existing contract.
+  Visible people and offscreen identities are distinguished; state-only props
+  retain their description/reference. Native speaker selection falls back only
+  to a single visible character. The clip panel exposes speaker, delivery and
+  planned before/after state. Older native takes remain selectable but no longer
+  claim to match the new direction version. Native take currency also binds the
+  resolved prompt and actual reference bytes; changed pixels at the same path
+  invalidate the current marker without deleting the take.
+- Manuscript batches request purposeful cinematic coverage, carry six bounded
+  recent planned-state summaries, and validate new state/prop/group fields.
+  Existing cards are not automatically rewritten. Planned state remains distinct
+  from actual video observations.
+- Human review displays the planned ending and next opening alongside the actual
+  media and can save optional observations bound to clip hashes. No model or
+  planning text gains approval authority. The tail is mandatory, and a non-final
+  group cannot be approved with a missing/mismatched next opening.
+- Image/video recipes retain resolved direction, and direction versioning makes
+  old plans explicitly stale. Successful re-preparation archives prior production
+  journals, preserving old recipes/review observations and media.
+
+Regression cases were added for these paths but **not executed**. No unit tests,
+lint/type/syntax checks, native smoke, build, installation, service startup or
+model inference were run for this change. Work is limited to source edits, contract
+mirror generation and read-only source/diff review. The installed 0.11.0/build 17,
+private settings, existing productions, models and signed oMLX app were not changed
+by this film-direction work. Earlier passing checks below belong to earlier code.
+
+Independent static review identified visibility/state/speaker, boundary-review and
+take-freshness gaps; those were corrected. Final bounded source inspection found
+no concrete remaining defect in the fingerprint and early dialogue-validation
+fixes. This is a code review result, not execution or image/video qualification.
+
+Pending when testing is requested: focused director-authoring/review tests, engine
+film-direction/production tests, contract parity, native production-review UI and
+then the documented broader checks. Quality still requires a separately authorized
+real scene; no quality or runtime result is claimed here.
 
 Verification for the independent engine:
 

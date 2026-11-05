@@ -11,13 +11,14 @@ from engine.server.jobs import Scheduler
 from engine.server.film import FilmController
 
 class Provider:
-    def __init__(self,root): self.root=root; self.calls=[]; self.fail=False; self.hook=None
+    def __init__(self,root): self.root=root; self.calls=[]; self.fail=False; self.hook=None; self.shots=[]
     def generate(self,profile,prompt,seed=None,frames=None,width=None,height=None,**kwargs):
         self.calls.append(('take',seed))
         if self.fail: raise RuntimeError('Synthetic provider failed')
         return {'media':[self.root/f'{frames or 97}.mp4'],'recipe':{'seed':seed}}
     def generate_group(self,shots,**kwargs):
         self.calls.append(('group',len(shots),kwargs))
+        self.shots=copy.deepcopy(shots)
         if self.hook: self.hook()
         return {'media':[self.root/f'{s["frames"]}.mp4' for s in shots],'recipe':{'fixture':True}}
 
@@ -89,6 +90,39 @@ class FilmTests(unittest.TestCase):
             self.set_shots(groups)
             with self.assertRaises(ValueError): self.act(prepareOnly=True)
         self.assertEqual(self.provider.calls,[])
+
+    def test_qwen_plan_retains_roles_pixel_hashes_and_current_frame_direction(self):
+        from unittest.mock import patch
+        self.set_shots([(1,97)])
+        board=self.store.get(self.slug)
+        board['sceneDescription']='GLOBAL PLOT MUST NOT APPEAR IN EVERY IMAGE'
+        board['characters']=[{'id':'ada','name':'Ada','description':'Blue coat','image':self.ref}]
+        board['shots'][0].update(startRef=None,characterIds=['ada'],stateBefore='Ada holds a brass key')
+        self.store.put(self.slug,board)
+        with patch.object(self.provider,'generate',return_value={'media':[self.store.media_path(self.ref)]}) as generate:
+            self.act(prepareOnly=True); self.assertIsNone(self.wait().error)
+        prompt=generate.call_args.args[1]
+        self.assertIn('Reference image 1 supplies the identity',prompt)
+        self.assertIn('brass key',prompt); self.assertNotIn('GLOBAL PLOT',prompt)
+        recipe=self.controller.status(self.slug)['imagePlan']['cards'][0]['openingRecipe']
+        self.assertEqual(recipe['prompt'],prompt)
+        self.assertEqual(len(recipe['references'][0]['sha256']),64)
+
+    def test_optional_ending_keeps_ten_selected_references_without_adding_an_eleventh(self):
+        from unittest.mock import patch
+        self.set_shots([(1,97)])
+        refs=[]
+        for index in range(10):
+            image=self.path/f'reference-{index}.png'; Image.new('RGB',(64,64),(index,0,0)).save(image)
+            refs.append(self.store.import_media(self.slug,image,f'refs/reference-{index}.png'))
+        board=self.store.get(self.slug); board['shots'][0]['referenceImages']=refs; self.store.put(self.slug,board)
+        self.act(tool='set_film_anchor',enabled=True)
+        with patch.object(self.provider,'generate',return_value={'media':[self.store.media_path(self.ref)]}) as generate:
+            self.act(prepareOnly=True); self.assertIsNone(self.wait().error)
+        self.assertEqual(len(generate.call_args.kwargs['references']),10)
+        card=self.controller.status(self.slug)['imagePlan']['cards'][0]
+        self.assertEqual(len(card['endingRecipe']['references']),10)
+        self.assertTrue(card['endRef'])
     def test_failed_later_take_retains_selected_media_and_recipe(self):
         self.set_shots([(1,97)])
         self.controller.render_seeds({'slug':self.slug,'shotId':'s0','count':1}); self.assertIsNone(self.wait().error)
@@ -105,6 +139,67 @@ class FilmTests(unittest.TestCase):
         clip=self.store.media_path(status['reviewPreview']['clips'][0]['video']); clip.write_bytes(b'changed')
         with self.assertRaises(Conflict): self.act(acceptReview=True)
         with self.assertRaises(Conflict): self.controller.assert_assembly_ready(self.slug)
+
+    def test_group_cast_and_physical_state_reach_video_and_retained_recipe(self):
+        board=self.store.get(self.slug)
+        board['characters']=[{'id':'ada','name':'Ada','description':'Blue coat'}, {'id':'bo','name':'Bo','description':'Red scarf'}]
+        board['shots'][0].update(characterIds=['ada'],stateBefore='Ada holds the key',stateAfter='The key is on the bench')
+        board['shots'][1].update(characterIds=['bo'],stateBefore='The key is on the bench',stateAfter='Bo looks down')
+        self.store.put(self.slug,board)
+        self.approved(); self.act(); self.assertIsNone(self.wait().error)
+        for shot in self.provider.shots:
+            self.assertIn('Ada',shot['castDescription']); self.assertIn('Bo',shot['castDescription'])
+        recipe=self.controller._read(self.slug)['completed']['s1']['recipe']
+        self.assertIn('key is on the bench',recipe['productionPrompt'])
+        self.assertIn('directionVersion',recipe)
+
+    def test_human_observations_are_bound_to_reviewed_clip_hashes(self):
+        self.approved(); self.act(); self.assertIsNone(self.wait().error)
+        preview=self.controller.status(self.slug)['reviewPreview']
+        with self.assertRaisesRegex(ValueError,'4000'):
+            self.act(acceptReview=True,reviewNote='x'*4001)
+        self.assertTrue(self.controller.status(self.slug)['reviewRequired'])
+        self.act(acceptReview=True,reviewNote='The key remains in the right hand; the next opening matches.')
+        receipt=self.controller._read(self.slug)['reviewReceipts'][-1]
+        self.assertEqual(receipt['key'],preview['key'])
+        self.assertEqual(receipt['clips'][0]['sha256'],preview['clips'][0]['sha256'])
+        self.assertIn('right hand',receipt['note'])
+        self.act(prepareOnly=True); self.assertIsNone(self.wait().error)
+        from engine.server.store import read_json
+        history=list((self.store.project_dir(self.slug)/'System/ProductionHistory').glob('*.json'))
+        self.assertEqual(len(history),1)
+        self.assertEqual(read_json(history[0])['reviewReceipts'][-1],receipt)
+
+    def test_nonfinal_review_requires_the_exact_next_opening(self):
+        self.approved(); self.act(); self.assertIsNone(self.wait().error)
+        state=self.controller._read(self.slug); opening=state['reviewPreview'].pop('nextOpening')
+        self.controller._save(self.slug,state)
+        with self.assertRaisesRegex(Conflict,'next opening'):
+            self.act(acceptReview=True)
+        state['reviewPreview']['nextOpening']=opening; self.controller._save(self.slug,state)
+        self.act(acceptReview=True)
+
+    def test_old_native_take_is_retained_but_not_labelled_as_current_direction(self):
+        self.set_shots([(1,97)])
+        self.controller.render_seeds({'slug':self.slug,'shotId':'s0','count':1})
+        self.assertIsNone(self.wait().error)
+        self.assertTrue(self.controller.takes(self.slug,'s0')[0]['current'])
+        rows=self.controller._take_rows(self.slug,'s0'); rows[0].pop('directionVersion')
+        from engine.server.store import atomic_json
+        atomic_json(self.controller._take_path(self.slug,'s0'),rows)
+        retained=self.controller.takes(self.slug,'s0')[0]
+        self.assertFalse(retained['current']); self.assertTrue(retained['clipUrl'])
+
+    def test_native_take_currency_tracks_reference_pixels_at_the_same_path(self):
+        self.set_shots([(1,97)])
+        self.controller.render_seeds({'slug':self.slug,'shotId':'s0','count':1})
+        self.assertIsNone(self.wait().error)
+        retained=self.controller.takes(self.slug,'s0')[0]
+        self.assertTrue(retained['current'])
+        clip=self.store.media_path(retained['video']); before=clip.read_bytes()
+        Image.new('RGB',(64,64),'blue').save(self.store.media_path(self.ref))
+        self.assertFalse(self.controller.takes(self.slug,'s0')[0]['current'])
+        self.assertEqual(clip.read_bytes(),before)
 
     def test_manifest_without_controller_checkpoint_is_explicitly_resumed(self):
         self.approved(); state=self.controller._read(self.slug)

@@ -1,7 +1,10 @@
 # Sprintwake Studios — mål og prosjektstatus
 
-Oppdatert 5. november 2026. Installert versjon: **0.11.0, build 17 (MIT)**.
-Kildeversjon på GitHub: **0.11.0, build 17**, med engelsk grensesnitt og README med skjermbilder og tidlig installasjon. Appen er oppdatert etter brukerens uttrykkelige beskjed.
+Oppdatert 5. november 2026. Installert og ny kildeversjon: **0.11.2, build 19 (MIT)**.
+Lokal oppdatering er utført uten tester eller generering, etter uttrykkelig beskjed.
+Oppstart kan kreve brukerens godkjenning av eksisterende Nøkkelring-tilgang.
+Installasjonsutfallet føres i STATUS.md. Endringene beskrives på
+engelsk i [CHANGELOG.md](CHANGELOG.md).
 Dette er den samlede oversikten over brukerens mål, levert arbeid og neste steg.
 [STATUS.md](STATUS.md) inneholder detaljert verifikasjon og historikk.
 
@@ -21,6 +24,14 @@ i [GitHub-repoet](https://github.com/oddmundleikvoll/sprintwake-studios). Ferdig
 krever separat publiseringsbeskjed og distribusjonskvalifisering.
 
 ## Det som er gjort
+
+- **Bedre filmregi i 0.11.2, tester utsatt:** tydelige roller for valgte
+  bildehenvisninger; figurer, steder, rekvisitter og planlagte tilstander følger
+  native bilde-/videoprompter. Manusbatcher får nylig kontinuitetskontekst og
+  konkrete krav til før-/ettertilstand. Gjennomgangen sammenligner faktisk hale
+  med neste planlagte åpning og lagrer menneskelige observasjoner med klipphash.
+  Brukeren bestilte deretter lokal appoppdatering og GitHub-publisering med
+  engelsk changelog, fortsatt uten tester eller generering. Se STATUS.md.
 
 - **Uavhengig MIT-motor:** nytt lager/HTTP-API, regissørkontrakt, providere, filmjournal og oppdateringslås. Lokal LTX kjører gjennom MIT CLI; Qwen bruker native Comfy og en egen synkron minnebarriere. Skyomtalen står før første README-skjermbilde. Teknisk CPU-/API- og vindusverifikasjon bruker syntetiske medier; ingen ny modellfilm er generert.
 

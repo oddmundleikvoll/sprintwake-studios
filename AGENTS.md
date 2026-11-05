@@ -307,3 +307,39 @@ PATH="$PWD/runtime/tools:$PATH" runtime/bundle-venv/bin/python -B -m unittest di
 ```
 
 Pure contract mirrors include store/media dependencies; imports remain lazy and require no model packages. Provider journals and global GPU/language/process admission survive workspace changes. Pending Comfy cancellation requires an atomic never-started receipt; without that plugin capability, drain to terminal history rather than guessing from queue disappearance. App lifetime must retain the published Updates/code-reader.lock domain and accept matching legacy tokenless handoff markers only under exclusive startup/instance/reader ownership. No Mac Release/appcast publication is authorized by this source replacement.
+
+## Film direction and continuity
+
+`engine/server/film_direction.py` owns the translation from authored cards/bible
+to native image/video prose. Keep reference roles in the exact deduplicated pixel
+order; preserve the ten-image limit and manual anchors. Identity references do not
+set expression or pose. New manuscript batches require concrete stateBefore and
+stateAfter plus registered cast/prop IDs; legacy cards remain editable. Recent
+planned handoff context is bounded and excludes media/recipe fields. LTX cards
+retain one camera setup and one achievable event; native continuation keeps the
+whole group's cast stable. Recorded speech and a separate score must not be
+silently requested again as native clip audio. Generic workflow prompt bindings
+remain unchanged.
+
+Distinguish visible cast from offscreen continuity identities. Include state-keyed
+props in text and reference lookup. Native dialogue requires a known speaker or
+the single visible character; invalid dialogue-source values must fail clearly.
+Clip details expose speaker/delivery and planned before/after state. Non-final
+review requires the exact next opening; label boundary stills by role rather than
+list position. Native take currency includes direction/prompt/reference-pixel
+fingerprints while retaining
+older takes for deliberate selection.
+
+Direction changes require a new direction version in the film source digest and
+explicit image-plan preparation/review; never mutate old recipes to make a
+checkpoint appear current. Archive superseded production journals in
+System/ProductionHistory. Human review observations are tied to actual clip hashes,
+are not automatic continuity facts, and cannot substitute for video/audio review.
+The 2026-11-05 source improvement was requested without running tests or inference;
+its pending verification is recorded separately in STATUS.md, not as passed QA.
+
+The user subsequently authorized installation and GitHub source/changelog
+publication of these improvements, still without tests or generation. Version
+0.11.2/build 19 is prepared from an isolated checkout to preserve unrelated pending
+installer work. No public Mac release/appcast is implied. Record build/signature
+and installation evidence separately from deferred functional qualification.

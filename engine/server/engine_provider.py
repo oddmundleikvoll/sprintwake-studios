@@ -7,15 +7,7 @@ import uuid
 from .comfy_workflow import ComfyProvider, validate_profile
 from .providers import NativeComfyProvider, qwen_graph
 from .store import read_json, safe_path, atomic_json
-
-def clip_prompt(shot):
-    parts=[shot.get('prompt','')]
-    for key,label in [('castDescription','Stable cast'),('start','Opening'),('action','Action'),('end','Ending'),('camera','Camera'),('dialogue','Spoken dialogue'),('soundNote','Audio')]:
-        value=shot.get(key)
-        if value: parts.append(label+': '+str(value))
-    text='\n'.join(parts).strip()
-    if not text: raise ValueError('The clip needs a production prompt')
-    return text
+from .film_direction import clip_prompt
 
 class EngineProvider(NativeComfyProvider):
     def __init__(self, *args, config_dir=None, **kwargs):

@@ -13,6 +13,7 @@ import uuid
 from .store import Conflict, atomic_json, authoring_digest, read_json, safe_path
 from .comfy_workflow import profile_digest, GenerationCancelled
 from .media import immutable_output, validate_decoded
+from .film_direction import DIRECTION_VERSION, clip_prompt, directed_shot, image_prompt
 
 
 def digest(value): return hashlib.sha256(json.dumps(value,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()
@@ -47,7 +48,7 @@ class FilmController:
             for key in ('startRef','endRef'): add(shot.get(key))
             for ref in shot.get('referenceImages',[]) or []: add(ref)
             for anchor in shot.get('imageAnchors',[]) or []: add(anchor.get('ref'))
-        return digest({'authoring':authoring_digest(board),'references':refs,'profiles':self.profiles})
+        return digest({'authoring':authoring_digest(board),'references':refs,'profiles':self.profiles,'directionVersion':DIRECTION_VERSION})
     def _groups(self,board):
         groups=[]; seen=set()
         for shot in board.get('shots',[]):
@@ -113,40 +114,58 @@ class FilmController:
             if not payload.get('prepareOnly'): raise
             actual=authoring_digest(board)
         if not isinstance(expected,str) or expected!=actual: raise Conflict('The film revision changed; refresh before continuing')
-    def _references(self,board,shot):
-        result=list(shot.get('referenceImages') or [])+list(board.get('styleRefs') or [])
+    def _reference_bindings(self,board,shot):
+        result=[(ref,'the selected visual details for this shot') for ref in shot.get('referenceImages') or []]
+        result += [(ref,'the overall visual style and palette') for ref in board.get('styleRefs') or []]
         ids=set(shot.get('characterIds') or [])
-        result += [c.get('image') for c in board.get('characters',[]) if c.get('id') in ids and c.get('image')]
+        result += [(c['image'],'the identity, build and costume of '+str(c.get('name') or 'the character')) for c in board.get('characters',[]) if c.get('id') in ids and c.get('image')]
         bible=board.get('filmBible') or {}
-        result += [p.get('referenceImage') for p in bible.get('locations',[]) if p.get('id')==shot.get('locationId') and p.get('referenceImage')]
-        result += [p.get('referenceImage') for p in bible.get('props',[]) if p.get('id') in shot.get('propIds',[]) and p.get('referenceImage')]
-        paths=[]
-        for ref in result:
+        result += [(p['referenceImage'],'the location '+str(p.get('name') or p.get('title') or 'shown')) for p in bible.get('locations',[]) if p.get('id')==shot.get('locationId') and p.get('referenceImage')]
+        states=shot.get('assetStates') or {}
+        prop_ids=set(shot.get('propIds') or []) | (set(states) if isinstance(states,dict) else set())
+        result += [(p['referenceImage'],'the appearance of '+str(p.get('name') or p.get('title') or 'the prop')) for p in bible.get('props',[]) if p.get('id') in prop_ids and p.get('referenceImage')]
+        paths=[]; roles=[]
+        for ref,role in result:
             path=self._resolve(ref)
-            if path not in paths: paths.append(path)
+            if path in paths: roles[paths.index(path)] += '; also '+role
+            else: paths.append(path); roles.append(role)
         if len(paths)>10: raise ValueError('A scene image accepts at most ten selected references')
-        return paths
+        return paths,roles
+    def _image_recipe(self,prompt,references,roles,seed):
+        return {'prompt':prompt,'directionVersion':DIRECTION_VERSION,'seed':seed,'width':768,'height':512,
+                'references':[{'ref':self.store.ref(path),'sha256':file_digest(path),'role':role}
+                              for path,role in zip(references,roles)]}
     def _prepare(self,slug,source,job):
         board=self.store.get(slug); cards=[]
         try:
             for shot in board['shots']:
                 if job.cancel_event.is_set(): raise GenerationCancelled('Image-plan preparation cancelled')
                 ref=shot.get('startRef')
+                opening_recipe=None
                 if ref:
                     path=self._resolve(ref); validate_decoded(path,kind='image')
                 else:
-                    prompt=' '.join(str(v) for v in [board.get('renderStyle',''),shot.get('start',''),shot.get('camera',''),board.get('sceneDescription','')] if v)
-                    if not prompt: raise ValueError('The scene needs an opening description')
+                    references,roles=self._reference_bindings(board,shot)
+                    prompt=image_prompt(board,shot,roles)
                     result=self.provider.generate({'native':'qwen'},prompt,shot.get('seed',0),width=768,height=512,
-                        references=self._references(board,shot),cancel=job.cancel_event.is_set)
+                        references=references,cancel=job.cancel_event.is_set)
                     if not result.get('media'): raise ValueError('Image preparation produced no pixels')
                     path=Path(result['media'][0]); validate_decoded(path,kind='image')
                     ref=self.store.import_media(slug,path,'images/film-'+uuid.uuid4().hex+path.suffix.lower())
+                    opening_recipe=self._image_recipe(prompt,references,roles,shot.get('seed',0))
                 card={'shotId':shot['id'],'ref':copy.deepcopy(ref),'opening':copy.deepcopy(ref),'images':[copy.deepcopy(ref)]}
+                if opening_recipe: card['openingRecipe']=opening_recipe
                 if self._read(slug).get('continuationAnchor') and not shot.get('endRef'):
-                    result=self.provider.generate({'native':'qwen'},' '.join([board.get('renderStyle',''),shot.get('end',''),shot.get('camera','')]),shot.get('seed',0),width=768,height=512,references=self._references(board,shot),cancel=job.cancel_event.is_set)
+                    references,roles=self._reference_bindings(board,shot)
+                    opening=self._resolve(ref)
+                    if opening not in references and len(references)<10:
+                        references.append(opening); roles.append('the opening composition, lighting and scene identity')
+                    elif opening in references: roles[references.index(opening)] += '; also the opening composition and lighting'
+                    prompt=image_prompt(board,shot,roles,closing=True)
+                    result=self.provider.generate({'native':'qwen'},prompt,shot.get('seed',0),width=768,height=512,references=references,cancel=job.cancel_event.is_set)
                     closing=self.store.import_media(slug,Path(result['media'][0]),'images/film-end-'+uuid.uuid4().hex+'.png')
                     card['endRef']=closing; card['images'].append(closing)
+                    card['endingRecipe']=self._image_recipe(prompt,references,roles,shot.get('seed',0))
                 cards.append(card)
                 job.completed=len(cards)
                 with self.store.transaction():
@@ -157,6 +176,9 @@ class FilmController:
             state['imagePlan']['digest']=self._plan_digest(state)
             with self.store.transaction():
                 if self._source(self.store.get(slug))!=source: raise Conflict('The project changed during image preparation')
+                previous=self._read(slug)
+                if previous.get('imagePlan'):
+                    atomic_json(safe_path(self.store.project_dir(slug),'System','ProductionHistory',uuid.uuid4().hex+'.json',create_parent=True),previous)
                 self._save(slug,state)
         except Exception as error:
             state=self._read(slug); state.update(phase='stopped' if job.cancel_event.is_set() else 'failed',error=str(error))
@@ -197,10 +219,25 @@ class FilmController:
                 preview=state.get('reviewPreview')
                 if not preview or state.get('source')!=self._source(board): raise Conflict('No current human review is pending')
                 if self._plan_digest(state)!=(state.get('imagePlan') or {}).get('digest'): raise Conflict('Review references changed')
+                groups=self._groups(board)
+                position=next((i for i,(ident,_) in enumerate(groups) if str(ident)==preview.get('groupId')),None)
+                if position is None or preview.get('shotIds')!=[s['id'] for s in groups[position][1]]:
+                    raise Conflict('The review no longer matches its camera group')
+                if not preview.get('tail'): raise Conflict('The actual video tail is missing from review')
+                cards={c['shotId']:c for c in state['imagePlan']['cards']}
+                expected_opening=cards[groups[position+1][1][0]['id']]['ref'] if position+1<len(groups) else None
+                if preview.get('nextOpening')!=expected_opening:
+                    raise Conflict('The next opening is missing or no longer matches the image plan')
                 by_id={shot['id']:shot for shot in board['shots']}
                 for media in preview.get('clips',[]):
                     if by_id.get(media['shotId'],{}).get('outputs')!=[media['video']]: raise Conflict('Selected clips changed during review')
                     if file_digest(self._resolve(media['video']))!=media['sha256']: raise Conflict('Reviewed media changed')
+                note=action.get('reviewNote','')
+                if not isinstance(note,str) or len(note)>4000: raise ValueError('Review notes must be text of at most 4000 characters')
+                state.setdefault('reviewReceipts',[]).append({'key':preview['key'],'groupId':preview['groupId'],
+                    'sourceRevision':state['source'],'imageDigest':state['imagePlan']['digest'],
+                    'clips':[{'shotId':c['shotId'],'sha256':c['sha256']} for c in preview.get('clips',[])],
+                    'note':note.strip()})
                 state.setdefault('reviewedGroups',[]).append(preview['groupId']); state.pop('reviewPreview',None)
                 state['phase']='done' if len(state['reviewedGroups'])==len(self._groups(board)) else 'ready'
                 self._save(slug,state); return self.status(slug)
@@ -242,12 +279,8 @@ class FilmController:
             for index,shot in enumerate(shots):
                 for anchor in shot.get('imageAnchors',[]):
                     anchors.append({'clip_index':index,'path':str(self._resolve(anchor['ref'])),'frame':anchor['frame'],'strength':anchor['strength']})
-            rendering=copy.deepcopy(shots)
             board=self.store.get(slug)
-            for shot in rendering:
-                ids=set(shot.get('characterIds',[]))
-                shot['castDescription']='; '.join(str(c.get('name',''))+': '+str(c.get('description','')) for c in board.get('characters',[]) if c.get('id') in ids)
-                shot['soundNote']=' '.join([board.get('soundscape',''),shot.get('soundNote','')]).strip()
+            rendering=[directed_shot(board,shot,shots) for shot in shots]
             result=self.provider.generate_group(rendering,start_image=self._resolve(cards[shots[0]['id']]['ref']),
                 end_image=self._resolve(shots[-1]['endRef'] or cards[shots[-1]['id']].get('endRef')) if shots[-1].get('endRef') or cards[shots[-1]['id']].get('endRef') else None,anchors=anchors,
                 cancel=job.cancel_event.is_set,on_progress=lambda n:setattr(job,'completed',n),
@@ -255,11 +288,12 @@ class FilmController:
             files=result.get('media',[])
             if len(files)!=len(shots): raise ValueError('The camera group returned an unexpected number of clips')
             clips=[]
-            for shot,path in zip(shots,files):
+            for shot,direction,path in zip(shots,rendering,files):
                 validate_decoded(path,kind='video',fps=24,frames=shot['frames'])
                 folder='shots/'+shot['id']+'/productions/'+uuid.uuid4().hex
                 ref=self.store.import_media(slug,path,folder+'/clip.mp4')
-                recipe=copy.deepcopy(result.get('recipe',{})); recipe['sourceRevision']=source
+                recipe=copy.deepcopy(result.get('recipe',{})); recipe.update(sourceRevision=source,
+                    productionPrompt=clip_prompt(direction),directionVersion=DIRECTION_VERSION)
                 atomic_json(safe_path(self.store.project_dir(slug),folder,'recipe.json',create_parent=True),recipe)
                 clips.append({'shotId':shot['id'],'video':ref['url'],'sha256':file_digest(path),'recipe':recipe})
             with self.store.transaction():
@@ -286,6 +320,14 @@ class FilmController:
         rows=read_json(self._take_path(slug,shotid),[])
         if not isinstance(rows,list) or len(rows)>10_000: raise ValueError('Invalid take history')
         return rows
+    def _take_fingerprint(self,board,shot):
+        references=[]
+        for role,refs in [('references',shot.get('referenceImages') or []),
+                          ('opening',[shot.get('startRef')]),('ending',[shot.get('endRef')])]:
+            for ref in refs:
+                if ref: references.append([role,file_digest(self._resolve(ref))])
+        return digest({'authoring':authoring_digest(board),'directionVersion':DIRECTION_VERSION,
+                       'prompt':clip_prompt(directed_shot(board,shot)),'references':references})
     def takes(self,slug,shotid):
         board=self.store.get(slug); rows=copy.deepcopy(self._take_rows(slug,shotid)); seen={row.get('seed') for row in rows}
         legacy=safe_path(self.store.project_dir(slug),'seed-takes',shotid)
@@ -300,12 +342,20 @@ class FilmController:
                     row.update(video=self.store.ref(output)['url'],recipe=str(safe_path(folder,'recipe.json').relative_to(self.store.project_dir(slug))),frames=record.get('frames'))
                 rows.append(row)
                 if len(rows)>10_000: raise ValueError('Take history is too large')
+        native=self.profiles.get('video')=='ltx-local'; fingerprint=None
+        if native:
+            shot=next((s for s in board.get('shots',[]) if s['id']==shotid),None)
+            if shot:
+                try: fingerprint=self._take_fingerprint(board,shot)
+                except (ValueError,OSError): pass
         for row in rows:
             value=row.get('video')
             if value:
                 try: row['clipUrl']=self.store.ref(self._resolve(value))['url']
                 except (ValueError,OSError): row['clipUrl']=None
-            row['current']=bool(row.get('sourceRevision') and row['sourceRevision']==authoring_digest(board))
+            row['current']=bool(row.get('sourceRevision') and row['sourceRevision']==authoring_digest(board)
+                and (not native or fingerprint and row.get('takeFingerprint')==fingerprint
+                     and row.get('directionVersion')==DIRECTION_VERSION))
         return rows
     def render_seeds(self,payload):
         slug,shotid=payload.get('slug'),payload.get('shotId'); count=payload.get('count',1)
@@ -327,19 +377,26 @@ class FilmController:
             for seed in seeds:
                 if job.cancel_event.is_set(): raise GenerationCancelled('Take comparison was cancelled')
                 entry={'seed':seed,'status':'running','shotId':shotid,'sourceRevision':authoring_digest(board)}; rows=self._take_rows(slug,shotid); rows.append(entry)
+                if profile=='ltx-local': entry['directionVersion']=DIRECTION_VERSION
                 atomic_json(self._take_path(slug,shotid),rows)
                 folder='shots/'+shotid+'/seed-takes/'+str(seed)+'-'+uuid.uuid4().hex
                 try:
+                    fingerprint=self._take_fingerprint(board,snapshot) if profile=='ltx-local' else None
+                    if fingerprint: entry['takeFingerprint']=fingerprint
                     width,height=[int(n) for n in snapshot.get('resolution',board.get('defaults',{}).get('resolution','384x256')).split('x')]
-                    result=self.provider.generate(profile,snapshot.get('prompt') or snapshot.get('action',''),seed,snapshot.get('frames',121),width,height,
+                    prompt=clip_prompt(directed_shot(board,snapshot)) if profile=='ltx-local' else snapshot.get('prompt') or snapshot.get('action','')
+                    result=self.provider.generate(profile,prompt,seed,snapshot.get('frames',121),width,height,
                         references=[self._resolve(ref) for ref in snapshot.get('referenceImages',[])],
                         start_image=self._resolve(snapshot['startRef']) if snapshot.get('startRef') else None,
                         end_image=self._resolve(snapshot['endRef']) if snapshot.get('endRef') else None,cancel=job.cancel_event.is_set)
+                    if fingerprint and self._take_fingerprint(board,snapshot)!=fingerprint:
+                        raise Conflict('Take reference pixels changed during generation; the previous selection is preserved')
                     media=result.get('media',[])
                     if len(media)!=1: raise ValueError('A take must contain exactly one video')
                     validate_decoded(media[0],kind='video',fps=24,frames=snapshot.get('frames',121))
                     ref=self.store.import_media(slug,media[0],folder+'/clip.mp4')
                     recipe=copy.deepcopy(result.get('recipe',{})); recipe['sha256']=file_digest(media[0])
+                    if profile=='ltx-local': recipe.update(productionPrompt=prompt,directionVersion=DIRECTION_VERSION,takeFingerprint=fingerprint)
                     atomic_json(safe_path(self.store.project_dir(slug),folder,'recipe.json',create_parent=True),recipe)
                     entry.update(status='review',video=ref['url'],outputs=[ref['url']],recipe=folder+'/recipe.json',recipeDigest=digest(recipe),sha256=recipe['sha256'],frames=snapshot.get('frames',121),duration=snapshot.get('frames',121)/24)
                 except Exception as error:

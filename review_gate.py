@@ -124,10 +124,16 @@ def review_images(preview: dict[str, Any] | None, workspace) -> list[Path]:
     return result
 
 
-def review_images_complete(preview: dict[str, Any] | None, workspace) -> bool:
-    """Require every supplied still-image ref; an omitted final opening is valid."""
-    if not isinstance(preview, dict):
+def review_images_complete(preview: dict[str, Any] | None, workspace, board: dict[str, Any] | None = None) -> bool:
+    """A tail is mandatory; only the final camera group can omit the next opening."""
+    if not isinstance(preview, dict) or not preview.get("tail"):
         return False
+    if isinstance(board, dict):
+        shots=board.get("shots") or []
+        ids=preview.get("shotIds") or []
+        positions=[i for i,shot in enumerate(shots) if shot.get("id") in ids]
+        if not positions or (max(positions)<len(shots)-1 and not preview.get("nextOpening")):
+            return False
     supplied = 0
     for key in ("tail", "nextOpening"):
         if key not in preview or preview.get(key) in (None, ""):
@@ -137,6 +143,27 @@ def review_images_complete(preview: dict[str, Any] | None, workspace) -> bool:
         if not path or path.suffix.lower() not in IMAGE_EXTENSIONS:
             return False
     return supplied > 0
+
+
+def continuity_review_notes(preview: dict[str, Any] | None, board: dict[str, Any] | None) -> list[str]:
+    """Human comparison prompts; authored text is explicitly not video evidence."""
+    if not isinstance(preview, dict) or not isinstance(board, dict):
+        return []
+    shots = board.get("shots") or []
+    ids = set(preview.get("shotIds") or [])
+    positions = [i for i, shot in enumerate(shots) if shot.get("id") in ids]
+    if not positions:
+        return []
+    last = max(positions)
+    ending = shots[last].get("stateAfter") or shots[last].get("end")
+    result = ["Planned ending to compare with the actual video: " + str(ending)[:1200]] if ending else []
+    if last + 1 < len(shots):
+        following = shots[last + 1]
+        opening = following.get("stateBefore") or following.get("start")
+        if opening:
+            result.append("Next planned opening to compare with the actual tail: " + str(opening)[:1200])
+    result.append("Check identity and costume, prop ownership, position and eyelines, light, action completion, voice and sound across the boundary. Planned states are not observed facts.")
+    return result
 
 
 def receipt_snapshot(context: dict[str, Any] | None) -> tuple:

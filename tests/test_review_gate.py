@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from review_gate import canonical_ref, plan_images, plan_images_complete, receipt_snapshot, review_images, review_images_complete, review_videos, review_videos_complete
+from review_gate import canonical_ref, continuity_review_notes, plan_images, plan_images_complete, receipt_snapshot, review_images, review_images_complete, review_videos, review_videos_complete
 from workspace import Workspace
 
 
@@ -32,6 +32,14 @@ class ReviewGateTests(unittest.TestCase):
     def test_missing_tail_or_next_opening_is_incomplete(self):
         self.assertFalse(review_images_complete({"tail": {"path": "film/nope.png"}, "nextOpening": None}, self.workspace))
         self.assertFalse(review_images_complete({"tail": {"path": "film/Output/Images/tail.png"}, "nextOpening": {"path": "film/nope.png"}}, self.workspace))
+        self.assertFalse(review_images_complete({'nextOpening':{'path':'film/Output/Images/card.png'}},self.workspace))
+        board={'shots':[{'id':'s1'},{'id':'s2'}]}
+        preview={'shotIds':['s1'],'tail':{'path':'film/Output/Images/tail.png'}}
+        self.assertFalse(review_images_complete(preview,self.workspace,board))
+        preview['nextOpening']={'path':'film/Output/Images/card.png'}
+        self.assertTrue(review_images_complete(preview,self.workspace,board))
+        preview.update(shotIds=['s2'],nextOpening=None)
+        self.assertTrue(review_images_complete(preview,self.workspace,board))
 
     def test_missing_plan_card_is_incomplete(self):
         self.assertFalse(plan_images_complete({"cards": [{"ref": {"path": "film/Output/Images/card.png"}}, {"ref": {"path": "film/nope.png"}}]}, self.workspace))
@@ -50,6 +58,16 @@ class ReviewGateTests(unittest.TestCase):
         a = {"project": {"revision": "r1", "reviewPreview": {"key": "a", "shotIds": ["s1"]}}}
         b = {"project": {"revision": "r1", "reviewPreview": {"key": "b", "shotIds": ["s1"]}}}
         self.assertNotEqual(receipt_snapshot(a), receipt_snapshot(b))
+
+    def test_continuity_comparison_keeps_plans_distinct_from_observations(self):
+        board={'shots':[{'id':'s1','stateAfter':'Ada puts the key on the bench'},
+                        {'id':'s2','stateBefore':'The key rests beside Ada'}]}
+        notes=continuity_review_notes({'shotIds':['s1']},board)
+        self.assertIn('Planned ending',notes[0]); self.assertIn('key on the bench',notes[0])
+        self.assertIn('Next planned opening',notes[1]); self.assertIn('key rests',notes[1])
+        self.assertIn('not observed facts',notes[-1])
+        final=continuity_review_notes({'shotIds':['s2']},board)
+        self.assertFalse(any('Next planned opening' in note for note in final))
 
     def test_catalogue_refs_share_identity_across_forms(self):
         absolute = self.root / "Projects" / "film" / "Output" / "Images" / "card.png"

@@ -15,7 +15,7 @@ import raven as r
 
 import views as v
 from production_model import film_action
-from review_gate import canonical_ref, plan_images, plan_images_complete, receipt_snapshot, review_images, review_images_complete, review_videos, review_videos_complete
+from review_gate import canonical_ref, continuity_review_notes, plan_images, plan_images_complete, receipt_snapshot, review_images, review_images_complete, review_videos, review_videos_complete
 
 
 class PanelMixin:
@@ -423,12 +423,19 @@ class PanelMixin:
                 stills = review_images(preview, self.workspace)
                 self.review_media_paths = [str(path) for path in review_videos(preview, self.board or {}, self.workspace, self.slug)]
                 if stills:
-                    body += '<WrapBox Spacing="10">' + "".join(v.image(str(path), width=180, height=110, fit=True) for path in stills) + '</WrapBox>'
-                if not review_images_complete(preview, self.workspace) or not review_videos_complete(preview, self.board or {}, self.workspace, self.slug):
+                    boundary_cards=[]
+                    for key,label in (("tail","Actual video tail"),("nextOpening","Next planned opening")):
+                        for path in review_images({key:preview.get(key)},self.workspace):
+                            boundary_cards.append('<VBox Spacing="6">'+v.label(label,12,True)+v.image(str(path),width=180,height=110,fit=True)+'</VBox>')
+                    body += '<WrapBox Spacing="10">' + ''.join(boundary_cards) + '</WrapBox>'
+                if not review_images_complete(preview, self.workspace, self.board) or not review_videos_complete(preview, self.board or {}, self.workspace, self.slug):
                     self.review_media_paths = []
                     self.toast("The review is missing takes or boundary images. Refresh production before approving.", True); return
                 body += '<HBox Spacing="10">' + "".join(v.button(f"Play take {i + 1}", f"production.review_media.{i}") for i in range(len(self.review_media_paths))) + '</HBox>'
                 body += v.label("Review both the latest actual take and the next opening before approving.", 12, True)
+                body += ''.join(v.label(note,12,True) for note in continuity_review_notes(preview,self.board))
+                body += v.field("production.review_note", "Review observations (optional)", height=60,
+                    placeholder="Record what you actually saw and heard. Correct mismatches before approving.")
             body += '<CheckBox Name="production.confirm" Text="I have reviewed the material and approve this revision."/>'
             self.show_modal("Approve production step", body, "production.approve.confirm", "Approve")
             return
@@ -439,7 +446,10 @@ class PanelMixin:
             required = {str(Path(p).resolve()) for p in getattr(self, "review_media_paths", [])}
             if not required or not required.issubset(played):
                 self.toast("Play every take through before approving.", True); return
-        try: action = film_action(context, kind, accepted=True)
+        note=self.text("production.review_note").strip() if kind=="approve_review" else ""
+        if len(note)>4000:
+            self.toast("Keep review observations within 4000 characters.", True); return
+        try: action = film_action(context, kind, accepted=True, note=note)
         except ValueError as exc: self.toast(str(exc), True); return
         self.gate_key = None; self.modal_close()
         slug = self.slug

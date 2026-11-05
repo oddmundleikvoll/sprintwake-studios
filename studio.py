@@ -736,7 +736,16 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
         body += '<HBox Spacing="14"><VBox Slot.Fill="1"><Label Text="DURATION" Class="eyebrow"/><ComboBox Name="clip.duration" Items="4 seconds|5 seconds|6 seconds"/></VBox><VBox Slot.Fill="1"><Label Text="CAMERA SETUP" Class="eyebrow"/><TextInput Name="clip.scene" Text="' + str(shot.get("directorScene", 1)) + '"/></VBox><VBox Slot.Fill="1"><Label Text="SEED" Class="eyebrow"/><TextInput Name="clip.seed" Text="' + str(shot.get("seed", 0)) + '"/></VBox></HBox>'
         body += '<Label Text="LOCATION" Class="eyebrow"/><ComboBox Name="clip.location" Items="' + v.esc("|".join(x.get("title", x["id"]) for x in locations) or "Choose a location in the film bible") + '"/>'
         body += '<Label Text="VISIBLE CHARACTERS" Class="eyebrow"/><WrapBox Spacing="12">' + "".join(f'<Checkbox Name="clip.cast.{i}" Text="{v.esc(c.get("name", "Character"))}" Checked="{str(c["id"] in shot.get("characterIds", [])).lower()}"/>' for i, c in enumerate(self.board.get("characters", []))) + '</WrapBox>'
+        body += v.field("clip.state_before", "Planned state before the action", shot.get("stateBefore", ""), 55,
+                        placeholder="Positions, eyelines, costume and who holds each prop.")
+        body += v.field("clip.state_after", "Planned state after the action", shot.get("stateAfter", ""), 55,
+                        placeholder="The concrete change the next shot must respect.")
         body += v.field("clip.dialogue", "Dialogue · write the language in the delivery description", shot.get("dialogue", ""), 65)
+        self.details_speakers = [None] + [c for c in self.board.get("characters", []) if c.get("id")]
+        speaker_labels = ["Automatic · one visible character"] + [c.get("name") or "Character" for c in self.details_speakers[1:]]
+        body += '<Label Text="SPEAKER" Class="eyebrow"/><ComboBox Name="clip.speaker" Items="' + v.esc('|'.join(speaker_labels)) + '"/>'
+        body += v.field("clip.delivery", "Spoken language and delivery", shot.get("dialogueStyle", ""), 40,
+                        placeholder="E.g. in Norwegian, softly and hesitantly", multiline=False)
         body += v.field("clip.sound", "Shot sound", shot.get("soundNote", ""), 55)
         body += '<Label Text="AUDIO SOURCE" Class="eyebrow"/><ComboBox Name="clip.speech" Items="LTX · generated speech|Own takes / separate dubbing"/>'
         body += '<HBox Spacing="9">' + v.button("Image anchors", "shot.anchors") + v.button("Create opening image", "shot.image") + v.button("Advanced takes", "shot.advanced") + '</HBox>'
@@ -745,6 +754,7 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
         r.Rcombo_box_set_selected(self.find("clip.duration"), min(2, max(0, round(shot.get("frames", 121) / 24) - 4)))
         r.Rcombo_box_set_selected(self.find("clip.location"), next((i for i, x in enumerate(locations) if x["id"] == shot.get("locationId")), 0))
         r.Rcombo_box_set_selected(self.find("clip.speech"), 0 if shot.get("dialogueSource") == "native" else 1)
+        r.Rcombo_box_set_selected(self.find("clip.speaker"), next((i for i,c in enumerate(self.details_speakers) if c and c['id']==shot.get('speakerId')),0))
 
     def apply_shot_details(self):
         shot = self.raw_shot
@@ -757,12 +767,21 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
         continuing = bool(previous and previous.get("directorScene") == scene)
         frames = (4 + max(0, self.selected("clip.duration"))) * 24 + (0 if continuing else 1)
         location_index = self.selected("clip.location")
-        for widget, key in (("clip.title", "title"), ("clip.camera", "camera"), ("clip.prompt", "prompt"), ("clip.dialogue", "dialogue"), ("clip.sound", "soundNote")):
-            shot[key] = self.text(widget).strip()
-        shot.update(directorScene=scene, frames=frames, seed=seed, dialogueSource="native" if self.selected("clip.speech") == 0 else "recording")
-        shot["characterIds"] = [c["id"] for i, c in enumerate(self.board.get("characters", [])) if self.checked(f"clip.cast.{i}")]
+        updated=copy.deepcopy(shot)
+        for widget, key in (("clip.title", "title"), ("clip.camera", "camera"), ("clip.prompt", "prompt"), ("clip.dialogue", "dialogue"), ("clip.sound", "soundNote"),
+                            ("clip.state_before","stateBefore"),("clip.state_after","stateAfter"),("clip.delivery","dialogueStyle")):
+            updated[key] = self.text(widget).strip()
+        updated.update(directorScene=scene, frames=frames, seed=seed, dialogueSource="native" if self.selected("clip.speech") == 0 else "recording")
+        updated["characterIds"] = [c["id"] for i, c in enumerate(self.board.get("characters", [])) if self.checked(f"clip.cast.{i}")]
+        speaker_index=self.selected("clip.speaker")
+        speakers=getattr(self,"details_speakers",[None])
+        speaker=speakers[speaker_index] if 0<=speaker_index<len(speakers) else None
+        updated["speakerId"]=speaker['id'] if speaker else ''
+        if updated['dialogue'] and updated['dialogueSource']=='native' and not speaker and len(updated['characterIds'])!=1:
+            raise ValueError("Choose a speaker for native dialogue, or select one visible character for automatic speaker selection.")
         if 0 <= location_index < len(self.details_locations):
-            shot["locationId"] = self.details_locations[location_index]["id"]
+            updated["locationId"] = self.details_locations[location_index]["id"]
+        shot.update(updated)
         self.refresh_view()
         self.set_dirty(True)
         self.modal_close()
