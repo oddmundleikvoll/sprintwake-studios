@@ -7,9 +7,11 @@ tests and re-vendoring helper are removed from the current source. Historical
 commits retain their terms and upstream attribution. [CC_REPLACEMENT.md](CC_REPLACEMENT.md)
 records the boundary and remaining model/provider terms.
 
-The installed app remains **0.10.1 / build 15**. Original Storyboard, ComfyUI,
-model weights, signed oMLX app, projects, private settings and Keychain domains
-are preserved. No Mac release, appcast or model weights were published.
+The user subsequently requested installing the MIT version. The installed app
+is now **0.11.0 / build 17**. Original Storyboard, model weights, signed oMLX app,
+projects and private settings domains are preserved. Compatible private connection
+entries and the independent Comfy helper were added as recorded below.
+No Mac release, appcast or model weights were published.
 
 Verification for the independent engine:
 
@@ -28,7 +30,8 @@ Verification for the independent engine:
   earlier negative run timed out waiting for its interactive alert.
 - Independent Comfy memory barrier executed in an isolated real core executor
   using CLASSIC cache, with no loaded models before or after. No server or
-  model generation was started, and no installed Comfy plugin was changed.
+  model generation was started during source qualification. The helper was
+  subsequently installed for the user's explicitly requested app update.
 - Fresh independent review: no remaining P0/P1 finding after fixes. Pure
   contract parity, frozen lock metadata and staged diff checks pass.
 
@@ -50,6 +53,39 @@ copies are unregistered and moved to Trash after verification; logs/screenshots
 remain. No quality or runtime claim for a newly generated film follows from
 these CPU/API checks. Optional direct MOSS/SA3 adapters are retired; explicit
 local/hosted speech/music HTTP adapters are documented in `engine/README.md`.
+
+## Local MIT app installation — 2026-11-05
+
+- Built current source, copied the standalone bundle to a separate `.noindex`
+  path, verified its deep/strict signature and **35** exact engine/plugin/contract
+  files, MIT licenses and absence of bytecode caches. The relocated app passed
+  **194** native window checks without models. Focused install/bundle/setup
+  tests (**20**) and update/migration tests (**10**) passed.
+- The documented transactional installer replaced **0.10.1/build 15** with
+  **0.11.0/build 17**, retained the previous app for rollback and completed its
+  handoff marker on actual installed-app startup. One native instance and its
+  owned bundled engine are running; the engine reports ready and idle.
+- Backed up seven private configuration files outside Git. Existing project,
+  workspace, image/video selections and original private fields remain intact.
+  Added explicit paths to the already installed LTX CLI/Q8 pack. The previous
+  local Fable alias is retained in its original private file; the same selected
+  Qwen model now uses an explicit OpenAI-compatible oMLX profile with a 720-second
+  managed lifecycle and an endpoint-scoped Keychain credential. No secret is in
+  connection JSON. The actual app's passive test confirms the engine, Python and
+  language connection; oMLX settings and model residency are unchanged.
+- Installed the independent `SprintwakeStudio` Comfy helper alongside existing
+  nodes. No Comfy core, startup arguments, original LTX node or models were
+  replaced. ComfyUI was closed and remains closed; plugin startup and actual
+  model load/unload/generation are not claimed by these checks.
+- All **151** pre-existing protected production/model/settings files retain
+  recorded size/mtime and hashes for control/small files; no missing or changed
+  entry. Two new production-system provider/lock files appeared during startup.
+  The two disposable app copies were moved to Trash; the installed app remains open.
+
+Evidence: ignored `qa/mit-local-installed-app.json`,
+`qa/mit-local-install-preservation.json`, `qa/mit-local-install-candidate.json`,
+`qa/mit-installed-candidate-window/production-smoke.json` and
+`qa/mit-local-install-{tests,updates-tests,build}.log`.
 
 ---
 

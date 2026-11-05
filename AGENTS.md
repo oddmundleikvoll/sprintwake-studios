@@ -273,7 +273,10 @@ stored names, status enums, identifiers, schema keys, folder paths and Keychain 
 Modal titles also act as runtime routing sentinels: update both producers/consumers and
 fixture expectations together. Canonical director/anchor copy belongs in engine/server;
 refresh contracts/ through scripts/sync-contracts.py rather than editing its mirror.
-The installed app remains 0.10.1/build 15 until separately updated.
+The user explicitly requested the local update on 2026-11-05; the installed app
+is now MIT 0.11.0/build 17. Its compatible private LTX/oMLX settings and independent
+Comfy helper are installed, with backups and the previous app retained. No public
+Mac release or appcast is authorized by that local installation.
 
 Reproducible README screenshots, with an unlocked graphical macOS session:
 

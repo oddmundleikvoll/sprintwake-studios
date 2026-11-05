@@ -1,7 +1,7 @@
 # Sprintwake Studios — mål og prosjektstatus
 
-Oppdatert 5. november 2026. Installert versjon: **0.10.1, build 15**.
-Kildeversjon på GitHub: **0.11.0, build 17**, med engelsk grensesnitt og README med skjermbilder og tidlig installasjon. Installert app er ikke erstattet.
+Oppdatert 5. november 2026. Installert versjon: **0.11.0, build 17 (MIT)**.
+Kildeversjon på GitHub: **0.11.0, build 17**, med engelsk grensesnitt og README med skjermbilder og tidlig installasjon. Appen er oppdatert etter brukerens uttrykkelige beskjed.
 Dette er den samlede oversikten over brukerens mål, levert arbeid og neste steg.
 [STATUS.md](STATUS.md) inneholder detaljert verifikasjon og historikk.
 
@@ -89,12 +89,20 @@ urørt. Den offentlige kildekoden kan bygges lokalt uten Developer ID/notariseri
 
 ## MIT-erstatning (0.11)
 
-Den uavhengige motoren er verifisert med 77 CPU-/API-kontroller uten hopp,
+Den uavhengige motoren er verifisert med 80 CPU-/API-kontroller uten hopp,
 269 app-tester og sju CTest-suiter. Det faktiske vinduet består 194 kontroller
 både i kildekopien og i en flyttet, skrivebeskyttet app. En lokal Sparkle-prøve
 oppdaterte testkopien fra build 17 til 18 og bevarte åtte filer; en manipulert
 signert feed ble avvist mens produksjonen fortsatte. Ingen modellinferens ble
 startet. Detaljer og begrensninger står i [STATUS.md](STATUS.md).
+
+Den installerte MIT-appen er signaturkontrollert og åpner med den nye motoren.
+Et ferskt, flyttet appbygg bestod 194 vinduskontroller før installasjon.
+Alle 151 eksisterende kontrollerte produksjons-/modellfiler er bevart.
+Samme lokale regissørmodell bruker nå oMLX direkte med endpoint-bundet nøkkel
+i Nøkkelring; private originalinnstillinger er sikkerhetskopiert. Eksisterende
+LTX-runtime er koblet inn, og den nye Comfy-hjelpenoden er installert.
+ComfyUI og modellgenerering er ikke startet som del av oppdateringen.
 
 ## Offentlig GitHub-kilde
 
