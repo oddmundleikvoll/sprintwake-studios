@@ -1,6 +1,6 @@
 # Sprintwake Studios — mål og prosjektstatus
 
-Oppdatert 5. november 2026. Installert og ny kildeversjon: **0.11.2, build 19 (MIT)**.
+Oppdatert 5. november 2026. Installert og ny kildeversjon: **0.11.3, build 20 (MIT)**.
 Lokal oppdatering er utført uten tester eller generering, etter uttrykkelig beskjed.
 Oppstart kan kreve brukerens godkjenning av eksisterende Nøkkelring-tilgang.
 Installasjonsutfallet føres i STATUS.md. Endringene beskrives på
@@ -105,8 +105,10 @@ urørt. Den offentlige kildekoden kan bygges lokalt uten Developer ID/notariseri
 Fremtidige bygg bruker `.noindex`, og vellykket installasjon forbruker byggekilden
 og rydder gammel app. Disponibel byggkontroll og Sparkle-prøver rydder egne kopier
 også ved feil. Gamle appmapper blir kontrollerte ZIP-sikkerhetskopier i papirkurven,
-siden macOS ellers kan oppdage dem igjen. Oppstart rydder gamle, egne kopier i
-bakgrunnen. Den separat installerte 0.11.2/build 19 beholdes i denne endringen.
+siden macOS ellers kan oppdage dem igjen. Opprydding beholdes ved installasjon og
+én gang etter bekreftet oppdatering. Vanlig oppstart og ny backend-tilkobling
+starter ingen opprydding. Brukeren bestilte også lokal installasjon og GitHub
+med engelsk changelog for 0.11.3/build 20, uten tester eller generering.
 
 ## MIT-erstatning (0.11)
 

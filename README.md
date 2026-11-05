@@ -107,6 +107,10 @@ update. Existing image plans require
 explicit preparation and review under the new direction version; prior production
 journals, media and recipes are retained.
 
+Version 0.11.3 keeps app-copy cleanup at installation and once after a completed
+update. Ordinary launches do not scan or clean old app copies. Tests and model
+generation remain deferred for this update at the user's request.
+
 ## Build, develop and contribute
 
 For development, `./run.command` launches directly from the checkout. To verify:

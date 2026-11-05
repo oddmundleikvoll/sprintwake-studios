@@ -354,9 +354,17 @@ app directory, verify all archived bytes/types/modes/links and an unchanged sour
 snapshot, then sync the ZIP and receipt. Unregister original and actual Trash
 URLs. Retaining `.app` folders in Trash permits later rediscovery; keep ZIPs.
 Preserve rollback until installation commits, and preserve the new handoff on
-post-commit cleanup errors. Native startup reconciles old owned Trash apps after
-readiness; Sparkle fixtures clean their own copies/UUID in `finally`. No global
+post-commit cleanup errors. Only an exact matching update handoff permits
+reconciliation of old owned Trash apps. Run the native app's update-only callback
+under the lifetime handoff locks before consuming its marker or starting the
+backend. A failed cleanup retains the marker for retry. Ordinary app startup and
+backend reconnects must never schedule cleanup. Transactional installation keeps
+its cleanup. Sparkle fixtures clean their own copies/UUID in `finally`. No global
 registry reset, Trash emptying, foreign app removal or model startup belongs here.
+
+The user authorized local installation and GitHub source/changelog publication
+of 0.11.3/build 20 without running tests or generation. Keep functional tests and
+smoke checks deferred; record packaging/signature/content evidence separately.
 
 ```sh
 RAVEN_RUN_REAL_APP_BUNDLE_PROBE=1 uv run --frozen python -B -m unittest tests.test_app_bundles tests.test_app_workflows tests.test_install_app tests.test_updates -v

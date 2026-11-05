@@ -4,6 +4,36 @@ import sys
 sys.path.insert(0,str(Path(__file__).parents[1]))
 from engine.server.app_lifetime import AppLifetime
 class LifetimeTests(unittest.TestCase):
+ def test_cleanup_handoff_does_not_run_on_ordinary_start(self):
+  with tempfile.TemporaryDirectory() as t:
+   calls=[]; app=AppLifetime(Path(t),bundle='app',build=20).enter_app(on_update_handoff=lambda:calls.append('cleanup'))
+   try:self.assertEqual(calls,[])
+   finally:app.close()
+ def test_cleanup_handoff_runs_only_for_matching_update_entry(self):
+  with tempfile.TemporaryDirectory() as t:
+   calls=[]; cleanup=lambda:calls.append('cleanup')
+   root=Path(t); old=AppLifetime(root,bundle='app',build=19).enter_app()
+   old.reserve(20); old.close()
+   mismatched=AppLifetime(root,bundle='app',build=19)
+   with self.assertRaises(RuntimeError):mismatched.enter_app(on_update_handoff=cleanup)
+   self.assertEqual(calls,[])
+   app=AppLifetime(root,bundle='app',build=20).enter_app(on_update_handoff=cleanup)
+   try:self.assertEqual(calls,['cleanup'])
+   finally:app.close()
+   app.enter_app(on_update_handoff=cleanup)
+   try:self.assertEqual(calls,['cleanup'])
+   finally:app.close()
+ def test_failed_cleanup_keeps_handoff_for_retry_before_backend_start(self):
+  with tempfile.TemporaryDirectory() as t:
+   root=Path(t); old=AppLifetime(root,bundle='app',build=19).enter_app()
+   old.reserve(20); old.close()
+   def fail():raise OSError('Cleanup unavailable')
+   with self.assertRaises(OSError):AppLifetime(root,bundle='app',build=20).enter_app(on_update_handoff=fail)
+   self.assertTrue((root/'pending-update.json').is_file())
+   calls=[]; app=AppLifetime(root,bundle='app',build=20).enter_app(on_update_handoff=lambda:calls.append('cleanup'))
+   try:
+    self.assertEqual(calls,['cleanup']); self.assertFalse((root/'pending-update.json').exists())
+   finally:app.close()
  def test_pending_marker_and_reader_guard(self):
   with tempfile.TemporaryDirectory() as t:
    a=AppLifetime(Path(t),bundle='a',build=1).enter_app(); a.reserve(2); self.assertTrue(a.writer_ready()); self.assertTrue((Path(t)/'pending-update.json').exists()); a.cancel_update(); a.close()

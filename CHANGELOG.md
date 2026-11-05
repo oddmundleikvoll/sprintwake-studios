@@ -1,10 +1,20 @@
 # Changelog
 
-## Unreleased
+## 0.11.3 — 2026-11-05
 
 - Prevent duplicate app entries from future managed builds, installs and QA runs.
-  Retire obsolete bundles as verified recovery ZIPs, and reconcile owned Trash
-  copies after startup. Preserve one canonical installed application path.
+  Retire obsolete bundles as verified recovery ZIPs and preserve one canonical
+  installed application path.
+- Keep duplicate cleanup in transactional installation and after a completed
+  update handoff. Ordinary app launches no longer scan or clean owned Trash apps.
+  Complete cleanup before consuming the update marker, retaining it for retry if
+  cleanup fails. Backend boot failures and reconnects cannot lose or repeat it.
+- Preserve existing projects, private connections, model installations and
+  Keychain credentials. Local packaging and installation use signature and
+  bundle-content checks; automated tests, smoke tests and model generation were
+  intentionally not run for this update, as requested.
+- Publish source and English release notes only; no downloadable Mac release
+  or Sparkle appcast is published.
 
 ## 0.11.2 — 2026-11-05
 

@@ -11,7 +11,7 @@ progression is director conversation → project → brief → bible → images/
 Public source publication was authorized on 2026-11-04. On 2026-11-05 the user requested replacing the CC engine and selected MIT for independently authored code. Current engine/server and contracts use that replacement; old versions retain their CC terms in Git history. Native and bundled CPU tests use the included engine and synthetic media, without model startup or downloads. The independent engine preserves schema-v1 files, CAS, immutable media, production review and process/update ownership. Qwen uses native Comfy plus an independent memory barrier; LTX uses the external MIT CLI/local pack. Language/audio APIs and Comfy profiles may be local or cloud-hosted. Model/provider terms remain separate.
 
 The user then explicitly requested the local app update. Installed Sprintwake is
-now MIT **0.11.0/build 17**. Private
+now MIT **0.11.3/build 20**. Private
 configuration backups precede compatible LTX CLI and direct oMLX connection entries;
 the same language model and all production paths are retained. Credentials use the
 existing endpoint-scoped Keychain service. The independent Comfy helper is installed,
@@ -48,8 +48,8 @@ response is scripted and explicitly disclosed. Capture via scripts/capture-showc
   recent planned-state handoff and validates new manuscript continuity fields;
   `review_gate.py`/`panels.py` expose planned-versus-actual comparisons and optional
   human observations tied to clip hashes. `studio.py` exposes before/after state,
-  speaker and language/delivery in the clip details panel. Version 0.11.2/build 19
-  is installed for the expressly requested local/GitHub update. Tests and model generation
+  speaker and language/delivery in the clip details panel. These 0.11.2 improvements
+  are retained in 0.11.3/build 20 for the expressly requested local/GitHub update. Tests and model generation
   remain deferred; STATUS.md records installation separately from qualification.
 
 - `creation_panel.py` / `creation_smoke.py`: native three-card start page and
@@ -264,6 +264,9 @@ Automatic duplicate prevention: managed build paths resolve below `.noindex`.
 committed installation consumes the input and retires old/legacy apps. Recovery
 uses verified, synced ZIPs in Trash, with external receipts. Keeping executable
 folders in Trash allows macOS to rediscover them despite unregistration. A shared
-lock serializes retirement and background startup reconciliation of owned Trash
-apps. Whole-Contents active-process guards precede installer rename. Cleanup
+lock serializes retirement and update-handoff reconciliation of owned Trash apps.
+Only an exact matching pending update permits cleanup, before marker consumption
+and backend startup. Failure keeps the marker for retry; ordinary app starts and
+backend reconnects do not schedule cleanup. Transactional
+installation retains its cleanup. Whole-Contents active-process guards precede installer rename. Cleanup
 failures stay visible and preserve a committed installation's handoff.

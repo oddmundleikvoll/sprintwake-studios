@@ -1,6 +1,42 @@
 # Current status — 2026-11-05
 
-## Automatic app-copy prevention — completed 2026-11-05
+## 0.11.3 / build 20 — update-only cleanup
+
+The user requested cleanup at installation/update only, a local app and GitHub
+source update with an English changelog, and no tests or generation.
+
+Removed `app.cleanup` from backend readiness. The native app now supplies a
+callback to the lifetime guard, which invokes it only for an exact matching
+pending update under exclusive startup/instance/reader ownership. Cleanup runs
+before marker consumption and backend startup; failure keeps the marker for
+retry. Ordinary launches and backend reconnects do not run cleanup. Transactional
+installation and verified recovery ZIPs are retained unchanged.
+
+Independent source review covered handoff failure/retry and ordinary startup.
+Regression cases were added but deliberately not executed. No unit tests, syntax
+checks, lint, native smoke, CI tests, inference or model downloads were run for
+this change. Publication uses `[skip ci]`.
+
+Standalone packaging and transactional installation completed for **0.11.3/build
+20** at `~/Applications/Sprintwake Studios.app`. Its deep/strict signature is
+valid; all 95 bundled Python source files and release metadata match local source.
+All 175 snapshotted production/settings files retain their content (large media
+retain size/mtime). The installer consumed the build source and retained obsolete
+apps as verified recovery ZIPs. LaunchServices lists exactly the canonical app.
+
+The app was not launched for functional QA. The installer's exact build-20
+handoff remains for the next ordinary launch, when update-only cleanup completes
+before backend startup. No public Mac release or appcast was published.
+
+Ignored local evidence: `qa/build-0.11.3-final.log`, `qa/install-0.11.3.log`,
+`qa/bundle-contents-0.11.3.json`, `qa/preservation-0.11.3.json` and
+`qa/installed-0.11.3.json`. An earlier candidate was retired after source review;
+only the corrected final bundle was installed.
+
+All test counts in the historical entry below predate this callback change and
+do not qualify 0.11.3/build 20 or the previously deferred film-direction changes.
+
+## Historical app-copy prevention implementation — 2026-11-05
 
 Managed builds now use resolved `.noindex` staging. `package-app.sh --verify`
 checks a disposable standalone app and retires it on success or failure. The

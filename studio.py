@@ -244,9 +244,6 @@ class ProductionStudio(CreationMixin, UpdatesMixin, WorkflowPanelMixin, Connecti
         if self.mode == 'director':
             self.activate_conversation(self.current_conversation['id'])
         self.toast("The studio is ready. Choose an image, clip, or Film Studio.")
-        if os.environ.get('SPRINTWAKE_APP_BUNDLE'):
-            from installation import cleanup_app_registration
-            self.submit('app.cleanup',cleanup_app_registration,scoped=False)
         if getattr(self, "startup_project", None):
             source, self.startup_project = self.startup_project, None
             self.import_project(source)
@@ -1531,7 +1528,8 @@ def main(argv=None):
     from contracts.app_lifetime import AppLifetime
     if qa_root or temporary:
         os.environ['SPRINTWAKE_UPDATE_LOCK_ROOT']=str(Path(qa_root or temporary.name)/'UpdateLocks')
-    guard=AppLifetime(bundle=os.environ.get('SPRINTWAKE_APP_BUNDLE'),build=os.environ.get('SPRINTWAKE_APP_BUILD')).enter_app()
+    from installation import cleanup_app_registration
+    guard=AppLifetime(bundle=os.environ.get('SPRINTWAKE_APP_BUNDLE'),build=os.environ.get('SPRINTWAKE_APP_BUILD')).enter_app(on_update_handoff=cleanup_app_registration)
     studio=None
     qa_report=None
     try:
