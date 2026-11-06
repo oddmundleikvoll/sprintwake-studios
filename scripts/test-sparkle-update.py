@@ -9,7 +9,7 @@ from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from connections import defaults,ConnectionStore,validate
 from release_artifacts import prepare_release
-from app_bundles import BUNDLE_ID,bundle_id,clear_trash_registrations,trash_bundle
+from app_bundles import BUNDLE_ID,bundle_id,trash_bundle
 
 class Handler(BaseHTTPRequestHandler):
     def log_message(self,*_):pass
@@ -41,7 +41,6 @@ def sign_bundle(app):
 
 def cleanup_scenario(source,destination):
     """Only paths created by this scenario; never its input or user apps."""
-    identities=set()
     for group in ('Installed','payload'):
         app=destination/'Apps.noindex'/group/'Sprintwake Studios.app'
         if not app.exists():continue
@@ -49,15 +48,11 @@ def cleanup_scenario(source,destination):
             raise ValueError('A QA application path escaped its scenario directory')
         ident=bundle_id(app)
         if ident:
-            identities.add(ident)
             trash_bundle(app,keep=(source,),receipt_dir=destination/'cleanup-receipts.noindex')
         else:
             # An interrupted copy has no valid application identity and was
             # created exclusively inside this scenario's new directory.
             shutil.rmtree(app)
-    for ident in identities:
-        if ident.startswith(BUNDLE_ID+'.qa.'):
-            clear_trash_registrations(ident,keep=(source,))
 
 def scenario(source,destination,tools,account,bad_feed,test_key_file=None):
     destination.mkdir(parents=True,exist_ok=False)

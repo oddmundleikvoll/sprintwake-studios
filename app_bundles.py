@@ -316,39 +316,3 @@ def trash_bundle(path: Path, *, keep: Iterable[Path] = (), receipt_dir: Path) ->
     _remove_archived_bundle(actual,entries)
     _unregister(actual)
     return backup
-
-
-@_serialized
-def clear_trash_registrations(identifier: str, *, keep: Iterable[Path] = (), include_qa: bool = False) -> int:
-    """Convert owned Trash apps to recoverable ZIPs so they cannot reindex."""
-    if not _allowed_id(identifier):
-        raise ValueError("Unsupported Sprintwake bundle identifier")
-    trash = _resolved(Path.home() / ".Trash")
-    protected = tuple(keep) + (_canonical(),)
-    selected=set()
-    matches=lambda value:value==identifier or bool(include_qa and identifier==BUNDLE_ID and _allowed_id(value))
-    for path, ident in _dump_records():
-        absolute = _resolved(path)
-        if _protected(absolute, protected) or trash not in absolute.parents:
-            continue
-        if matches(ident) and matches(bundle_id(path)):
-            selected.add(absolute)
-    # Unregistered apps can be rediscovered later. Include direct Trash app
-    # bundles too, never recurse into vendor helpers or unrelated directories.
-    if trash.exists():
-        for path in trash.iterdir():
-            if matches(bundle_id(path)) and not _protected(path,protected):
-                selected.add(_resolved(path))
-    candidates=sorted(selected)
-    archives=[]
-    receipts=_cleanup_root()
-    if candidates:receipts.mkdir(parents=True,exist_ok=True,mode=0o700)
-    for path in candidates:
-        receipt=receipts/('archive-'+uuid.uuid4().hex+'.json')
-        _,entries=_archive_trash_bundle(path,receipt)
-        archives.append((path,entries))
-    _unregister_many(candidates)
-    for path,entries in archives:
-        _remove_archived_bundle(path,entries)
-    _unregister_many(candidates)
-    return len(candidates)

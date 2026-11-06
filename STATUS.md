@@ -1,4 +1,77 @@
-# Current status — 2026-11-05
+# Current status — 2026-11-06
+
+## 0.11.4 / build 21 — remove Trash maintenance from startup and updates
+
+The user requested removal of the Trash behavior that blocked startup, both
+locally and on GitHub. Removed the native startup callback, installation
+registration-cleanup wrapper, global Trash reconciliation function and its
+Sparkle-QA callsite. The lifetime API no longer accepts maintenance callbacks;
+its bundled contract is synchronized from the independent engine.
+
+Ordinary startup and exact matching update handoff now proceed without Trash
+enumeration or registration cleanup. Exact bundle/build matching, exclusive
+startup/instance/code-reader locks, backend admission and transactional rollback
+remain. Installation and disposable QA retire only their explicitly known
+obsolete/input bundles, retaining verified recovery ZIPs and receipts.
+
+Focused verification:
+
+- `.venv/bin/python -B -m unittest tests.test_app_bundles tests.test_app_workflows tests.test_install_app tests.test_updates tests.test_bundle -v`:
+  49 tests total, 48 passed and one opt-in Foundation probe skipped.
+- `runtime/bundle-venv/bin/python -B -m unittest discover -s engine/tests -p test_lifetime.py -v`:
+  all 10 tests passed, including ordinary/matching-update entry with denied Trash
+  access and unchanged handoff markers for a wrong bundle or build.
+- Pure engine/contract parity, shell syntax and final diff checks pass.
+- Independent code review found no code-level blockers. Historical film-direction
+  qualification remains deferred; no model inference or downloads were started.
+
+Standalone 0.11.4/build 21 packaging completed with a valid deep/strict signature.
+Transactional local installation completed at the canonical application path.
+All 95 bundled Python files match current source, and all 105 existing production
+and connection/engine-setting files are byte-identical to the pre-install snapshot.
+LaunchServices lists only the canonical app. An ordinary open shows the native
+Start window and consumes the exact build-21 handoff without Trash maintenance.
+The new signed app can request renewed access to the existing Keychain item;
+that dialog remains for the user to approve.
+
+GitHub publication contains source and the English changelog only. CI is skipped
+for this focused repair, keeping the earlier broad qualification deferred.
+No public Mac release or Sparkle appcast is published. Private packaging,
+installation and preservation evidence stays under `qa/build-0.11.4.log`,
+`qa/install-0.11.4.log` and `qa/install-0.11.4.noindex/`.
+
+## Installed build-20 startup recovery — 2026-11-06
+
+The installed app exited before creating its window. Its stderr log showed
+`PermissionError: [Errno 1] Operation not permitted: ~/.Trash` in the exact
+build-20 update-handoff callback. macOS denied the app's Trash enumeration; the
+failed callback correctly retained `Updates/pending-update.json` for retry.
+
+Completed that existing callback from the installation context using the
+installed bundle's own `AppLifetime.enter_app(on_update_handoff=...)`, exact
+bundle path and build from Info.plist. Cleanup succeeded with zero obsolete
+bundles; the lifetime guard consumed the marker normally and released its locks.
+The marker was backed up before recovery and was never manually deleted.
+
+An ordinary LaunchServices open now creates the real native Start window, with
+the existing project listed. No application code, signature, privacy permissions,
+model installations or private connection settings were changed. All 105 existing
+files snapshotted under the production root and current connection/engine settings
+were byte-identical after recovery and launch. The installed deep/strict signature
+was valid before recovery; no bundled files were written.
+
+The studio initially remained at “Connecting to studio…” while macOS started
+SecurityAgent and the backend had not yet spawned. After the user approved the
+existing Keychain access, the owned bundled backend started as a child of the
+native app. The actual window now shows “Production core ready · Sprintwake
+production engine” and “The studio is ready.” No security dialog was operated
+by Codex.
+No automated tests, model services, downloads or inference were started. This is
+an operational recovery, not a durable fix for denied Trash access in a future
+update. Build-20 functional qualification remains deferred.
+
+Private evidence: `qa/startup-recovery-20261106.noindex/` contains the original
+update marker, preservation snapshot and recovery result.
 
 ## 0.11.3 / build 20 — update-only cleanup
 

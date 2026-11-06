@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.11.4 — 2026-11-06
+
+- Remove automatic Trash scanning and app-registration cleanup from native
+  startup and update handoff. Denied access to Trash no longer prevents the
+  studio window and production backend from starting.
+- Remove the global Trash reconciliation helper, including its use by Sparkle
+  QA. Disposable QA and installation still retire only their own known bundles.
+- Preserve exact bundle/build handoff validation, single-instance ownership,
+  active-process locks, transactional rollback and verified recovery archives.
+- Keep projects, model installations, private connections and existing
+  Keychain credentials outside the application bundle.
+- Verify the startup/install change with 58 passing focused CPU tests and one
+  skipped opt-in macOS probe. No model inference or public Mac release is part
+  of this repair.
+
 ## 0.11.3 — 2026-11-05
 
 - Prevent duplicate app entries from future managed builds, installs and QA runs.

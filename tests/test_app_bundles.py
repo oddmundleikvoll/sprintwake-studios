@@ -59,27 +59,6 @@ class AppBundlesTests(unittest.TestCase):
             with patch.object(app_bundles, "_running_process", return_value=True):
                 with self.assertRaises(RuntimeError): app_bundles.trash_bundle(source, receipt_dir=root / "r")
 
-    def test_clear_is_trash_only_and_exact_scope(self):
-        with tempfile.TemporaryDirectory() as d:
-            root = Path(d); trash = root / ".Trash"; trash.mkdir(); own = self.make_bundle(trash); qa = self.make_bundle(trash, app_bundles.BUNDLE_ID + ".qa." + "a" * 32, "QA.app"); foreign = self.make_bundle(trash, "com.vendor.tool", "Vendor.app")
-            canonical = root / "Applications" / app_bundles.APP_NAME; canonical.parent.mkdir(); self.make_bundle(canonical.parent, app_bundles.BUNDLE_ID)
-            dump = "\n".join([f"path: {p} (0x58c0)\nidentifier: {i}\n" for p, i in [(own, app_bundles.BUNDLE_ID), (own, app_bundles.BUNDLE_ID), (qa, app_bundles.BUNDLE_ID + ".qa." + "a" * 32), (foreign, "com.vendor.tool"), (canonical, app_bundles.BUNDLE_ID)]])
-            with patch.object(app_bundles.Path, "home", return_value=root), patch.object(app_bundles, "_canonical", return_value=canonical), patch.object(app_bundles.subprocess, "run", return_value=type("R", (), {"stdout": dump, "returncode": 0, "stderr": ""})()),patch.object(app_bundles,'_archive_trash_bundle',return_value=(root/'backup.zip',{})) as archive,patch.object(app_bundles,'_remove_archived_bundle') as remove,patch.object(app_bundles, "_unregister_many") as unregister:
-                self.assertEqual(app_bundles.clear_trash_registrations(app_bundles.BUNDLE_ID), 1)
-            self.assertEqual(unregister.call_args.args[0],[app_bundles._resolved(own)])
-            archive.assert_called_once();remove.assert_called_once_with(app_bundles._resolved(own),{})
-
-    def test_unregistered_qa_trash_apps_are_archived_only_when_requested(self):
-        with tempfile.TemporaryDirectory() as temp:
-            home=Path(temp);trash=home/'.Trash';trash.mkdir()
-            qa=self.make_bundle(trash,app_bundles.BUNDLE_ID+'.qa.'+'b'*32,'Unregistered QA.app')
-            vendor=self.make_bundle(trash,'org.sparkle-project.Test','Vendor.app')
-            with patch.object(app_bundles.Path,'home',return_value=home),patch.object(app_bundles,'_dump_records',return_value=[]),patch.object(app_bundles,'_archive_trash_bundle',return_value=(home/'backup.zip',{})) as archive,patch.object(app_bundles,'_remove_archived_bundle') as remove,patch.object(app_bundles,'_unregister_many'):
-                self.assertEqual(app_bundles.clear_trash_registrations(app_bundles.BUNDLE_ID),0)
-                self.assertEqual(app_bundles.clear_trash_registrations(app_bundles.BUNDLE_ID,include_qa=True),1)
-            archive.assert_called_once();remove.assert_called_once_with(qa.resolve(),{})
-            self.assertTrue(vendor.exists())
-
     def test_unregister_failure_preserves_receipt(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d); source = self.make_bundle(root); trash = root / ".Trash"; trash.mkdir(); receipt_dir = root / "receipts"; actual = trash / source.name

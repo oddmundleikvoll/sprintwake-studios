@@ -4,36 +4,36 @@ import sys
 sys.path.insert(0,str(Path(__file__).parents[1]))
 from engine.server.app_lifetime import AppLifetime
 class LifetimeTests(unittest.TestCase):
- def test_cleanup_handoff_does_not_run_on_ordinary_start(self):
+ def test_update_handoff_starts_without_access_to_trash(self):
+  from unittest.mock import patch
+  for pending in (False,True):
+   with self.subTest(pending=pending),tempfile.TemporaryDirectory() as t:
+    root=Path(t); bundle=str(root/'Sprintwake Studios.app')
+    if pending:
+     old=AppLifetime(root,bundle=bundle,build=20).enter_app()
+     old.reserve(21); old.close()
+    original=os.listdir
+    def listdir(path):
+     if Path(path).name=='.Trash':raise PermissionError(1,'Operation not permitted',str(path))
+     return original(path)
+    with patch('os.listdir',side_effect=listdir) as listing:
+     app=AppLifetime(root,bundle=bundle,build=21).enter_app()
+     try:
+      self.assertEqual(app.mode,'reader')
+      self.assertFalse((root/'pending-update.json').exists())
+      engine=AppLifetime(root).enter_engine();engine.close()
+      self.assertFalse(any(Path(call.args[0]).name=='.Trash' for call in listing.call_args_list))
+     finally:app.close()
+ def test_update_handoff_keeps_marker_for_wrong_bundle_or_build(self):
   with tempfile.TemporaryDirectory() as t:
-   calls=[]; app=AppLifetime(Path(t),bundle='app',build=20).enter_app(on_update_handoff=lambda:calls.append('cleanup'))
-   try:self.assertEqual(calls,[])
-   finally:app.close()
- def test_cleanup_handoff_runs_only_for_matching_update_entry(self):
-  with tempfile.TemporaryDirectory() as t:
-   calls=[]; cleanup=lambda:calls.append('cleanup')
-   root=Path(t); old=AppLifetime(root,bundle='app',build=19).enter_app()
-   old.reserve(20); old.close()
-   mismatched=AppLifetime(root,bundle='app',build=19)
-   with self.assertRaises(RuntimeError):mismatched.enter_app(on_update_handoff=cleanup)
-   self.assertEqual(calls,[])
-   app=AppLifetime(root,bundle='app',build=20).enter_app(on_update_handoff=cleanup)
-   try:self.assertEqual(calls,['cleanup'])
-   finally:app.close()
-   app.enter_app(on_update_handoff=cleanup)
-   try:self.assertEqual(calls,['cleanup'])
-   finally:app.close()
- def test_failed_cleanup_keeps_handoff_for_retry_before_backend_start(self):
-  with tempfile.TemporaryDirectory() as t:
-   root=Path(t); old=AppLifetime(root,bundle='app',build=19).enter_app()
-   old.reserve(20); old.close()
-   def fail():raise OSError('Cleanup unavailable')
-   with self.assertRaises(OSError):AppLifetime(root,bundle='app',build=20).enter_app(on_update_handoff=fail)
-   self.assertTrue((root/'pending-update.json').is_file())
-   calls=[]; app=AppLifetime(root,bundle='app',build=20).enter_app(on_update_handoff=lambda:calls.append('cleanup'))
-   try:
-    self.assertEqual(calls,['cleanup']); self.assertFalse((root/'pending-update.json').exists())
-   finally:app.close()
+   root=Path(t);old=AppLifetime(root,bundle='app',build=20).enter_app()
+   old.reserve(21);old.close()
+   marker=root/'pending-update.json';before=marker.read_bytes()
+   for bundle,build in (('other',21),('app',20)):
+    with self.assertRaises(RuntimeError):AppLifetime(root,bundle=bundle,build=build).enter_app()
+    self.assertEqual(marker.read_bytes(),before)
+   app=AppLifetime(root,bundle='app',build=21).enter_app();app.close()
+   self.assertFalse(marker.exists())
  def test_pending_marker_and_reader_guard(self):
   with tempfile.TemporaryDirectory() as t:
    a=AppLifetime(Path(t),bundle='a',build=1).enter_app(); a.reserve(2); self.assertTrue(a.writer_ready()); self.assertTrue((Path(t)/'pending-update.json').exists()); a.cancel_update(); a.close()

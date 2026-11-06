@@ -1,7 +1,9 @@
 # Sprintwake Studios — mål og prosjektstatus
 
-Oppdatert 5. november 2026. Installert og ny kildeversjon: **0.11.3, build 20 (MIT)**.
-Lokal oppdatering er utført uten tester eller generering, etter uttrykkelig beskjed.
+Oppdatert 6. november 2026. Installert og ny kildeversjon: **0.11.4, build 21 (MIT)**.
+Papirkurvskanning er fjernet fra appens oppstart og oppdatering etter brukerens
+beskjed. 58 målrettede CPU-tester består; én valgfri macOS-test ble hoppet over.
+Tidligere filmregitester er fortsatt utsatt. Ingen modellgenerering er startet.
 Oppstart kan kreve brukerens godkjenning av eksisterende Nøkkelring-tilgang.
 Installasjonsutfallet føres i STATUS.md. Endringene beskrives på
 engelsk i [CHANGELOG.md](CHANGELOG.md).
@@ -105,10 +107,11 @@ urørt. Den offentlige kildekoden kan bygges lokalt uten Developer ID/notariseri
 Fremtidige bygg bruker `.noindex`, og vellykket installasjon forbruker byggekilden
 og rydder gammel app. Disponibel byggkontroll og Sparkle-prøver rydder egne kopier
 også ved feil. Gamle appmapper blir kontrollerte ZIP-sikkerhetskopier i papirkurven,
-siden macOS ellers kan oppdage dem igjen. Opprydding beholdes ved installasjon og
-én gang etter bekreftet oppdatering. Vanlig oppstart og ny backend-tilkobling
-starter ingen opprydding. Brukeren bestilte også lokal installasjon og GitHub
-med engelsk changelog for 0.11.3/build 20, uten tester eller generering.
+siden macOS ellers kan oppdage dem igjen. Etter oppstartsfeilen 6. november ba
+brukeren om å fjerne papirkurvfunksjonen lokalt og på GitHub. Versjon 0.11.4/build
+21 fjerner generell skanning og opprydding fra appens oppstart og oppdatering.
+Installasjonen håndterer fortsatt bare de konkrete appkopiene den erstatter;
+oppdateringslåser og tilbakeføring ved feil beholdes.
 
 ## MIT-erstatning (0.11)
 

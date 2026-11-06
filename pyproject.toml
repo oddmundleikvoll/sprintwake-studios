@@ -1,6 +1,6 @@
 [project]
 name = "sprintwake-studios"
-version = "0.11.3"
+version = "0.11.4"
 description = "Sprintwake Studios native film production editor"
 license = "MIT"
 requires-python = ">=3.12,<3.13"

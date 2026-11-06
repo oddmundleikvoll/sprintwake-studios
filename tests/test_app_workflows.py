@@ -56,11 +56,10 @@ class WorkflowCleanupTests(unittest.TestCase):
                     (destination/'Apps.noindex'/group/'Sprintwake Studios.app').mkdir(parents=True)
                 raise RuntimeError('signed feed rejected')
             removed=[]
-            with patch.object(sparkle,'_scenario',side_effect=fail),patch.object(sparkle,'bundle_id',return_value=identifier),patch.object(sparkle,'trash_bundle',side_effect=lambda p,**kw:removed.append(p)),patch.object(sparkle,'clear_trash_registrations') as clear:
+            with patch.object(sparkle,'_scenario',side_effect=fail),patch.object(sparkle,'bundle_id',return_value=identifier),patch.object(sparkle,'trash_bundle',side_effect=lambda p,**kw:removed.append(p)):
                 with self.assertRaisesRegex(RuntimeError,'signed feed rejected'):
                     sparkle.scenario(source,destination,root/'tools',None,True)
             self.assertEqual({path.parent.name for path in removed},{'Installed','payload'})
-            clear.assert_called_once_with(identifier,keep=(source,))
 
     def test_existing_scenario_and_symlink_escape_are_never_cleaned(self):
         with tempfile.TemporaryDirectory() as temp:

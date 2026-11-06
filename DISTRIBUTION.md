@@ -149,13 +149,13 @@ instead of executable QA bundles. `.noindex` staging also reduces indexing.
 Unregistering an app folder in Trash alone is insufficient: macOS can rediscover
 it hours later. Do not retain obsolete executable folders there.
 
-Only the matching new app completing a pending update handoff reconciles physically
-present and registered owned Trash apps. It does so before consuming the marker
-and starting the backend; a cleanup failure retains the marker for retry. Ordinary
-launches do not schedule cleanup; backend reconnects do not repeat it.
-Transactional installation retains its existing cleanup. Production
-cleanup includes Sprintwake's unique QA IDs; a QA app only cleans its own ID. Direct Trash children
-are inspected without recursing into unrelated packages. A cross-process lock
-serializes retirement and post-update reconciliation. Existing user media, models,
-settings, Sprintwake Projects and vendor SDKs remain protected; Trash is never
-emptied and the LaunchServices database is never reset. Cleanup errors are visible.
+App startup, backend reconnects and update handoff never enumerate Trash or
+reconcile old app registrations. The exact matching new bundle/build completes
+its lifetime handoff under the startup, instance and code-reader locks, without
+filesystem maintenance. macOS denial of Trash access cannot block that handoff.
+Transactional installation and disposable QA retain retirement of their own
+explicitly known obsolete bundles, serialized by the cleanup lock. They do not
+search Trash for other applications. Existing user media, models, settings,
+Sprintwake Projects and vendor SDKs remain protected; Trash is never emptied
+and the LaunchServices database is never reset. Installer errors remain visible
+with recovery data retained.

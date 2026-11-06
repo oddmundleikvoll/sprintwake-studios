@@ -1528,8 +1528,7 @@ def main(argv=None):
     from contracts.app_lifetime import AppLifetime
     if qa_root or temporary:
         os.environ['SPRINTWAKE_UPDATE_LOCK_ROOT']=str(Path(qa_root or temporary.name)/'UpdateLocks')
-    from installation import cleanup_app_registration
-    guard=AppLifetime(bundle=os.environ.get('SPRINTWAKE_APP_BUNDLE'),build=os.environ.get('SPRINTWAKE_APP_BUILD')).enter_app(on_update_handoff=cleanup_app_registration)
+    guard=AppLifetime(bundle=os.environ.get('SPRINTWAKE_APP_BUNDLE'),build=os.environ.get('SPRINTWAKE_APP_BUILD')).enter_app()
     studio=None
     qa_report=None
     try:

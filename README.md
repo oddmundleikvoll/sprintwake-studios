@@ -107,9 +107,10 @@ update. Existing image plans require
 explicit preparation and review under the new direction version; prior production
 journals, media and recipes are retained.
 
-Version 0.11.3 keeps app-copy cleanup at installation and once after a completed
-update. Ordinary launches do not scan or clean old app copies. Tests and model
-generation remain deferred for this update at the user's request.
+Version 0.11.4 removes automatic Trash scanning from app startup and update
+handoff. macOS privacy restrictions on Trash can no longer prevent the studio
+window from opening. Updates retain their process and lifetime locks; the
+installer still retires only the exact obsolete bundles it replaced.
 
 ## Build, develop and contribute
 

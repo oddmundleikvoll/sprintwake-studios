@@ -354,19 +354,23 @@ app directory, verify all archived bytes/types/modes/links and an unchanged sour
 snapshot, then sync the ZIP and receipt. Unregister original and actual Trash
 URLs. Retaining `.app` folders in Trash permits later rediscovery; keep ZIPs.
 Preserve rollback until installation commits, and preserve the new handoff on
-post-commit cleanup errors. Only an exact matching update handoff permits
-reconciliation of old owned Trash apps. Run the native app's update-only callback
-under the lifetime handoff locks before consuming its marker or starting the
-backend. A failed cleanup retains the marker for retry. Ordinary app startup and
-backend reconnects must never schedule cleanup. Transactional installation keeps
-its cleanup. Sparkle fixtures clean their own copies/UUID in `finally`. No global
-registry reset, Trash emptying, foreign app removal or model startup belongs here.
+post-commit installer errors. On 2026-11-06 the user requested removal of the
+Trash maintenance that blocked startup, locally and on GitHub. Native startup,
+backend reconnects and update handoff must never scan Trash, reconcile old app
+registrations or call installer cleanup. The matching new build consumes its
+marker only under the existing exclusive startup/instance/code-reader locks.
+Never restore a maintenance callback to that path. Transactional installation
+retains retirement of only its exact replaced/input bundles; Sparkle fixtures
+retire only their own known copies in `finally`. No global registry reset,
+Trash emptying, foreign app removal or model startup belongs here.
 
-The user authorized local installation and GitHub source/changelog publication
-of 0.11.3/build 20 without running tests or generation. Keep functional tests and
-smoke checks deferred; record packaging/signature/content evidence separately.
+Version 0.11.4/build 21 removes the global Trash scan and handoff callback.
+Focused startup/install CPU checks qualify this fix separately from the deferred
+0.11.2/0.11.3 film-direction tests. No model generation or public Mac release
+is authorized by this repair. Record local installation evidence separately.
 
 ```sh
 RAVEN_RUN_REAL_APP_BUNDLE_PROBE=1 uv run --frozen python -B -m unittest tests.test_app_bundles tests.test_app_workflows tests.test_install_app tests.test_updates -v
+runtime/bundle-venv/bin/python -B -m unittest discover -s engine/tests -p test_lifetime.py -v
 bash -n scripts/package-app.sh scripts/setup.sh
 ```

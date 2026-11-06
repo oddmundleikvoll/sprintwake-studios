@@ -5,26 +5,9 @@ from unittest.mock import patch
 from updates import local_blockers
 from update_panel import UpdatesMixin
 from connections import ConnectionStore,defaults
-from installation import migrate_local_settings,rebase_bundle_paths,cleanup_app_registration
+from installation import migrate_local_settings,rebase_bundle_paths
 
 class UpdateTests(unittest.TestCase):
-    def test_source_startup_does_not_touch_application_registrations(self):
-        with patch.dict('os.environ',{},clear=True),patch('app_bundles.clear_trash_registrations') as cleanup:
-            self.assertEqual(cleanup_app_registration(),0)
-            cleanup.assert_not_called()
-
-    def test_packaged_startup_cleans_only_its_identity_and_preserves_current_path(self):
-        with tempfile.TemporaryDirectory() as temp:
-            bundle=Path(temp)/'Sprintwake Studios.app'
-            with patch('app_bundles.bundle_id',return_value='no.oddmund.storyboard.raven'),patch('app_bundles.clear_trash_registrations',return_value=3) as cleanup:
-                self.assertEqual(cleanup_app_registration(bundle),3)
-                cleanup.assert_called_once_with('no.oddmund.storyboard.raven',keep=(bundle,),include_qa=True)
-
-    def test_registration_cleanup_failure_is_not_silently_ignored(self):
-        with patch('app_bundles.bundle_id',return_value='no.oddmund.storyboard.raven'),patch('app_bundles.clear_trash_registrations',side_effect=RuntimeError('registration retained')):
-            with self.assertRaisesRegex(RuntimeError,'registration retained'):
-                cleanup_app_registration(Path('/tmp/fixture.app'))
-
     def test_download_indicator_focuses_existing_sparkle_dialog(self):
         events=[];panel=UpdatesMixin()
         panel.__dict__.update(update_waiting=False,updater=SimpleNamespace(status=lambda:{'stage':'available'},check=lambda:events.append('focus')),show_updates=lambda:events.append('modal'))

@@ -55,7 +55,7 @@ class AppLifetime:
         except Exception:
             self.close(); raise
         finally: self._close(fence)
-    def enter_app(self,*,on_update_handoff=None):
+    def enter_app(self):
         fence=self._open('startup.lock')
         try:
             self._lock(fence,fcntl.LOCK_SH)
@@ -66,9 +66,6 @@ class AppLifetime:
                 if pending['build']!=self.build or pending['bundle']!=self.bundle: raise RuntimeError('Pending update requires its exact matching application')
                 self._lock(fence,fcntl.LOCK_EX); self._lock(self._handle,fcntl.LOCK_EX)
                 if self._pending()!=pending: raise RuntimeError('Update marker changed during handoff')
-                # Finish update-only maintenance before consuming its durable
-                # intent. Failure leaves the marker for the matching app to retry.
-                if on_update_handoff is not None:on_update_handoff()
                 (self.root/'pending-update.json').unlink(); self._sync_directory()
             self._lock(self._handle,fcntl.LOCK_SH); self.mode='reader'; return self
         except Exception:
